@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
+import { Route as AuthenticatedGerentesRouteImport } from './routes/_authenticated/gerentes'
 import { Route as AuthenticatedCorretoresRouteImport } from './routes/_authenticated/corretores'
 import { Route as AuthenticatedAdminIntegracaoRouteImport } from './routes/_authenticated/admin/integracao'
 
@@ -35,6 +36,11 @@ const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
   path: '/vendas',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedGerentesRoute = AuthenticatedGerentesRouteImport.update({
+  id: '/gerentes',
+  path: '/gerentes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedCorretoresRoute = AuthenticatedCorretoresRouteImport.update({
   id: '/corretores',
   path: '/corretores',
@@ -51,12 +57,14 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/corretores': typeof AuthenticatedCorretoresRoute
+  '/gerentes': typeof AuthenticatedGerentesRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/corretores': typeof AuthenticatedCorretoresRoute
+  '/gerentes': typeof AuthenticatedGerentesRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/': typeof AuthenticatedIndexRoute
   '/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
@@ -66,20 +74,34 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/corretores': typeof AuthenticatedCorretoresRoute
+  '/_authenticated/gerentes': typeof AuthenticatedGerentesRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/corretores' | '/vendas' | '/admin/integracao'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/corretores'
+    | '/gerentes'
+    | '/vendas'
+    | '/admin/integracao'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/corretores' | '/vendas' | '/' | '/admin/integracao'
+  to:
+    | '/login'
+    | '/corretores'
+    | '/gerentes'
+    | '/vendas'
+    | '/'
+    | '/admin/integracao'
   id:
     | '__root__'
     | '/_authenticated'
     | '/login'
     | '/_authenticated/corretores'
+    | '/_authenticated/gerentes'
     | '/_authenticated/vendas'
     | '/_authenticated/'
     | '/_authenticated/admin/integracao'
@@ -120,6 +142,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVendasRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/gerentes': {
+      id: '/_authenticated/gerentes'
+      path: '/gerentes'
+      fullPath: '/gerentes'
+      preLoaderRoute: typeof AuthenticatedGerentesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/corretores': {
       id: '/_authenticated/corretores'
       path: '/corretores'
@@ -139,6 +168,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedCorretoresRoute: typeof AuthenticatedCorretoresRoute
+  AuthenticatedGerentesRoute: typeof AuthenticatedGerentesRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAdminIntegracaoRoute: typeof AuthenticatedAdminIntegracaoRoute
@@ -146,6 +176,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCorretoresRoute: AuthenticatedCorretoresRoute,
+  AuthenticatedGerentesRoute: AuthenticatedGerentesRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAdminIntegracaoRoute: AuthenticatedAdminIntegracaoRoute,
