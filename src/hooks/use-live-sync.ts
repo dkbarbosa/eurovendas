@@ -23,7 +23,12 @@ export function useLiveSync() {
     running.current = true;
     setState("syncing");
     try {
-      const r = (await sync({})) as { rows: number };
+      const r = (await sync({})) as { ok: boolean; rows: number; error?: string };
+      if (!r.ok) {
+        setLastError(r.error ?? "Erro desconhecido");
+        setState("error");
+        return;
+      }
       setRows(r.rows);
       setLastAt(new Date());
       setState("ok");
