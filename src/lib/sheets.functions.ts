@@ -15,6 +15,7 @@ async function readConfig() {
 export const syncFromSheets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    try {
     const { userId } = context;
     const { data: roleRow } = await context.supabase
       .from("user_roles")
@@ -22,22 +23,20 @@ export const syncFromSheets = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
-    if (!roleRow) throw new Error("Apenas administradores podem sincronizar.");
+    if (!roleRow) return { ok: false, rows: 0, error: "Apenas administradores podem sincronizar." };
 
     const cfg = await readConfig();
     const spreadsheetIdRaw = (cfg.sheets_spreadsheet_id as string) || "";
     const range = (cfg.sheets_range as string) || "Equipe Maicon!A:U";
     const spreadsheetId = extractSpreadsheetId(spreadsheetIdRaw);
     if (!spreadsheetId) {
-      throw new Error("Configure a URL/ID do Google Sheets em Integração antes de sincronizar.");
+      return { ok: false, rows: 0, error: "Configure a URL/ID do Google Sheets em Integração antes de sincronizar." };
     }
 
     const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
     const SHEETS_KEY = process.env.GOOGLE_SHEETS_API_KEY;
     if (!LOVABLE_API_KEY || !SHEETS_KEY) {
-      throw new Error(
-        "Conecte o Google Sheets primeiro (botão 'Conectar Google Sheets' em Integração).",
-      );
+      return { ok: false, rows: 0, error: "Conecte o Google Sheets primeiro (botão 'Conectar Google Sheets' em Integração)." };
     }
 
     const { data: log } = await supabaseAdmin
