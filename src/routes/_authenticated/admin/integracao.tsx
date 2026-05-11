@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/admin/integracao")({
 });
 
 function IntegPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, session } = useAuth();
   const qc = useQueryClient();
   const sync = useServerFn(syncFromSheets);
   const update = useServerFn(updateSheetConfig);
@@ -49,7 +49,7 @@ function IntegPage() {
   });
 
   const saveMut = useMutation({
-    mutationFn: () => update({ data: { spreadsheetId: url } }),
+    mutationFn: () => update({ data: { spreadsheetId: url }, headers: { Authorization: `Bearer ${session?.access_token ?? ""}` } }),
     onSuccess: () => {
       toast.success("URL salva.");
       qc.invalidateQueries({ queryKey: ["config-int"] });
@@ -58,7 +58,7 @@ function IntegPage() {
   });
 
   const syncMut = useMutation({
-    mutationFn: () => sync({}),
+    mutationFn: () => sync({ headers: { Authorization: `Bearer ${session?.access_token ?? ""}` } }),
     onSuccess: (r: { ok: boolean; rows: number; error?: string }) => {
       if (!r.ok) {
         toast.error(r.error ?? "Falha ao sincronizar");
@@ -68,7 +68,7 @@ function IntegPage() {
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["sync-log"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: async (e: unknown) => toast.error(e instanceof Response ? await e.text() : e instanceof Error ? e.message : String(e)),
   });
 
   if (!isAdmin) return <div className="text-muted-foreground">Acesso restrito a administradores.</div>;
@@ -95,13 +95,13 @@ function IntegPage() {
           <p className="text-xs text-muted-foreground">Aba: {cfg?.sheets_range ?? "Equipe Maicon!A:U"}</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} variant="secondary">
+          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !session?.access_token} variant="secondary">
             {saveMut.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
             Salvar URL
           </Button>
           <Button
             onClick={() => syncMut.mutate()}
-            disabled={syncMut.isPending}
+            disabled={syncMut.isPending || !session?.access_token}
             style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
           >
             {syncMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
