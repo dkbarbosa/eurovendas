@@ -108,6 +108,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 min-w-0">
+        <div className="sticky top-0 z-30 backdrop-blur-md bg-background/60 border-b border-border/60">
+          <div className="max-w-[1600px] mx-auto px-6 lg:px-10 py-3 flex items-center justify-end gap-3">
+            {isAdmin && <LiveSyncBadge />}
+          </div>
+        </div>
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
