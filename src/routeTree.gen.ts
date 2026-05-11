@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
+import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
 import { Route as AuthenticatedGerentesRouteImport } from './routes/_authenticated/gerentes'
 import { Route as AuthenticatedEmpreendimentosRouteImport } from './routes/_authenticated/empreendimentos'
 import { Route as AuthenticatedCorretoresRouteImport } from './routes/_authenticated/corretores'
@@ -35,6 +36,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
   id: '/vendas',
   path: '/vendas',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedInsightsRoute = AuthenticatedInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedGerentesRoute = AuthenticatedGerentesRouteImport.update({
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/corretores': typeof AuthenticatedCorretoresRoute
   '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/gerentes': typeof AuthenticatedGerentesRoute
+  '/insights': typeof AuthenticatedInsightsRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
 }
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/corretores': typeof AuthenticatedCorretoresRoute
   '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/gerentes': typeof AuthenticatedGerentesRoute
+  '/insights': typeof AuthenticatedInsightsRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/': typeof AuthenticatedIndexRoute
   '/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/_authenticated/corretores': typeof AuthenticatedCorretoresRoute
   '/_authenticated/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/_authenticated/gerentes': typeof AuthenticatedGerentesRoute
+  '/_authenticated/insights': typeof AuthenticatedInsightsRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/corretores'
     | '/empreendimentos'
     | '/gerentes'
+    | '/insights'
     | '/vendas'
     | '/admin/integracao'
   fileRoutesByTo: FileRoutesByTo
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/corretores'
     | '/empreendimentos'
     | '/gerentes'
+    | '/insights'
     | '/vendas'
     | '/'
     | '/admin/integracao'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/_authenticated/corretores'
     | '/_authenticated/empreendimentos'
     | '/_authenticated/gerentes'
+    | '/_authenticated/insights'
     | '/_authenticated/vendas'
     | '/_authenticated/'
     | '/_authenticated/admin/integracao'
@@ -155,6 +167,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVendasRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/insights': {
+      id: '/_authenticated/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof AuthenticatedInsightsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/gerentes': {
       id: '/_authenticated/gerentes'
       path: '/gerentes'
@@ -190,6 +209,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCorretoresRoute: typeof AuthenticatedCorretoresRoute
   AuthenticatedEmpreendimentosRoute: typeof AuthenticatedEmpreendimentosRoute
   AuthenticatedGerentesRoute: typeof AuthenticatedGerentesRoute
+  AuthenticatedInsightsRoute: typeof AuthenticatedInsightsRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAdminIntegracaoRoute: typeof AuthenticatedAdminIntegracaoRoute
@@ -199,6 +219,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCorretoresRoute: AuthenticatedCorretoresRoute,
   AuthenticatedEmpreendimentosRoute: AuthenticatedEmpreendimentosRoute,
   AuthenticatedGerentesRoute: AuthenticatedGerentesRoute,
+  AuthenticatedInsightsRoute: AuthenticatedInsightsRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAdminIntegracaoRoute: AuthenticatedAdminIntegracaoRoute,
