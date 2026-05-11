@@ -19,11 +19,11 @@ export function useLiveSync() {
   const running = useRef(false);
 
   async function run() {
-    if (running.current) return;
+    if (running.current || !session?.access_token) return;
     running.current = true;
     setState("syncing");
     try {
-      const r = (await sync({})) as { ok: boolean; rows: number; error?: string };
+      const r = (await sync({ headers: { Authorization: `Bearer ${session.access_token}` } })) as { ok: boolean; rows: number; error?: string };
       if (!r.ok) {
         setLastError(r.error ?? "Erro desconhecido");
         setState("error");
@@ -37,7 +37,7 @@ export function useLiveSync() {
       qc.invalidateQueries({ queryKey: ["sales-all"] });
       qc.invalidateQueries({ queryKey: ["sync-log"] });
     } catch (e) {
-      setLastError(e instanceof Error ? e.message : String(e));
+      setLastError(e instanceof Response ? await e.text() : e instanceof Error ? e.message : String(e));
       setState("error");
     } finally {
       running.current = false;
