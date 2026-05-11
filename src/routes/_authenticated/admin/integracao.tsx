@@ -59,7 +59,11 @@ function IntegPage() {
 
   const syncMut = useMutation({
     mutationFn: () => sync({}),
-    onSuccess: (r: { rows: number }) => {
+    onSuccess: (r: { ok: boolean; rows: number; error?: string }) => {
+      if (!r.ok) {
+        toast.error(r.error ?? "Falha ao sincronizar");
+        return;
+      }
       toast.success(`Sincronizado: ${r.rows} vendas.`);
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["sync-log"] });
