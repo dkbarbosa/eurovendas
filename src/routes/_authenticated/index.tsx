@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -16,16 +17,22 @@ import {
   Cell,
   RadialBarChart,
   RadialBar,
+  ComposedChart,
+  Line,
+  Legend,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { KPICard } from "@/components/KPICard";
 import { ChartCard } from "@/components/ChartCard";
 import { fmtBRL, fmtBRLCompact, fmtNum } from "@/lib/format";
-import { DollarSign, ShoppingBag, Trophy, Building2, Target, TrendingUp, Users, Award } from "lucide-react";
+import {
+  DollarSign, ShoppingBag, Trophy, Building2, Target, TrendingUp,
+  Users, Award, Filter, CalendarDays, CircleDot,
+} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/_authenticated/")({
-  component: Dashboard,
-});
+export const Route = createFileRoute("/_authenticated/")({ component: Dashboard });
 
 interface Sale {
   id: string;
@@ -36,20 +43,33 @@ interface Sale {
   gerente: string | null;
   comissao_bruta: number | null;
   comissao_liq_corretor: number | null;
+  comissao_ger_bruta: number | null;
   status: string | null;
 }
 
-const COLORS = ["#15CAB6", "#007FFF", "#F6B53D", "#B967FF", "#FF6B6B", "#4ECDC4"];
+const COLORS = ["#15CAB6", "#007FFF", "#F6B53D", "#B967FF", "#FF6B6B", "#4ECDC4", "#FFA94D", "#7DF9FF"];
+
+const STATUS_COLORS: Record<string, string> = {
+  "Em aberto": "#F6B53D",
+  "RESERVADO": "#007FFF",
+  "VENDIDO": "#15CAB6",
+  "CANCELADO": "#FF6B6B",
+  "DISTRATO": "#FF6B6B",
+  "PAGO": "#15CAB6",
+};
+const statusColor = (s: string) => STATUS_COLORS[s] ?? "#B967FF";
+
+const MESES_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
 function Dashboard() {
-  const { data: sales = [], isLoading } = useQuery({
+  const { data: allSales = [], isLoading } = useQuery({
     queryKey: ["sales"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id,data,empreendimento,valor_venda,corretor,gerente,comissao_bruta,comissao_liq_corretor,status")
+        .select("id,data,empreendimento,valor_venda,corretor,gerente,comissao_bruta,comissao_liq_corretor,comissao_ger_bruta,status")
         .order("data", { ascending: false })
-        .limit(2000);
+        .limit(5000);
       if (error) throw error;
       return (data ?? []) as Sale[];
     },
@@ -66,9 +86,39 @@ function Dashboard() {
     },
   });
 
+  // ── Filtros ───────────────────────────────────────────────
+  const years = useMemo(() => {
+    const set = new Set<number>();
+    allSales.forEach((s) => s.data && set.add(new Date(s.data).getUTCFullYear()));
+    return Array.from(set).sort((a, b) => b - a);
+  }, [allSales]);
+
+  const statuses = useMemo(() => {
+    const set = new Set<string>();
+    allSales.forEach((s) => s.status && set.add(s.status));
+    return Array.from(set);
+  }, [allSales]);
+
+  const [year, setYear] = useState<string>("all");
+  const [month, setMonth] = useState<string>("all");
+  const [activeStatus, setActiveStatus] = useState<string>("all");
+
+  const sales = useMemo(() => {
+    return allSales.filter((s) => {
+      if (!s.data) return year === "all" && month === "all";
+      const d = new Date(s.data);
+      if (year !== "all" && d.getUTCFullYear() !== Number(year)) return false;
+      if (month !== "all" && d.getUTCMonth() + 1 !== Number(month)) return false;
+      if (activeStatus !== "all" && s.status !== activeStatus) return false;
+      return true;
+    });
+  }, [allSales, year, month, activeStatus]);
+
+  // ── Métricas ──────────────────────────────────────────────
   const m = useMemo(() => {
     const vgv = sales.reduce((s, x) => s + (x.valor_venda ?? 0), 0);
     const com = sales.reduce((s, x) => s + (x.comissao_bruta ?? 0), 0);
+    const comGer = sales.reduce((s, x) => s + (x.comissao_ger_bruta ?? 0), 0);
     const comLiq = sales.reduce((s, x) => s + (x.comissao_liq_corretor ?? 0), 0);
     const ticket = sales.length ? vgv / sales.length : 0;
 
@@ -76,6 +126,7 @@ function Dashboard() {
     const byGerente = group(sales, "gerente");
     const byEmp = group(sales, "empreendimento");
     const byMonth = groupByMonth(sales);
+    const byStatus = groupByStatus(sales);
 
     const topC = top(byCorretor);
     const topG = top(byGerente);
@@ -89,123 +140,243 @@ function Dashboard() {
         ? (byMonth[cur].vgv - byMonth[prev].vgv) / byMonth[prev].vgv
         : 0;
 
-    const now = new Date();
-    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const monthVgv = byMonth[monthKey]?.vgv ?? 0;
-    const monthSales = byMonth[monthKey]?.count ?? 0;
-
-    const sevenAgo = new Date(now.getTime() - 7 * 86400000);
-    const weekVgv = sales
-      .filter((s) => s.data && new Date(s.data) >= sevenAgo)
-      .reduce((sum, x) => sum + (x.valor_venda ?? 0), 0);
-
-    return {
-      vgv,
-      com,
-      comLiq,
-      ticket,
-      topC,
-      topG,
-      topE,
-      monthVgv,
-      monthSales,
-      weekVgv,
-      growth,
-      byCorretor,
-      byGerente,
-      byEmp,
-      byMonth,
-      months,
-      sales,
-    };
+    return { vgv, com, comGer, comLiq, ticket, topC, topG, topE, growth,
+      byCorretor, byGerente, byEmp, byMonth, byStatus, months };
   }, [sales]);
 
   const metaVgv = cfg?.meta_vgv ?? 7_000_000;
-  const metaCom = cfg?.meta_comissoes ?? 500_000;
-  const realPct = Math.min(1, m.vgv / metaVgv);
+  const realPct = Math.min(1.5, m.vgv / metaVgv);
 
   const corretorRanking = Object.entries(m.byCorretor)
-    .map(([name, v]) => ({ name, vgv: v.vgv, count: v.count }))
-    .sort((a, b) => b.vgv - a.vgv)
-    .slice(0, 8);
+    .map(([name, v]) => ({ name, vgv: v.vgv, count: v.count, com: v.com }))
+    .sort((a, b) => b.vgv - a.vgv).slice(0, 8);
 
-  const empData = Object.entries(m.byEmp).map(([name, v]) => ({ name, value: v.vgv }));
+  const empData = Object.entries(m.byEmp)
+    .map(([name, v]) => ({ name, value: v.vgv, count: v.count }))
+    .sort((a, b) => b.value - a.value);
 
   const monthSeries = m.months.map((k) => ({
-    mes: k.slice(2),
+    mes: prettyMonth(k),
     vgv: m.byMonth[k].vgv,
     com: m.byMonth[k].com,
+    vendas: m.byMonth[k].count,
   }));
+
+  const statusData = Object.entries(m.byStatus)
+    .map(([name, v]) => ({ name, value: v.vgv, count: v.count, com: v.com }))
+    .sort((a, b) => b.value - a.value);
+
+  const totalCount = sales.length || 1;
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-xs uppercase tracking-widest text-muted-foreground">Dashboard Executivo</div>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+            <span className="relative flex w-2 h-2">
+              <span className="absolute inset-0 rounded-full bg-primary pulse-dot" />
+            </span>
+            Dashboard Executivo · ao vivo
+          </div>
           <h1 className="font-display text-3xl font-semibold tracking-tight mt-1">
             Visão geral da <span className="text-gradient-primary">Equipe Maicon</span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {sales.length === 0 && !isLoading
-              ? "Nenhuma venda importada ainda. Configure a integração com Google Sheets."
-              : `${fmtNum(sales.length)} vendas analisadas em tempo real.`}
+              ? "Nenhuma venda no recorte atual."
+              : `${fmtNum(sales.length)} vendas · ${fmtBRLCompact(m.vgv)} em VGV`}
           </p>
         </div>
       </header>
 
+      {/* Barra de Filtros */}
+      <motion.section
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="glass-card p-4 flex flex-wrap items-center gap-3"
+      >
+        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground pr-2 border-r border-border">
+          <Filter className="w-3.5 h-3.5" /> Filtros
+        </div>
+
+        <div className="flex items-center gap-2">
+          <CalendarDays className="w-4 h-4 text-muted-foreground" />
+          <Select value={year} onValueChange={setYear}>
+            <SelectTrigger className="w-32 h-9"><SelectValue placeholder="Ano" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os anos</SelectItem>
+              {years.map((y) => (<SelectItem key={y} value={String(y)}>{y}</SelectItem>))}
+            </SelectContent>
+          </Select>
+
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger className="w-36 h-9"><SelectValue placeholder="Mês" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os meses</SelectItem>
+              {MESES_PT.map((nm, i) => (
+                <SelectItem key={i} value={String(i + 1)}>{nm}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="h-6 w-px bg-border mx-1" />
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <CircleDot className="w-4 h-4 text-muted-foreground" />
+          <StatusChip active={activeStatus === "all"} onClick={() => setActiveStatus("all")} label="Todos" color="#9ca3af" />
+          {statuses.map((s) => (
+            <StatusChip key={s} active={activeStatus === s} onClick={() => setActiveStatus(s)} label={s} color={statusColor(s)} />
+          ))}
+        </div>
+
+        {(year !== "all" || month !== "all" || activeStatus !== "all") && (
+          <Button variant="ghost" size="sm" className="ml-auto h-8"
+            onClick={() => { setYear("all"); setMonth("all"); setActiveStatus("all"); }}>
+            Limpar
+          </Button>
+        )}
+      </motion.section>
+
+      {/* KPIs principais */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard label="VGV Total" value={m.vgv} format={fmtBRLCompact} accent="teal" icon={<DollarSign className="w-4 h-4" />} index={0} />
-        <KPICard label="Vendas" value={m.sales.length} format={(n) => fmtNum(n)} accent="azure" icon={<ShoppingBag className="w-4 h-4" />} index={1} />
+        <KPICard label="Vendas" value={sales.length} format={fmtNum} accent="azure" icon={<ShoppingBag className="w-4 h-4" />} index={1} />
         <KPICard label="Ticket Médio" value={m.ticket} format={fmtBRLCompact} accent="gold" icon={<TrendingUp className="w-4 h-4" />} index={2} />
-        <KPICard label="Comissão Bruta" value={m.com} format={fmtBRLCompact} accent="neutral" icon={<Award className="w-4 h-4" />} index={3} />
-        <KPICard label="VGV do Mês" value={m.monthVgv} format={fmtBRLCompact} delta={m.growth} hint={`${m.monthSales} vendas`} accent="teal" icon={<TrendingUp className="w-4 h-4" />} index={4} />
-        <KPICard label="VGV da Semana" value={m.weekVgv} format={fmtBRLCompact} accent="azure" icon={<TrendingUp className="w-4 h-4" />} index={5} />
-        <KPICard label="Meta atingida" value={`${(realPct * 100).toFixed(1)}%`} hint={`Meta ${fmtBRLCompact(metaVgv)}`} accent="gold" icon={<Target className="w-4 h-4" />} index={6} />
-        <KPICard label="Comissão Líquida" value={m.comLiq} format={fmtBRLCompact} hint={`Meta ${fmtBRLCompact(metaCom)}`} accent="neutral" icon={<Award className="w-4 h-4" />} index={7} />
+        <KPICard label="Crescimento M/M" value={`${(m.growth * 100).toFixed(1)}%`} delta={m.growth} accent="neutral" icon={<TrendingUp className="w-4 h-4" />} index={3} />
+        <KPICard label="Comissão Bruta" value={m.com} format={fmtBRLCompact} accent="teal" icon={<Award className="w-4 h-4" />} index={4} />
+        <KPICard label="Comissão Gerente" value={m.comGer} format={fmtBRLCompact} accent="azure" icon={<Award className="w-4 h-4" />} index={5} />
+        <KPICard label="Comissão Líq. Corretor" value={m.comLiq} format={fmtBRLCompact} accent="gold" icon={<Award className="w-4 h-4" />} index={6} />
+        <KPICard label="Meta atingida" value={`${(realPct * 100).toFixed(1)}%`} hint={`Meta ${fmtBRLCompact(metaVgv)}`} accent="neutral" icon={<Target className="w-4 h-4" />} index={7} />
       </section>
 
+      {/* Status — visão dedicada */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ChartCard title="Distribuição por Status" subtitle="VGV por situação da venda" delay={0.05}>
+          <div className="h-72">
+            <ResponsiveContainer>
+              <PieChart>
+                <defs>
+                  {statusData.map((s, i) => (
+                    <radialGradient key={i} id={`gradStatus-${i}`}>
+                      <stop offset="0%" stopColor={statusColor(s.name)} stopOpacity={0.95} />
+                      <stop offset="100%" stopColor={statusColor(s.name)} stopOpacity={0.55} />
+                    </radialGradient>
+                  ))}
+                </defs>
+                <Pie
+                  data={statusData} dataKey="value" nameKey="name"
+                  innerRadius="58%" outerRadius="88%" paddingAngle={4}
+                  isAnimationActive animationBegin={100} animationDuration={1100}
+                >
+                  {statusData.map((_, i) => (
+                    <Cell key={i} fill={`url(#gradStatus-${i})`} stroke="rgba(0,0,0,0.2)" />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <AnimatePresence mode="popLayout">
+          {statusData.map((s, i) => {
+            const pct = s.count / totalCount;
+            return (
+              <motion.button
+                key={s.name}
+                layout
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                transition={{ duration: 0.4, delay: i * 0.05 }}
+                whileHover={{ y: -3 }}
+                onClick={() => setActiveStatus(activeStatus === s.name ? "all" : s.name)}
+                className={`glass-card p-5 text-left relative overflow-hidden group ${activeStatus === s.name ? "ring-2 ring-primary/60" : ""}`}
+              >
+                <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"
+                  style={{ background: statusColor(s.name) }} />
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex w-2.5 h-2.5">
+                      <span className="absolute inset-0 rounded-full pulse-dot" style={{ background: statusColor(s.name) }} />
+                    </span>
+                    <span className="text-xs uppercase tracking-widest text-muted-foreground">{s.name}</span>
+                  </div>
+                  <span className="text-xs font-medium" style={{ color: statusColor(s.name) }}>
+                    {(pct * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="font-display text-2xl font-semibold tracking-tight">{fmtBRLCompact(s.value)}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {fmtNum(s.count)} vendas · comissão {fmtBRLCompact(s.com)}
+                </div>
+                <div className="mt-3 h-1.5 rounded-full bg-secondary overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }} animate={{ width: `${pct * 100}%` }}
+                    transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                    className="h-full rounded-full"
+                    style={{ background: `linear-gradient(90deg, ${statusColor(s.name)}, ${statusColor(s.name)}aa)` }}
+                  />
+                </div>
+              </motion.button>
+            );
+          })}
+          </AnimatePresence>
+        </div>
+      </section>
+
+      {/* Top destaques */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KPICard label="Melhor corretor" value={m.topC?.name ?? "—"} hint={fmtBRL(m.topC?.vgv ?? 0)} accent="teal" icon={<Trophy className="w-4 h-4" />} index={0} />
         <KPICard label="Melhor gerente" value={m.topG?.name ?? "—"} hint={fmtBRL(m.topG?.vgv ?? 0)} accent="azure" icon={<Users className="w-4 h-4" />} index={1} />
         <KPICard label="Melhor empreendimento" value={m.topE?.name ?? "—"} hint={fmtBRL(m.topE?.vgv ?? 0)} accent="gold" icon={<Building2 className="w-4 h-4" />} index={2} />
       </section>
 
+      {/* Evolução + Meta */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <ChartCard title="Evolução de VGV" subtitle="Por mês" className="lg:col-span-2" delay={0.05}>
-          <div className="h-72">
+        <ChartCard title="Evolução de VGV & Comissões" subtitle="Por mês" className="lg:col-span-2" delay={0.05}>
+          <div className="h-80">
             <ResponsiveContainer>
-              <AreaChart data={monthSeries}>
+              <ComposedChart data={monthSeries}>
                 <defs>
                   <linearGradient id="vgvFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#15CAB6" stopOpacity={0.4} />
+                    <stop offset="0%" stopColor="#15CAB6" stopOpacity={0.55} />
                     <stop offset="100%" stopColor="#15CAB6" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="comStroke" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#F6B53D" />
+                    <stop offset="100%" stopColor="#FFA94D" />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="mes" stroke="rgba(255,255,255,0.5)" fontSize={11} />
-                <YAxis stroke="rgba(255,255,255,0.5)" fontSize={11} tickFormatter={fmtBRLCompact} />
+                <YAxis yAxisId="l" stroke="rgba(255,255,255,0.5)" fontSize={11} tickFormatter={fmtBRLCompact} />
+                <YAxis yAxisId="r" orientation="right" stroke="rgba(255,255,255,0.3)" fontSize={11} tickFormatter={fmtBRLCompact} />
                 <Tooltip content={<CustomTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="vgv"
-                  stroke="#15CAB6"
-                  strokeWidth={2.5}
-                  fill="url(#vgvFill)"
+                <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }} />
+                <Area yAxisId="l" type="monotone" dataKey="vgv" name="VGV"
+                  stroke="#15CAB6" strokeWidth={2.5} fill="url(#vgvFill)"
+                  isAnimationActive animationDuration={1300}
+                  activeDot={{ r: 6, fill: "#15CAB6", stroke: "#fff", strokeWidth: 2, className: "glow-breathe" }}
                 />
-              </AreaChart>
+                <Line yAxisId="r" type="monotone" dataKey="com" name="Comissão"
+                  stroke="url(#comStroke)" strokeWidth={2.5} dot={{ r: 3, fill: "#F6B53D" }}
+                  isAnimationActive animationDuration={1300} animationBegin={300}
+                  activeDot={{ r: 6, fill: "#F6B53D", stroke: "#fff", strokeWidth: 2 }}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
 
         <ChartCard title="Meta vs Realizado" subtitle={`${(realPct * 100).toFixed(1)}% da meta`} delay={0.1}>
-          <div className="h-72 flex items-center justify-center">
+          <div className="h-80 relative flex items-center justify-center">
             <ResponsiveContainer>
               <RadialBarChart
-                innerRadius="65%"
-                outerRadius="100%"
+                innerRadius="62%" outerRadius="100%"
                 data={[{ name: "Meta", value: realPct * 100, fill: "url(#radGrad)" }]}
-                startAngle={210}
-                endAngle={-30}
+                startAngle={210} endAngle={-30}
               >
                 <defs>
                   <linearGradient id="radGrad" x1="0" y1="0" x2="1" y2="0">
@@ -213,25 +384,43 @@ function Dashboard() {
                     <stop offset="100%" stopColor="#007FFF" />
                   </linearGradient>
                 </defs>
-                <RadialBar dataKey="value" cornerRadius={20} background={{ fill: "rgba(255,255,255,0.05)" }} />
+                <RadialBar dataKey="value" cornerRadius={20}
+                  background={{ fill: "rgba(255,255,255,0.05)" }}
+                  isAnimationActive animationDuration={1400}
+                />
               </RadialBarChart>
             </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <div className="font-display text-4xl font-semibold text-gradient-primary glow-breathe">
+                {(realPct * 100).toFixed(0)}%
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">{fmtBRLCompact(m.vgv)} de {fmtBRLCompact(metaVgv)}</div>
+            </div>
           </div>
         </ChartCard>
       </section>
 
+      {/* Ranking + Empreendimentos */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ChartCard title="Ranking de corretores" subtitle="Top 8 por VGV" delay={0.05}>
-          <div className="h-80">
+          <div className="h-96">
             <ResponsiveContainer>
               <BarChart data={corretorRanking} layout="vertical" margin={{ left: 10 }}>
+                <defs>
+                  {corretorRanking.map((_, i) => (
+                    <linearGradient key={i} id={`barC-${i}`} x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor={COLORS[i % COLORS.length]} stopOpacity={0.45} />
+                      <stop offset="100%" stopColor={COLORS[i % COLORS.length]} stopOpacity={1} />
+                    </linearGradient>
+                  ))}
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
                 <XAxis type="number" stroke="rgba(255,255,255,0.5)" fontSize={11} tickFormatter={fmtBRLCompact} />
-                <YAxis type="category" dataKey="name" stroke="rgba(255,255,255,0.7)" fontSize={11} width={90} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="vgv" radius={[0, 8, 8, 0]}>
+                <YAxis type="category" dataKey="name" stroke="rgba(255,255,255,0.7)" fontSize={11} width={110} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+                <Bar dataKey="vgv" radius={[0, 8, 8, 0]} isAnimationActive animationDuration={1100}>
                   {corretorRanking.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    <Cell key={i} fill={`url(#barC-${i})`} />
                   ))}
                 </Bar>
               </BarChart>
@@ -239,23 +428,28 @@ function Dashboard() {
           </div>
         </ChartCard>
 
-        <ChartCard title="Vendas por empreendimento" delay={0.1}>
-          <div className="h-80">
+        <ChartCard title="Vendas por empreendimento" subtitle={`${empData.length} empreendimentos no recorte`} delay={0.1}>
+          <div className="h-96">
             <ResponsiveContainer>
               <PieChart>
-                <Pie
-                  data={empData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius="55%"
-                  outerRadius="85%"
-                  paddingAngle={3}
+                <defs>
+                  {empData.map((_, i) => (
+                    <radialGradient key={i} id={`gradEmp-${i}`}>
+                      <stop offset="0%" stopColor={COLORS[i % COLORS.length]} stopOpacity={0.95} />
+                      <stop offset="100%" stopColor={COLORS[i % COLORS.length]} stopOpacity={0.5} />
+                    </radialGradient>
+                  ))}
+                </defs>
+                <Pie data={empData} dataKey="value" nameKey="name"
+                  innerRadius="55%" outerRadius="88%" paddingAngle={3}
+                  isAnimationActive animationDuration={1200}
                 >
                   {empData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    <Cell key={i} fill={`url(#gradEmp-${i})`} stroke="rgba(0,0,0,0.2)" />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
+                <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -265,13 +459,30 @@ function Dashboard() {
   );
 }
 
+function StatusChip({ active, onClick, label, color }: { active: boolean; onClick: () => void; label: string; color: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-medium border transition-all ${
+        active
+          ? "bg-primary/15 border-primary/50 text-foreground shadow-[0_0_0_3px_rgba(21,202,182,0.08)]"
+          : "border-border bg-secondary/30 text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+      }`}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+      {label}
+    </button>
+  );
+}
+
 function group(sales: Sale[], key: "corretor" | "gerente" | "empreendimento") {
-  const out: Record<string, { vgv: number; count: number }> = {};
+  const out: Record<string, { vgv: number; count: number; com: number }> = {};
   for (const s of sales) {
     const k = (s[key] ?? "—").toString();
-    if (!out[k]) out[k] = { vgv: 0, count: 0 };
+    if (!out[k]) out[k] = { vgv: 0, count: 0, com: 0 };
     out[k].vgv += s.valor_venda ?? 0;
     out[k].count += 1;
+    out[k].com += s.comissao_bruta ?? 0;
   }
   return out;
 }
@@ -289,6 +500,18 @@ function groupByMonth(sales: Sale[]) {
   return out;
 }
 
+function groupByStatus(sales: Sale[]) {
+  const out: Record<string, { vgv: number; count: number; com: number }> = {};
+  for (const s of sales) {
+    const k = s.status ?? "Sem status";
+    if (!out[k]) out[k] = { vgv: 0, count: 0, com: 0 };
+    out[k].vgv += s.valor_venda ?? 0;
+    out[k].count += 1;
+    out[k].com += s.comissao_bruta ?? 0;
+  }
+  return out;
+}
+
 function top(map: Record<string, { vgv: number; count: number }>) {
   let best: { name: string; vgv: number } | null = null;
   for (const [name, v] of Object.entries(map)) {
@@ -298,18 +521,28 @@ function top(map: Record<string, { vgv: number; count: number }>) {
   return best;
 }
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color?: string }>; label?: string }) {
+function prettyMonth(k: string) {
+  const [y, mm] = k.split("-");
+  return `${MESES_PT[Number(mm) - 1]}/${y.slice(2)}`;
+}
+
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color?: string; payload?: { count?: number } }>; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="glass-card px-3 py-2 text-xs">
-      {label && <div className="text-muted-foreground mb-1">{label}</div>}
+    <div className="glass-card px-3 py-2 text-xs min-w-32">
+      {label && <div className="text-muted-foreground mb-1.5">{label}</div>}
       {payload.map((p, i) => (
-        <div key={i} className="flex items-center gap-2">
+        <div key={i} className="flex items-center gap-2 py-0.5">
           <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
-          <span>{p.name}:</span>
-          <span className="font-medium">{fmtBRL(p.value)}</span>
+          <span className="text-muted-foreground">{p.name}:</span>
+          <span className="font-medium ml-auto">{fmtBRL(p.value)}</span>
         </div>
       ))}
+      {payload[0]?.payload?.count != null && (
+        <div className="mt-1 pt-1 border-t border-border text-muted-foreground">
+          {payload[0].payload.count} vendas
+        </div>
+      )}
     </div>
   );
 }
