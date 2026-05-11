@@ -4,18 +4,14 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 type Role = "admin" | "diretor" | "gerente" | "corretor";
 
-async function assertAdmin(supabase: ReturnType<typeof requireAuth>, userId: string) {
-  const { data } = await supabase
+async function assertAdmin(userId: string) {
+  const { data } = await supabaseAdmin
     .from("user_roles")
     .select("role")
     .eq("user_id", userId)
     .eq("role", "admin")
     .maybeSingle();
   if (!data) throw new Error("Acesso negado: apenas administradores.");
-}
-type SB = Parameters<typeof assertAdmin>[0];
-function requireAuth(): SB {
-  return null as unknown as SB;
 }
 
 export const listUsers = createServerFn({ method: "GET" })
