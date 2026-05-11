@@ -186,7 +186,7 @@ function Dashboard() {
             Dashboard Executivo · ao vivo
           </div>
           <h1 className="font-display text-3xl font-semibold tracking-tight mt-1">
-            Visão geral da <span className="text-gradient-primary">Equipe Maicon</span>
+            <span className="text-gradient-primary">Visão Geral de Vendas</span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {sales.length === 0 && !isLoading
