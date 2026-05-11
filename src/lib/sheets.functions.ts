@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { extractSpreadsheetId, parseSheetRows } from "./sheets.server";
 
@@ -21,18 +21,30 @@ async function readConfig() {
   return map;
 }
 
+async function requireAdmin() {
+  const authHeader = getRequestHeader("authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.replace("Bearer ", "") : "";
+  if (!token) return { ok: false as const, error: "Sessão expirada. Faça login novamente para sincronizar." };
+
+  const { data: auth, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !auth.user?.id) return { ok: false as const, error: "Sessão inválida. Faça login novamente." };
+
+  const { data: roleRow } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", auth.user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!roleRow) return { ok: false as const, error: "Apenas administradores podem sincronizar." };
+
+  return { ok: true as const, userId: auth.user.id };
+}
+
 export const syncFromSheets = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async () => {
     try {
-      const { userId } = context;
-      const { data: roleRow } = await context.supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .eq("role", "admin")
-        .maybeSingle();
-      if (!roleRow) return { ok: false, rows: 0, error: "Apenas administradores podem sincronizar." };
+      const admin = await requireAdmin();
+      if (!admin.ok) return { ok: false, rows: 0, error: admin.error };
 
       const cfg = await readConfig();
       const spreadsheetIdRaw = (cfg.sheets_spreadsheet_id as string) || "";
