@@ -148,3 +148,20 @@
   background-clip: text;
   color: transparent;
 }
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 oklch(0.78 0.14 185 / 0.55); }
+  50% { transform: scale(1.15); opacity: 0.85; box-shadow: 0 0 0 8px oklch(0.78 0.14 185 / 0); }
+}
+.pulse-dot { animation: pulse-dot 1.8s ease-in-out infinite; }
+
+@keyframes glow-breathe {
+  0%, 100% { filter: drop-shadow(0 0 6px oklch(0.78 0.14 185 / 0.35)); }
+  50% { filter: drop-shadow(0 0 14px oklch(0.78 0.14 185 / 0.7)); }
+}
+.glow-breathe { animation: glow-breathe 3s ease-in-out infinite; }
+
+@keyframes shimmer-bar {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
