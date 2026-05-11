@@ -9,50 +9,251 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
+import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
+import { Route as AuthenticatedGerentesRouteImport } from './routes/_authenticated/gerentes'
+import { Route as AuthenticatedEmpreendimentosRouteImport } from './routes/_authenticated/empreendimentos'
+import { Route as AuthenticatedCorretoresRouteImport } from './routes/_authenticated/corretores'
+import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
+import { Route as AuthenticatedAdminIntegracaoRouteImport } from './routes/_authenticated/admin/integracao'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
+  id: '/vendas',
+  path: '/vendas',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedInsightsRoute = AuthenticatedInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedGerentesRoute = AuthenticatedGerentesRouteImport.update({
+  id: '/gerentes',
+  path: '/gerentes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedEmpreendimentosRoute =
+  AuthenticatedEmpreendimentosRouteImport.update({
+    id: '/empreendimentos',
+    path: '/empreendimentos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCorretoresRoute = AuthenticatedCorretoresRouteImport.update({
+  id: '/corretores',
+  path: '/corretores',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAdminUsuariosRoute =
+  AuthenticatedAdminUsuariosRouteImport.update({
+    id: '/admin/usuarios',
+    path: '/admin/usuarios',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAdminIntegracaoRoute =
+  AuthenticatedAdminIntegracaoRouteImport.update({
+    id: '/admin/integracao',
+    path: '/admin/integracao',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/login': typeof LoginRoute
+  '/corretores': typeof AuthenticatedCorretoresRoute
+  '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
+  '/gerentes': typeof AuthenticatedGerentesRoute
+  '/insights': typeof AuthenticatedInsightsRoute
+  '/vendas': typeof AuthenticatedVendasRoute
+  '/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/corretores': typeof AuthenticatedCorretoresRoute
+  '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
+  '/gerentes': typeof AuthenticatedGerentesRoute
+  '/insights': typeof AuthenticatedInsightsRoute
+  '/vendas': typeof AuthenticatedVendasRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_authenticated/corretores': typeof AuthenticatedCorretoresRoute
+  '/_authenticated/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
+  '/_authenticated/gerentes': typeof AuthenticatedGerentesRoute
+  '/_authenticated/insights': typeof AuthenticatedInsightsRoute
+  '/_authenticated/vendas': typeof AuthenticatedVendasRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
+  '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/corretores'
+    | '/empreendimentos'
+    | '/gerentes'
+    | '/insights'
+    | '/vendas'
+    | '/admin/integracao'
+    | '/admin/usuarios'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/login'
+    | '/corretores'
+    | '/empreendimentos'
+    | '/gerentes'
+    | '/insights'
+    | '/vendas'
+    | '/'
+    | '/admin/integracao'
+    | '/admin/usuarios'
+  id:
+    | '__root__'
+    | '/_authenticated'
+    | '/login'
+    | '/_authenticated/corretores'
+    | '/_authenticated/empreendimentos'
+    | '/_authenticated/gerentes'
+    | '/_authenticated/insights'
+    | '/_authenticated/vendas'
+    | '/_authenticated/'
+    | '/_authenticated/admin/integracao'
+    | '/_authenticated/admin/usuarios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/vendas': {
+      id: '/_authenticated/vendas'
+      path: '/vendas'
+      fullPath: '/vendas'
+      preLoaderRoute: typeof AuthenticatedVendasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/insights': {
+      id: '/_authenticated/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof AuthenticatedInsightsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/gerentes': {
+      id: '/_authenticated/gerentes'
+      path: '/gerentes'
+      fullPath: '/gerentes'
+      preLoaderRoute: typeof AuthenticatedGerentesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/empreendimentos': {
+      id: '/_authenticated/empreendimentos'
+      path: '/empreendimentos'
+      fullPath: '/empreendimentos'
+      preLoaderRoute: typeof AuthenticatedEmpreendimentosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/corretores': {
+      id: '/_authenticated/corretores'
+      path: '/corretores'
+      fullPath: '/corretores'
+      preLoaderRoute: typeof AuthenticatedCorretoresRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/usuarios': {
+      id: '/_authenticated/admin/usuarios'
+      path: '/admin/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/integracao': {
+      id: '/_authenticated/admin/integracao'
+      path: '/admin/integracao'
+      fullPath: '/admin/integracao'
+      preLoaderRoute: typeof AuthenticatedAdminIntegracaoRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedCorretoresRoute: typeof AuthenticatedCorretoresRoute
+  AuthenticatedEmpreendimentosRoute: typeof AuthenticatedEmpreendimentosRoute
+  AuthenticatedGerentesRoute: typeof AuthenticatedGerentesRoute
+  AuthenticatedInsightsRoute: typeof AuthenticatedInsightsRoute
+  AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAdminIntegracaoRoute: typeof AuthenticatedAdminIntegracaoRoute
+  AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedCorretoresRoute: AuthenticatedCorretoresRoute,
+  AuthenticatedEmpreendimentosRoute: AuthenticatedEmpreendimentosRoute,
+  AuthenticatedGerentesRoute: AuthenticatedGerentesRoute,
+  AuthenticatedInsightsRoute: AuthenticatedInsightsRoute,
+  AuthenticatedVendasRoute: AuthenticatedVendasRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAdminIntegracaoRoute: AuthenticatedAdminIntegracaoRoute,
+  AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
