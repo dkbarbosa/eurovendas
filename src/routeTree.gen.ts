@@ -17,6 +17,7 @@ import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedGerentesRouteImport } from './routes/_authenticated/gerentes'
 import { Route as AuthenticatedEmpreendimentosRouteImport } from './routes/_authenticated/empreendimentos'
 import { Route as AuthenticatedCorretoresRouteImport } from './routes/_authenticated/corretores'
+import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
 import { Route as AuthenticatedAdminIntegracaoRouteImport } from './routes/_authenticated/admin/integracao'
 
 const LoginRoute = LoginRouteImport.update({
@@ -59,6 +60,12 @@ const AuthenticatedCorretoresRoute = AuthenticatedCorretoresRouteImport.update({
   path: '/corretores',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminUsuariosRoute =
+  AuthenticatedAdminUsuariosRouteImport.update({
+    id: '/admin/usuarios',
+    path: '/admin/usuarios',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminIntegracaoRoute =
   AuthenticatedAdminIntegracaoRouteImport.update({
     id: '/admin/integracao',
@@ -75,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/insights': typeof AuthenticatedInsightsRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -85,6 +93,7 @@ export interface FileRoutesByTo {
   '/vendas': typeof AuthenticatedVendasRoute
   '/': typeof AuthenticatedIndexRoute
   '/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -97,6 +106,7 @@ export interface FileRoutesById {
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
+  '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/insights'
     | '/vendas'
     | '/admin/integracao'
+    | '/admin/usuarios'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/vendas'
     | '/'
     | '/admin/integracao'
+    | '/admin/usuarios'
   id:
     | '__root__'
     | '/_authenticated'
@@ -130,6 +142,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vendas'
     | '/_authenticated/'
     | '/_authenticated/admin/integracao'
+    | '/_authenticated/admin/usuarios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCorretoresRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/usuarios': {
+      id: '/_authenticated/admin/usuarios'
+      path: '/admin/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin/integracao': {
       id: '/_authenticated/admin/integracao'
       path: '/admin/integracao'
@@ -213,6 +233,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAdminIntegracaoRoute: typeof AuthenticatedAdminIntegracaoRoute
+  AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -223,6 +244,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAdminIntegracaoRoute: AuthenticatedAdminIntegracaoRoute,
+  AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
