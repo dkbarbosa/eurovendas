@@ -53,9 +53,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Building2 className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <div className="font-semibold leading-none text-sidebar-foreground">VGV Analytics</div>
+              <div className="font-semibold leading-none text-sidebar-foreground">Gestão Comercial</div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-                Equipe Maicon
+                Euro Empreendimentos
               </div>
             </div>
           </div>

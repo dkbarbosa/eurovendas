@@ -74,9 +74,9 @@ function LoginPage() {
             <Building2 className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <div className="font-display font-semibold text-lg leading-none">VGV Analytics</div>
+            <div className="font-display font-semibold text-lg leading-none">Gestão Comercial</div>
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1.5">
-              Equipe Maicon
+              Euro Empreendimentos
             </div>
           </div>
         </div>
