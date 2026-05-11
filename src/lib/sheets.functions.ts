@@ -121,16 +121,10 @@ export const syncFromSheets = createServerFn({ method: "POST" })
   });
 
 export const updateSheetConfig = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: { spreadsheetId: string; range?: string }) => input)
-  .handler(async ({ data, context }) => {
-    const { data: roleRow } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!roleRow) throw new Error("Acesso negado.");
+  .handler(async ({ data }) => {
+    const admin = await requireAdmin();
+    if (!admin.ok) return { ok: false, error: admin.error };
     const id = extractSpreadsheetId(data.spreadsheetId);
     await supabaseAdmin
       .from("config_kv")
