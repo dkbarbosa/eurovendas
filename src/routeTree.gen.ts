@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
 import { Route as AuthenticatedGerentesRouteImport } from './routes/_authenticated/gerentes'
+import { Route as AuthenticatedEmpreendimentosRouteImport } from './routes/_authenticated/empreendimentos'
 import { Route as AuthenticatedCorretoresRouteImport } from './routes/_authenticated/corretores'
 import { Route as AuthenticatedAdminIntegracaoRouteImport } from './routes/_authenticated/admin/integracao'
 
@@ -41,6 +42,12 @@ const AuthenticatedGerentesRoute = AuthenticatedGerentesRouteImport.update({
   path: '/gerentes',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedEmpreendimentosRoute =
+  AuthenticatedEmpreendimentosRouteImport.update({
+    id: '/empreendimentos',
+    path: '/empreendimentos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedCorretoresRoute = AuthenticatedCorretoresRouteImport.update({
   id: '/corretores',
   path: '/corretores',
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/corretores': typeof AuthenticatedCorretoresRoute
+  '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/gerentes': typeof AuthenticatedGerentesRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
@@ -64,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/corretores': typeof AuthenticatedCorretoresRoute
+  '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/gerentes': typeof AuthenticatedGerentesRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/': typeof AuthenticatedIndexRoute
@@ -74,6 +83,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/corretores': typeof AuthenticatedCorretoresRoute
+  '/_authenticated/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/_authenticated/gerentes': typeof AuthenticatedGerentesRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/corretores'
+    | '/empreendimentos'
     | '/gerentes'
     | '/vendas'
     | '/admin/integracao'
@@ -92,6 +103,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/corretores'
+    | '/empreendimentos'
     | '/gerentes'
     | '/vendas'
     | '/'
@@ -101,6 +113,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/corretores'
+    | '/_authenticated/empreendimentos'
     | '/_authenticated/gerentes'
     | '/_authenticated/vendas'
     | '/_authenticated/'
@@ -149,6 +162,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGerentesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/empreendimentos': {
+      id: '/_authenticated/empreendimentos'
+      path: '/empreendimentos'
+      fullPath: '/empreendimentos'
+      preLoaderRoute: typeof AuthenticatedEmpreendimentosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/corretores': {
       id: '/_authenticated/corretores'
       path: '/corretores'
@@ -168,6 +188,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedCorretoresRoute: typeof AuthenticatedCorretoresRoute
+  AuthenticatedEmpreendimentosRoute: typeof AuthenticatedEmpreendimentosRoute
   AuthenticatedGerentesRoute: typeof AuthenticatedGerentesRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -176,6 +197,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCorretoresRoute: AuthenticatedCorretoresRoute,
+  AuthenticatedEmpreendimentosRoute: AuthenticatedEmpreendimentosRoute,
   AuthenticatedGerentesRoute: AuthenticatedGerentesRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
