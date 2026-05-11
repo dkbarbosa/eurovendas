@@ -82,14 +82,19 @@ export const syncFromSheets = createServerFn({ method: "POST" })
       }
       return { ok: true, rows: rows.length };
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = e instanceof Error ? e.message : (typeof e === "object" ? JSON.stringify(e) : String(e));
       if (logId) {
         await supabaseAdmin
           .from("sync_log")
           .update({ status: "error", finished_at: new Date().toISOString(), error: msg })
           .eq("id", logId);
       }
-      throw new Error(msg);
+      return { ok: false, rows: 0, error: msg };
+    }
+    } catch (outer: unknown) {
+      const msg = outer instanceof Error ? outer.message : String(outer);
+      console.error("syncFromSheets fatal:", outer);
+      return { ok: false, rows: 0, error: msg };
     }
   });
 
