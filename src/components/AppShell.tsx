@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { LiveSyncBadge } from "@/components/LiveSyncBadge";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
