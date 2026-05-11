@@ -63,9 +63,9 @@
   --popover: oklch(0.22 0.014 265);
   --popover-foreground: oklch(0.96 0.005 250);
 
-  --teal: oklch(0.78 0.14 185);     /* #15CAB6 */
-  --azure: oklch(0.66 0.20 255);    /* #007FFF */
-  --gold: oklch(0.81 0.14 80);      /* #F6B53D */
+  --teal: oklch(0.82 0.16 185);     /* presentation teal */
+  --azure: oklch(0.68 0.18 255);    /* clear executive blue */
+  --gold: oklch(0.78 0.12 82);      /* muted premium gold */
 
   --primary: var(--teal);
   --primary-foreground: oklch(0.16 0.02 265);
@@ -99,10 +99,10 @@
   --sidebar-foreground: oklch(0.85 0.01 250);
   --sidebar-border: oklch(1 0 0 / 6%);
 
-  --gradient-primary: linear-gradient(135deg, oklch(0.78 0.14 185), oklch(0.66 0.20 255));
-  --gradient-gold: linear-gradient(135deg, oklch(0.84 0.14 85), oklch(0.72 0.16 45));
-  --gradient-surface: linear-gradient(180deg, oklch(0.235 0.015 265 / 0.8), oklch(0.2 0.013 265 / 0.5));
-  --shadow-glow: 0 10px 40px -12px oklch(0.78 0.14 185 / 0.35);
+  --gradient-primary: linear-gradient(135deg, oklch(0.82 0.16 185), oklch(0.78 0.12 82));
+  --gradient-gold: linear-gradient(135deg, oklch(0.8 0.12 85), oklch(0.68 0.11 70));
+  --gradient-surface: linear-gradient(180deg, oklch(0.245 0.016 265 / 0.86), oklch(0.19 0.012 265 / 0.58));
+  --shadow-glow: 0 10px 40px -12px oklch(0.78 0.12 82 / 0.35);
   --shadow-elevated: 0 24px 60px -28px oklch(0 0 0 / 0.6), 0 2px 4px oklch(0 0 0 / 0.3);
 }
 
