@@ -47,17 +47,22 @@ interface Sale {
   status: string | null;
 }
 
-const COLORS = ["#15CAB6", "#007FFF", "#F6B53D", "#B967FF", "#FF6B6B", "#4ECDC4", "#FFA94D", "#7DF9FF"];
+const COLORS = ["#2DE2C9", "#D6AF55", "#4D8DFF", "#FF5C8A", "#9A7CFF", "#6EE7B7", "#F97316", "#38BDF8"];
+
+const SHEET_STATUS_OPTIONS = ["RESERVADO", "VENDIDO", "Liberado", "Pago", "Distrato"];
 
 const STATUS_COLORS: Record<string, string> = {
-  "Em aberto": "#F6B53D",
-  "RESERVADO": "#007FFF",
-  "VENDIDO": "#15CAB6",
-  "CANCELADO": "#FF6B6B",
-  "DISTRATO": "#FF6B6B",
-  "PAGO": "#15CAB6",
+  "Em aberto": "#D6AF55",
+  "RESERVADO": "#4D8DFF",
+  "VENDIDO": "#2DE2C9",
+  "Liberado": "#6EE7B7",
+  "Pago": "#2DE2C9",
+  "Distrato": "#FF5C8A",
+  "CANCELADO": "#FF5C8A",
+  "DISTRATO": "#FF5C8A",
+  "PAGO": "#2DE2C9",
 };
-const statusColor = (s: string) => STATUS_COLORS[s] ?? "#B967FF";
+const statusColor = (s: string) => STATUS_COLORS[s] ?? "#9A7CFF";
 
 const MESES_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
@@ -95,6 +100,7 @@ function Dashboard() {
 
   const statuses = useMemo(() => {
     const set = new Set<string>();
+    SHEET_STATUS_OPTIONS.forEach((s) => set.add(s));
     allSales.forEach((s) => s.status && set.add(s.status));
     return Array.from(set);
   }, [allSales]);
