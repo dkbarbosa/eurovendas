@@ -54,7 +54,7 @@ function IntegPage() {
       toast.success("URL salva.");
       qc.invalidateQueries({ queryKey: ["config-int"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: async (e: unknown) => toast.error(e instanceof Response ? await e.text() : e instanceof Error ? e.message : String(e)),
   });
 
   const syncMut = useMutation({
