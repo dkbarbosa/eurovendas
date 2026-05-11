@@ -43,6 +43,12 @@ function parsePct(raw: unknown): number | null {
   return n > 1 ? n / 100 : n;
 }
 
+function parseText(raw: unknown): string | null {
+  if (raw == null) return null;
+  const value = String(raw).trim();
+  return value || null;
+}
+
 function parseDate(raw: unknown): string | null {
   if (raw == null || raw === "") return null;
   if (raw instanceof Date) return raw.toISOString().slice(0, 10);
@@ -139,7 +145,7 @@ export function parseSheetRows(
       adiant_gerente,
       bonus_gerente,
       comissao_liq_gerente,
-      status: (row[18] as string) || null,
+      status: parseText(row[18]),
       mes_ano: row[19] ? String(row[19]) : data ? data.slice(0, 7) : null,
       observacoes: (row[20] as string) || null,
       row_hash: "",

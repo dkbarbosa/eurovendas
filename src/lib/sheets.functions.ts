@@ -1,9 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { extractSpreadsheetId, parseSheetRows } from "./sheets.server";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_sheets/v4";
+
+async function toErrorMessage(error: unknown): Promise<string> {
+  if (error instanceof Response) {
+    const body = await error.text().catch(() => "");
+    return body || `Erro de autenticação (${error.status})`;
+  }
+  if (error instanceof Error) return error.message;
+  return typeof error === "object" ? JSON.stringify(error) : String(error);
+}
 
 async function readConfig() {
   const { data } = await supabaseAdmin.from("config_kv").select("key,value");
@@ -12,39 +21,51 @@ async function readConfig() {
   return map;
 }
 
+async function requireAdmin() {
+  const authHeader = getRequestHeader("authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.replace("Bearer ", "") : "";
+  if (!token) return { ok: false as const, error: "Sessão expirada. Faça login novamente para sincronizar." };
+
+  const { data: auth, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !auth.user?.id) return { ok: false as const, error: "Sessão inválida. Faça login novamente." };
+
+  const { data: roleRow } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", auth.user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!roleRow) return { ok: false as const, error: "Apenas administradores podem sincronizar." };
+
+  return { ok: true as const, userId: auth.user.id };
+}
+
 export const syncFromSheets = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async () => {
     try {
-    const { userId } = context;
-    const { data: roleRow } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!roleRow) return { ok: false, rows: 0, error: "Apenas administradores podem sincronizar." };
+      const admin = await requireAdmin();
+      if (!admin.ok) return { ok: false, rows: 0, error: admin.error };
 
-    const cfg = await readConfig();
-    const spreadsheetIdRaw = (cfg.sheets_spreadsheet_id as string) || "";
-    const range = (cfg.sheets_range as string) || "Equipe Maicon!A:U";
-    const spreadsheetId = extractSpreadsheetId(spreadsheetIdRaw);
-    if (!spreadsheetId) {
-      return { ok: false, rows: 0, error: "Configure a URL/ID do Google Sheets em Integração antes de sincronizar." };
-    }
+      const cfg = await readConfig();
+      const spreadsheetIdRaw = (cfg.sheets_spreadsheet_id as string) || "";
+      const range = (cfg.sheets_range as string) || "Equipe Maicon!A:U";
+      const spreadsheetId = extractSpreadsheetId(spreadsheetIdRaw);
+      if (!spreadsheetId) {
+        return { ok: false, rows: 0, error: "Configure a URL/ID do Google Sheets em Integração antes de sincronizar." };
+      }
 
-    const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
-    const SHEETS_KEY = process.env.GOOGLE_SHEETS_API_KEY;
-    if (!LOVABLE_API_KEY || !SHEETS_KEY) {
-      return { ok: false, rows: 0, error: "Conecte o Google Sheets primeiro (botão 'Conectar Google Sheets' em Integração)." };
-    }
+      const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
+      const SHEETS_KEY = process.env.GOOGLE_SHEETS_API_KEY;
+      if (!LOVABLE_API_KEY || !SHEETS_KEY) {
+        return { ok: false, rows: 0, error: "Conecte o Google Sheets primeiro (botão 'Conectar Google Sheets' em Integração)." };
+      }
 
-    const { data: log } = await supabaseAdmin
-      .from("sync_log")
-      .insert({ status: "running" })
-      .select("id")
-      .single();
-    const logId = log?.id;
+      const { data: log } = await supabaseAdmin
+        .from("sync_log")
+        .insert({ status: "running" })
+        .select("id")
+        .single();
+      const logId = log?.id;
 
     try {
       const url = `${GATEWAY}/spreadsheets/${spreadsheetId}/values/${range}?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
@@ -64,11 +85,12 @@ export const syncFromSheets = createServerFn({ method: "POST" })
         pctGerente: Number(cfg.pct_gerente_default ?? 0.007),
       });
 
-      // Upsert by row_hash; also wipe stale rows not present anymore
+      // Upsert by row_hash; also wipe stale rows not present anymore.
       if (rows.length > 0) {
+        const now = new Date().toISOString();
         const { error: upErr } = await supabaseAdmin
           .from("sales")
-          .upsert(rows, { onConflict: "row_hash" });
+          .upsert(rows.map((row) => ({ ...row, updated_at: now })), { onConflict: "row_hash" });
         if (upErr) throw upErr;
         const hashes = rows.map((r) => r.row_hash);
         await supabaseAdmin.from("sales").delete().not("row_hash", "in", `(${hashes.map((h) => `"${h}"`).join(",")})`);
@@ -82,7 +104,7 @@ export const syncFromSheets = createServerFn({ method: "POST" })
       }
       return { ok: true, rows: rows.length };
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : (typeof e === "object" ? JSON.stringify(e) : String(e));
+      const msg = await toErrorMessage(e);
       if (logId) {
         await supabaseAdmin
           .from("sync_log")
@@ -92,23 +114,17 @@ export const syncFromSheets = createServerFn({ method: "POST" })
       return { ok: false, rows: 0, error: msg };
     }
     } catch (outer: unknown) {
-      const msg = outer instanceof Error ? outer.message : String(outer);
+      const msg = await toErrorMessage(outer);
       console.error("syncFromSheets fatal:", outer);
       return { ok: false, rows: 0, error: msg };
     }
   });
 
 export const updateSheetConfig = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: { spreadsheetId: string; range?: string }) => input)
-  .handler(async ({ data, context }) => {
-    const { data: roleRow } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!roleRow) throw new Error("Acesso negado.");
+  .handler(async ({ data }) => {
+    const admin = await requireAdmin();
+    if (!admin.ok) return { ok: false, error: admin.error };
     const id = extractSpreadsheetId(data.spreadsheetId);
     await supabaseAdmin
       .from("config_kv")
