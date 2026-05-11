@@ -111,6 +111,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="sticky top-0 z-30 backdrop-blur-md bg-background/60 border-b border-border/60">
           <div className="max-w-[1600px] mx-auto px-6 lg:px-10 py-3 flex items-center justify-end gap-3">
             {isAdmin && <LiveSyncBadge />}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                await signOut();
+                nav({ to: "/login" });
+              }}
+              className="gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sair</span>
+            </Button>
           </div>
         </div>
         <motion.div
