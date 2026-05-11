@@ -14,16 +14,193 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      config_kv: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      sales: {
+        Row: {
+          adiant_corretor: number | null
+          adiant_gerente: number | null
+          bonus_corretor: number | null
+          bonus_gerente: number | null
+          coaphar: string | null
+          comissao_bruta: number | null
+          comissao_ger_bruta: number | null
+          comissao_liq_corretor: number | null
+          comissao_liq_gerente: number | null
+          comprador: string | null
+          corretor: string | null
+          created_at: string
+          data: string | null
+          empreendimento: string | null
+          gerente: string | null
+          id: string
+          mes_ano: string | null
+          observacoes: string | null
+          pct_corretor: number | null
+          pct_gerente: number | null
+          row_hash: string | null
+          status: string | null
+          unidade: string | null
+          updated_at: string
+          valor_venda: number | null
+        }
+        Insert: {
+          adiant_corretor?: number | null
+          adiant_gerente?: number | null
+          bonus_corretor?: number | null
+          bonus_gerente?: number | null
+          coaphar?: string | null
+          comissao_bruta?: number | null
+          comissao_ger_bruta?: number | null
+          comissao_liq_corretor?: number | null
+          comissao_liq_gerente?: number | null
+          comprador?: string | null
+          corretor?: string | null
+          created_at?: string
+          data?: string | null
+          empreendimento?: string | null
+          gerente?: string | null
+          id?: string
+          mes_ano?: string | null
+          observacoes?: string | null
+          pct_corretor?: number | null
+          pct_gerente?: number | null
+          row_hash?: string | null
+          status?: string | null
+          unidade?: string | null
+          updated_at?: string
+          valor_venda?: number | null
+        }
+        Update: {
+          adiant_corretor?: number | null
+          adiant_gerente?: number | null
+          bonus_corretor?: number | null
+          bonus_gerente?: number | null
+          coaphar?: string | null
+          comissao_bruta?: number | null
+          comissao_ger_bruta?: number | null
+          comissao_liq_corretor?: number | null
+          comissao_liq_gerente?: number | null
+          comprador?: string | null
+          corretor?: string | null
+          created_at?: string
+          data?: string | null
+          empreendimento?: string | null
+          gerente?: string | null
+          id?: string
+          mes_ano?: string | null
+          observacoes?: string | null
+          pct_corretor?: number | null
+          pct_gerente?: number | null
+          row_hash?: string | null
+          status?: string | null
+          unidade?: string | null
+          updated_at?: string
+          valor_venda?: number | null
+        }
+        Relationships: []
+      }
+      sync_log: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          rows_imported: number | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          rows_imported?: number | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          rows_imported?: number | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "diretor" | "gerente" | "corretor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +327,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "diretor", "gerente", "corretor"],
+    },
   },
 } as const
