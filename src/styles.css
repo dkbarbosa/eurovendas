@@ -101,6 +101,9 @@
 
   --gradient-primary: linear-gradient(135deg, oklch(0.82 0.16 185), oklch(0.78 0.12 82));
   --gradient-gold: linear-gradient(135deg, oklch(0.8 0.12 85), oklch(0.68 0.11 70));
+  --gradient-success: linear-gradient(135deg, oklch(0.78 0.14 165), oklch(0.82 0.16 185));
+  --gradient-warn: linear-gradient(135deg, oklch(0.84 0.16 80), oklch(0.78 0.2 40));
+  --gradient-danger: linear-gradient(135deg, oklch(0.68 0.22 22), oklch(0.6 0.22 350));
   --gradient-surface: linear-gradient(180deg, oklch(0.245 0.016 265 / 0.86), oklch(0.19 0.012 265 / 0.58));
   --shadow-glow: 0 10px 40px -12px oklch(0.78 0.12 82 / 0.35);
   --shadow-elevated: 0 24px 60px -28px oklch(0 0 0 / 0.6), 0 2px 4px oklch(0 0 0 / 0.3);
