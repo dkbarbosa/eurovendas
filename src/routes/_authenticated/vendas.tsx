@@ -114,6 +114,51 @@ function Vendas() {
         </div>
       </div>
 
+      {allStatuses.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+          className="flex flex-wrap items-center gap-2"
+        >
+          <span className="text-xs uppercase tracking-widest text-muted-foreground mr-1">Status</span>
+          <button
+            onClick={() => setStatusFilter([])}
+            className={`px-3 py-1 rounded-full text-xs border transition ${
+              statusFilter.length === 0
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-secondary/40 border-border hover:bg-secondary"
+            }`}
+          >
+            Todos <span className="opacity-70 ml-1">{sales.length}</span>
+          </button>
+          {allStatuses.map((st) => {
+            const active = statusFilter.includes(st);
+            const count = sales.filter((r) => (r.status ?? "—") === st).length;
+            return (
+              <button
+                key={st}
+                onClick={() =>
+                  setStatusFilter((prev) =>
+                    prev.includes(st) ? prev.filter((x) => x !== st) : [...prev, st]
+                  )
+                }
+                className={`px-3 py-1 rounded-full text-xs border transition ${
+                  active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-secondary/40 border-border hover:bg-secondary"
+                }`}
+              >
+                {st} <span className="opacity-70 ml-1">{count}</span>
+              </button>
+            );
+          })}
+          {statusFilter.length > 0 && (
+            <span className="text-xs text-muted-foreground ml-2">
+              {filtered.length} resultado{filtered.length === 1 ? "" : "s"}
+            </span>
+          )}
+        </motion.div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-12">
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
