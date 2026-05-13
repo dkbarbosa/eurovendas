@@ -1,20 +1,19 @@
 import type { Approval } from "./types";
 import { BRL, fmtPct, groupBy, statusColor } from "./utils";
 import { Trophy } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 
 export function BrokerBars({ rows }: { rows: Approval[] }) {
-  const g = groupBy(rows, (r) => r.corretor || "NÃO INFORMADO");
+  const g = groupBy(rows, (r) => r.corretor || "N/I");
   const items = Array.from(g.entries())
     .map(([corretor, list]) => {
       const ap = list.filter((r) => r.situacao === "APROVADO").length;
       const cond = list.filter((r) => r.situacao === "CONDICIONADO").length;
       const rep = list.filter((r) => r.situacao === "REPROVADO").length;
       const vol = list.reduce((s, r) => s + r.valorFinanciamento, 0);
-      return { corretor, total: list.length, ap, cond, rep, vol, taxa: (ap / list.length) * 100 };
+      return { corretor, total: list.length, APROVADO: ap, CONDICIONADO: cond, REPROVADO: rep, vol, taxa: (ap / list.length) * 100 };
     })
     .sort((a, b) => b.total - a.total);
-
-  const max = Math.max(...items.map((i) => i.total));
 
   return (
     <div className="approvals-glass rounded-2xl p-6 animate-rise h-full">
@@ -23,45 +22,23 @@ export function BrokerBars({ rows }: { rows: Approval[] }) {
         <Trophy className="h-4 w-4 text-[var(--gold)]" />
       </div>
 
-      <div className="mt-4 space-y-3 max-h-[340px] overflow-auto pr-1">
-        {items.map((it, idx) => (
-          <div key={it.corretor} className="rounded-xl border border-border/40 bg-card/40 p-3 hover:bg-card/70 transition">
-            <div className="flex items-center justify-between text-sm gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                {idx === 0 && <Trophy className="h-3.5 w-3.5 text-[var(--gold)]" />}
-                <span className="font-semibold uppercase tracking-wide">{it.corretor}</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
-                <span>{it.total} cli</span>
-                <span className="text-foreground font-semibold">{BRL(it.vol)}</span>
-                <span className="rounded-full bg-success/15 px-2 py-0.5 text-success font-semibold">{fmtPct(it.taxa, 0)}</span>
-              </div>
-            </div>
-
-            <div
-              className="mt-2 flex h-2.5 overflow-hidden rounded-full bg-muted/40"
-              style={{ width: `${(it.total / max) * 100}%`, minWidth: "20%" }}
-            >
-              {[
-                { v: it.ap, c: statusColor("APROVADO") },
-                { v: it.cond, c: statusColor("CONDICIONADO") },
-                { v: it.rep, c: statusColor("REPROVADO") },
-              ].map((seg, i) =>
-                seg.v ? (
-                  <div
-                    key={i}
-                    className="animate-bar-x h-full"
-                    style={{
-                      flex: seg.v,
-                      background: seg.c,
-                      animationDelay: `${idx * 80 + i * 100}ms`,
-                    }}
-                  />
-                ) : null,
-              )}
-            </div>
-          </div>
-        ))}
+      <div className="mt-4 h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={items} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+            <CartesianGrid stroke="oklch(1 0 0 / 6%)" horizontal={false} />
+            <XAxis type="number" tick={{ fontSize: 10, fill: "oklch(0.72 0.02 270)" }} tickLine={false} axisLine={false} />
+            <YAxis type="category" dataKey="corretor" tick={{ fontSize: 10, fill: "oklch(0.85 0.02 270)" }} width={80} tickLine={false} axisLine={false} />
+            <Tooltip
+              cursor={{ fill: "oklch(1 0 0 / 4%)" }}
+              contentStyle={{ background: "oklch(0.16 0.02 270)", border: "1px solid oklch(1 0 0 / 10%)", borderRadius: 12, fontSize: 12 }}
+              formatter={(v: number, n, p) => [`${v} · ${BRL(p?.payload?.vol ?? 0)} · taxa ${fmtPct(p?.payload?.taxa ?? 0, 0)}`, n]}
+            />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar dataKey="APROVADO" stackId="a" fill={statusColor("APROVADO")} animationDuration={800} radius={[0, 0, 0, 0]} />
+            <Bar dataKey="CONDICIONADO" stackId="a" fill={statusColor("CONDICIONADO")} animationDuration={800} />
+            <Bar dataKey="REPROVADO" stackId="a" fill={statusColor("REPROVADO")} animationDuration={800} radius={[0, 6, 6, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
