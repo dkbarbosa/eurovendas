@@ -139,22 +139,6 @@ function LoginPage() {
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             className="w-full max-w-md"
           >
-            {/* Mobile brand */}
-            <div className="lg:hidden flex items-center gap-3 mb-8">
-              <div
-                className="w-11 h-11 rounded-xl glow-primary flex items-center justify-center"
-                style={{ background: "var(--gradient-primary)" }}
-              >
-                <Building2 className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <div className="font-display font-semibold text-lg leading-none">Gestão Comercial</div>
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1.5">
-                  Euro Empreendimentos
-                </div>
-              </div>
-            </div>
-
             <div className="glass-card p-8 sm:p-10 relative">
               {/* top accent bar */}
               <div
@@ -165,7 +149,7 @@ function LoginPage() {
               <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-3">
                 Área restrita
               </div>
-              <h1 className="font-display text-3xl font-semibold tracking-tight">Bem-vindo de volta</h1>
+              <h1 className="font-display text-3xl font-semibold tracking-tight">Gestão Comercial</h1>
               <p className="text-sm text-muted-foreground mt-2">
                 Entre com suas credenciais corporativas para continuar.
               </p>
