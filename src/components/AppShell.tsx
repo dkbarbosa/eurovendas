@@ -11,6 +11,7 @@ import {
   LogOut,
   Shield,
   Activity,
+  ClipboardCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ const NAV = [
   { to: "/corretores", label: "Corretores", icon: Users },
   { to: "/gerentes", label: "Gerentes", icon: UserCog },
   { to: "/empreendimentos", label: "Empreendimentos", icon: Building2 },
+  { to: "/aprovacoes", label: "Aprovações", icon: ClipboardCheck },
   { to: "/insights", label: "Insights", icon: Sparkles },
 ] as const;
 
