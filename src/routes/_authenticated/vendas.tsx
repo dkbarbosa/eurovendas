@@ -25,6 +25,7 @@ const PIE_COLORS = ["oklch(0.82 0.16 185)", "oklch(0.78 0.12 82)", "oklch(0.7 0.
 
 function Vendas() {
   const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const { data: sales = [] } = useQuery({
     queryKey: ["sales-all"],
     queryFn: async () => {
