@@ -1,14 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { fmtBRL, fmtDate } from "@/lib/format";
 import { Download, Search } from "lucide-react";
 import * as XLSX from "xlsx";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  AreaChart, Area, PieChart, Pie, Cell, Legend,
+} from "recharts";
 
 export const Route = createFileRoute("/_authenticated/vendas")({ component: Vendas });
+
+const TOOLTIP = {
+  background: "oklch(0.16 0.02 270)",
+  border: "1px solid oklch(1 0 0 / 10%)",
+  borderRadius: 12,
+  fontSize: 12,
+};
+const PIE_COLORS = ["oklch(0.82 0.16 185)", "oklch(0.78 0.12 82)", "oklch(0.7 0.18 30)", "oklch(0.6 0.18 300)", "oklch(0.65 0.18 140)"];
 
 function Vendas() {
   const [q, setQ] = useState("");
@@ -29,6 +42,46 @@ function Vendas() {
     );
   }, [sales, q]);
 
+  const byEmp = useMemo(() => {
+    const m = new Map<string, { vgv: number; n: number }>();
+    for (const r of filtered) {
+      const k = r.empreendimento ?? "—";
+      const cur = m.get(k) ?? { vgv: 0, n: 0 };
+      cur.vgv += r.valor_venda ?? 0;
+      cur.n += 1;
+      m.set(k, cur);
+    }
+    return Array.from(m.entries())
+      .map(([nome, v]) => ({ nome, vgv: Math.round(v.vgv), n: v.n }))
+      .sort((a, b) => b.vgv - a.vgv)
+      .slice(0, 8);
+  }, [filtered]);
+
+  const byMonth = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of filtered) {
+      if (!r.data) continue;
+      const d = new Date(r.data);
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      m.set(k, (m.get(k) ?? 0) + (r.valor_venda ?? 0));
+    }
+    return Array.from(m.entries())
+      .sort()
+      .map(([k, v]) => {
+        const [y, mo] = k.split("-");
+        return { label: `${mo}/${y.slice(2)}`, vgv: Math.round(v) };
+      });
+  }, [filtered]);
+
+  const byStatus = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of filtered) {
+      const k = r.status ?? "—";
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return Array.from(m.entries()).map(([name, value]) => ({ name, value }));
+  }, [filtered]);
+
   function exportXlsx() {
     const ws = XLSX.utils.json_to_sheet(filtered);
     const wb = XLSX.utils.book_new();
@@ -41,7 +94,7 @@ function Vendas() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Análise</div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight mt-1">Tabela de vendas</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight mt-1">Vendas</h1>
         </div>
         <div className="flex gap-2">
           <div className="relative">
@@ -52,7 +105,78 @@ function Vendas() {
         </div>
       </div>
 
-      <div className="glass-card overflow-hidden">
+      <div className="grid gap-4 lg:grid-cols-12">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+          className="glass-card p-5 lg:col-span-7"
+        >
+          <div className="text-sm font-medium mb-3">VGV por empreendimento</div>
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={byEmp} margin={{ top: 5, right: 10, left: 0, bottom: 30 }}>
+                <defs>
+                  <linearGradient id="vendBar" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="oklch(0.82 0.16 185)" />
+                    <stop offset="100%" stopColor="oklch(0.55 0.13 200)" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="oklch(1 0 0 / 6%)" vertical={false} />
+                <XAxis dataKey="nome" tick={{ fontSize: 10, fill: "oklch(0.72 0.02 270)" }} interval={0} angle={-15} textAnchor="end" height={50} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "oklch(0.72 0.02 270)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1e6).toFixed(1)}M`} />
+                <Tooltip cursor={{ fill: "oklch(1 0 0 / 4%)" }} contentStyle={TOOLTIP} formatter={(v: number) => [fmtBRL(v), "VGV"]} labelFormatter={(l, p) => `${l} · ${p?.[0]?.payload?.n ?? 0} vendas`} />
+                <Bar dataKey="vgv" fill="url(#vendBar)" radius={[8, 8, 0, 0]} animationDuration={900} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }}
+          className="glass-card p-5 lg:col-span-5"
+        >
+          <div className="text-sm font-medium mb-3">Vendas por status</div>
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Tooltip contentStyle={TOOLTIP} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Pie data={byStatus} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2} stroke="none" animationDuration={900}>
+                  {byStatus.map((_, i) => (<Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
+          className="glass-card p-5 lg:col-span-12"
+        >
+          <div className="text-sm font-medium mb-3">Evolução mensal de VGV</div>
+          <div className="h-[240px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={byMonth} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="vendArea" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="oklch(0.82 0.16 185)" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="oklch(0.82 0.16 185)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="oklch(1 0 0 / 6%)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: "oklch(0.72 0.02 270)" }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "oklch(0.72 0.02 270)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1e6).toFixed(1)}M`} />
+                <Tooltip contentStyle={TOOLTIP} formatter={(v: number) => [fmtBRL(v), "VGV"]} />
+                <Area type="monotone" dataKey="vgv" stroke="oklch(0.82 0.16 185)" strokeWidth={2.5} fill="url(#vendArea)" animationDuration={900} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}
+        className="glass-card overflow-hidden"
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-xs uppercase tracking-wider text-muted-foreground">
@@ -88,7 +212,7 @@ function Vendas() {
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
