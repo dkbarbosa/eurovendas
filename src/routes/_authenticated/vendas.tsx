@@ -35,13 +35,21 @@ function Vendas() {
     refetchInterval: 60_000,
   });
 
+  const allStatuses = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of sales) if (r.status) set.add(r.status);
+    return Array.from(set).sort();
+  }, [sales]);
+
   const filtered = useMemo(() => {
     const s = q.toLowerCase();
-    return sales.filter((r) =>
-      !s || [r.empreendimento, r.unidade, r.comprador, r.corretor, r.gerente, r.status]
-        .filter(Boolean).join(" ").toLowerCase().includes(s)
-    );
-  }, [sales, q]);
+    return sales.filter((r) => {
+      if (statusFilter.length && !statusFilter.includes(r.status ?? "—")) return false;
+      if (!s) return true;
+      return [r.empreendimento, r.unidade, r.comprador, r.corretor, r.gerente, r.status]
+        .filter(Boolean).join(" ").toLowerCase().includes(s);
+    });
+  }, [sales, q, statusFilter]);
 
   const byEmp = useMemo(() => {
     const m = new Map<string, { vgv: number; n: number }>();
