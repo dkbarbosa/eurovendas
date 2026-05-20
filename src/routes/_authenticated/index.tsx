@@ -333,8 +333,9 @@ function Dashboard() {
         />
         <KPICard
           label="Comissão Bruta"
-          value={m.com}
+          value={m.com + m.comGerGeral}
           format={fmtBRLCompact}
+          hint="inclui 0,4% do gerente geral sobre VGV"
           accent="teal"
           icon={<Award className="w-4 h-4" />}
           index={4}
@@ -351,19 +352,16 @@ function Dashboard() {
           hidden={hideCommissions}
           onToggleHidden={() => setHideCommissions((v) => !v)}
         />
+        <KPICard label="Comissão Líq. Corretor" value={m.comLiq} format={fmtBRLCompact} accent="gold" icon={<Award className="w-4 h-4" />} index={6} />
         <KPICard
-          label="Comissão Gerente Geral"
-          value={m.comGerGeral}
-          format={fmtBRLCompact}
-          hint="0,4% sobre o VGV total"
-          accent="azure"
-          icon={<Award className="w-4 h-4" />}
-          index={6}
-          hidden={hideCommissions}
-          onToggleHidden={() => setHideCommissions((v) => !v)}
+          label="Meta atingida"
+          value={`${(realPct * 100).toFixed(1)}%`}
+          delta={metaDelta}
+          hint={`Meta ${fmtBRLCompact(metaVgv)} · ${metaOnTrack ? "acima" : "abaixo"} ${(Math.abs(metaDelta) * 100).toFixed(1)}%`}
+          accent={metaOnTrack ? "teal" : "neutral"}
+          icon={<Target className="w-4 h-4" />}
+          index={7}
         />
-        <KPICard label="Comissão Líq. Corretor" value={m.comLiq} format={fmtBRLCompact} accent="gold" icon={<Award className="w-4 h-4" />} index={7} />
-        <KPICard label="Meta atingida" value={`${(realPct * 100).toFixed(1)}%`} hint={`Meta ${fmtBRLCompact(metaVgv)}`} accent="neutral" icon={<Target className="w-4 h-4" />} index={8} />
       </section>
 
 
