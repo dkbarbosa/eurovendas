@@ -1,6 +1,6 @@
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, type ReactNode } from "react";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Eye, EyeOff } from "lucide-react";
 
 interface KPICardProps {
   label: string;
@@ -11,6 +11,9 @@ interface KPICardProps {
   icon?: ReactNode;
   accent?: "teal" | "azure" | "gold" | "neutral";
   index?: number;
+  hidden?: boolean;
+  onToggleHidden?: () => void;
+  extra?: ReactNode;
 }
 
 const ACCENTS = {
