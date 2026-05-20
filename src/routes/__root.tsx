@@ -7,8 +7,21 @@ import {
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
+
+let authCacheBridgeBound = false;
+function ensureAuthCacheBridge(queryClient: QueryClient) {
+  if (authCacheBridgeBound) return;
+  authCacheBridgeBound = true;
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+      queryClient.invalidateQueries();
+    }
+  });
+}
+
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -19,17 +32,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Dashboard executivo premium para análise comercial de vendas imobiliárias da Equipe Maicon.",
+          "Dashboard executivo para análise comercial de vendas, comissões e aprovações da Euro Empreendimentos.",
       },
       { property: "og:title", content: "VGV Analytics — Euro Empreendimentos" },
-      { name: "twitter:title", content: "VGV Analytics — Euro Empreendimentos" },
-      { name: "description", content: "Venture Vista is a premium web application for real estate sales analysis." },
-      { property: "og:description", content: "Venture Vista is a premium web application for real estate sales analysis." },
-      { name: "twitter:description", content: "Venture Vista is a premium web application for real estate sales analysis." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2b13bc65-cf3a-4c25-8c11-08ece15f3284/id-preview-d2a2d700--7a96a12d-6e08-4387-b430-efb81cd9f886.lovable.app-1778521242832.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2b13bc65-cf3a-4c25-8c11-08ece15f3284/id-preview-d2a2d700--7a96a12d-6e08-4387-b430-efb81cd9f886.lovable.app-1778521242832.png" },
-      { name: "twitter:card", content: "summary_large_image" },
+      {
+        property: "og:description",
+        content:
+          "Dashboard executivo para análise comercial de vendas, comissões e aprovações da Euro Empreendimentos.",
+      },
       { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "VGV Analytics — Euro Empreendimentos" },
+      {
+        name: "twitter:description",
+        content:
+          "Dashboard executivo para análise comercial de vendas, comissões e aprovações da Euro Empreendimentos.",
+      },
+      { name: "robots", content: "noindex, nofollow" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
@@ -56,9 +75,21 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <AuthCacheBridge />
         <Outlet />
         <Toaster richColors theme="dark" />
       </AuthProvider>
     </QueryClientProvider>
   );
+}
+
+function AuthCacheBridge() {
+  const { queryClient } = Route.useRouteContext();
+  // Invalida caches de dados ao trocar/encerrar sessão para evitar exibir
+  // dados do usuário anterior.
+  if (typeof window !== "undefined") {
+    // Lazy-bound singleton listener — montado uma única vez por sessão de browser.
+    void ensureAuthCacheBridge(queryClient);
+  }
+  return null;
 }
