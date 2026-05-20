@@ -307,6 +307,29 @@ function Dashboard() {
 
         <div className="h-6 w-px bg-border mx-1" />
 
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-muted-foreground" />
+          {([
+            ["all", "Todos"],
+            ["house", "House"],
+            ["imob", "Imob"],
+          ] as const).map(([k, lbl]) => (
+            <button
+              key={k}
+              onClick={() => setTeamFilter(k)}
+              className={`px-3 py-1 rounded-full text-xs border transition ${
+                teamFilter === k
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-secondary/40 border-border hover:bg-secondary"
+              }`}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+
+        <div className="h-6 w-px bg-border mx-1" />
+
         <div className="flex items-center gap-2 flex-wrap">
           <CircleDot className="w-4 h-4 text-muted-foreground" />
           <StatusChip active={activeStatuses.length === 0} onClick={() => setActiveStatuses([])} label="Todos" color="#9ca3af" />
@@ -315,9 +338,9 @@ function Dashboard() {
           ))}
         </div>
 
-        {(year !== "all" || month !== "all" || activeStatuses.length > 0) && (
+        {(year !== "all" || month !== "all" || activeStatuses.length > 0 || teamFilter !== "all") && (
           <Button variant="ghost" size="sm" className="ml-auto h-8"
-            onClick={() => { setYear("all"); setMonth("all"); setActiveStatuses([]); }}>
+            onClick={() => { setYear("all"); setMonth("all"); setActiveStatuses([]); setTeamFilter("all"); }}>
             Limpar
           </Button>
         )}
