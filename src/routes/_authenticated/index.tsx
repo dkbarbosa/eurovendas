@@ -418,8 +418,8 @@ function Dashboard() {
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.4, delay: i * 0.05 }}
                 whileHover={{ y: -3 }}
-                onClick={() => setActiveStatus(activeStatus === s.name ? "all" : s.name)}
-                className={`glass-card p-5 text-left relative overflow-hidden group ${activeStatus === s.name ? "ring-2 ring-primary/60" : ""}`}
+                onClick={() => toggleStatus(s.name)}
+                className={`glass-card p-5 text-left relative overflow-hidden group ${activeStatuses.includes(s.name) ? "ring-2 ring-primary/60" : ""}`}
               >
                 <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"
                   style={{ background: statusColor(s.name) }} />
