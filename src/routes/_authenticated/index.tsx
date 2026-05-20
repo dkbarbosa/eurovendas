@@ -309,7 +309,7 @@ function Dashboard() {
           value={`${(periodGrowth.g * 100).toFixed(1)}%`}
           delta={periodGrowth.g}
           hint={`${periodGrowth.label} · ${fmtBRLCompact(periodGrowth.cur)} vs ${fmtBRLCompact(periodGrowth.prev)}`}
-          accent="neutral"
+          accent={periodGrowth.g >= 0 ? "teal" : "gold"}
           icon={<TrendingUp className="w-4 h-4" />}
           index={3}
           extra={
