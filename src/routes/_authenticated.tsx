@@ -2,15 +2,18 @@ import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, ShieldAlert } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthLayout,
 });
 
 function AuthLayout() {
-  const { session, loading } = useAuth();
+  const { session, loading, roles, isAdmin, signOut } = useAuth();
   const nav = useNavigate();
+  const isDiretor = roles.includes("diretor");
+  const allowed = isAdmin || isDiretor;
 
   useEffect(() => {
     if (!loading && !session) nav({ to: "/login" });
@@ -23,6 +26,27 @@ function AuthLayout() {
       </div>
     );
   }
+
+  if (!allowed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="glass-card max-w-md w-full p-8 text-center space-y-4">
+          <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+            <ShieldAlert className="w-6 h-6 text-destructive" />
+          </div>
+          <h1 className="font-display text-xl font-semibold">Acesso restrito</h1>
+          <p className="text-sm text-muted-foreground">
+            Esta plataforma está disponível apenas para diretores. Caso acredite
+            que isso é um engano, fale com o administrador.
+          </p>
+          <Button onClick={() => signOut().then(() => nav({ to: "/login" }))} className="w-full">
+            Sair
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AppShell>
       <Outlet />
