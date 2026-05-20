@@ -185,6 +185,11 @@ function AgendamentosPage() {
     [filtered, now],
   );
 
+  const past = useMemo(
+    () => filtered.filter((e) => e.startDate! < now).sort((a, b) => b.startDate!.getTime() - a.startDate!.getTime()).slice(0, 100),
+    [filtered, now],
+  );
+
   function clearAll() {
     setPeriod("mes_atual");
     setTeam("all");
@@ -370,6 +375,49 @@ function AgendamentosPage() {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+          </ChartCard>
+
+          <ChartCard title="Agendamentos anteriores" subtitle={`${past.length} visitas já realizadas no filtro atual`}>
+            {past.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-6 text-center">Nenhum agendamento anterior.</div>
+            ) : (
+              <div className="overflow-x-auto -mx-2">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-muted-foreground border-b border-border/50">
+                      <th className="px-2 py-2 font-medium">Data</th>
+                      <th className="px-2 py-2 font-medium">Cliente</th>
+                      <th className="px-2 py-2 font-medium">Corretor</th>
+                      <th className="px-2 py-2 font-medium">Time</th>
+                      <th className="px-2 py-2 font-medium"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {past.map((e) => (
+                      <tr key={e.id} className="hover:bg-secondary/30 transition">
+                        <td className="px-2 py-2 whitespace-nowrap text-xs text-muted-foreground">
+                          {e.startDate!.toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </td>
+                        <td className="px-2 py-2 font-medium truncate max-w-[280px]">{e.cliente ?? e.summary}</td>
+                        <td className="px-2 py-2 text-muted-foreground">{e.broker ?? "—"}</td>
+                        <td className="px-2 py-2">
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] ${e.origin === "house" ? "bg-[#2DE2C9]/15 text-[#2DE2C9]" : e.origin === "parceiro" ? "bg-[#D6AF55]/15 text-[#D6AF55]" : "bg-muted text-muted-foreground"}`}>
+                            {e.origin === "house" ? "House" : e.origin === "parceiro" ? "Imob" : "—"}
+                          </span>
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          {e.htmlLink && (
+                            <a href={e.htmlLink} target="_blank" rel="noreferrer" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </ChartCard>
