@@ -185,6 +185,11 @@ function AgendamentosPage() {
     [filtered, now],
   );
 
+  const past = useMemo(
+    () => filtered.filter((e) => e.startDate! < now).sort((a, b) => b.startDate!.getTime() - a.startDate!.getTime()).slice(0, 100),
+    [filtered, now],
+  );
+
   function clearAll() {
     setPeriod("mes_atual");
     setTeam("all");
