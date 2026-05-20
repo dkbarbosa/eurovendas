@@ -13,6 +13,7 @@ import {
   Shield,
   Activity,
   ClipboardCheck,
+  CalendarDays,
   Menu,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -23,6 +24,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/vendas", label: "Vendas", icon: Table2 },
+  { to: "/agendamentos", label: "Agendamentos", icon: CalendarDays },
   { to: "/corretores", label: "Corretores", icon: Users },
   { to: "/gerentes", label: "Gerentes", icon: UserCog },
   { to: "/empreendimentos", label: "Empreendimentos", icon: Building2 },
