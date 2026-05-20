@@ -150,16 +150,41 @@ function AprovacoesPage() {
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Users className="h-4 w-4" />
+          <span className="font-medium">Time:</span>
+        </div>
+        <div className="flex items-center gap-1 rounded-lg border border-input bg-background p-0.5 shadow-sm">
+          {([
+            { v: "__all__", label: "Todos" },
+            { v: "house", label: "House" },
+            { v: "imob", label: "Imob" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.v}
+              onClick={() => setTeamFilter(opt.v)}
+              className={`rounded-md px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider transition ${
+                teamFilter === opt.v
+                  ? "bg-primary text-primary-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-medium">Corretor:</span>
         </div>
         <Select value={corretorFilter} onValueChange={setCorretorFilter}>
-          <SelectTrigger className="h-9 w-[160px] rounded-lg border border-input bg-background text-xs shadow-sm focus:ring-1 focus:ring-ring">
+          <SelectTrigger className="h-9 w-[180px] rounded-lg border border-input bg-background text-xs shadow-sm focus:ring-1 focus:ring-ring">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Todos</SelectItem>
             {corretores.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+              <SelectItem key={c} value={c}>
+                {c} {isHouse(c) ? "· House" : "· Imob"}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
