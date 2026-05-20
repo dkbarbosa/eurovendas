@@ -122,10 +122,10 @@ function Dashboard() {
       const d = new Date(s.data);
       if (year !== "all" && d.getUTCFullYear() !== Number(year)) return false;
       if (month !== "all" && d.getUTCMonth() + 1 !== Number(month)) return false;
-      if (activeStatus !== "all" && s.status !== activeStatus) return false;
+      if (activeStatuses.length > 0 && !activeStatuses.includes(s.status ?? "")) return false;
       return true;
     });
-  }, [allSales, year, month, activeStatus]);
+  }, [allSales, year, month, activeStatuses]);
 
   // ── Crescimento por período (independente do filtro de mês) ──
   const periodGrowth = useMemo(() => {
