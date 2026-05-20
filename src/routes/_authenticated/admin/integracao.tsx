@@ -4,18 +4,44 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { syncFromSheets, updateSheetConfig } from "@/lib/sheets.functions";
+import { checkConnectorStatus } from "@/lib/integrations.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
-import { Loader2, RefreshCw, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import {
+  Loader2,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  FileSpreadsheet,
+  CalendarDays,
+} from "lucide-react";
 import { toast } from "sonner";
 import { fmtNum } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/integracao")({
   component: IntegPage,
 });
+
+function StatusBadge({ connected }: { connected: boolean }) {
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <span
+        className={`relative inline-flex h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400" : "bg-destructive"}`}
+      >
+        {connected && (
+          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
+        )}
+      </span>
+      <span className={`text-xs font-medium ${connected ? "text-emerald-400" : "text-destructive"}`}>
+        {connected ? "Conectado" : "Desconectado"}
+      </span>
+    </div>
+  );
+}
 
 function IntegPage() {
   const { isAdmin, session } = useAuth();
