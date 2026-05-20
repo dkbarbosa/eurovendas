@@ -11,7 +11,14 @@ import { TimelineChart } from "@/components/aprovacoes/TimelineChart";
 import { TopClients } from "@/components/aprovacoes/TopClients";
 import { ClientsTable } from "@/components/aprovacoes/ClientsTable";
 import { parseBR } from "@/components/aprovacoes/utils";
-import { Activity, TrendingUp, CalendarDays, X } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Activity, TrendingUp, CalendarDays, X, Users, Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/aprovacoes")({
@@ -25,21 +32,37 @@ function AprovacoesPage() {
   const allRows = data as Approval[];
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
+  const [empreendimentoFilter, setEmpreendimentoFilter] = useState<string>("__all__");
+
+  const corretores = useMemo(
+    () => Array.from(new Set(allRows.map((r) => r.corretor).filter(Boolean))).sort(),
+    [allRows]
+  );
+  const empreendimentos = useMemo(
+    () => Array.from(new Set(allRows.map((r) => r.empreendimento).filter(Boolean))).sort(),
+    [allRows]
+  );
 
   const filtered = useMemo(() => {
-    if (!dateFrom && !dateTo) return allRows;
-    const from = dateFrom ? new Date(dateFrom + "T00:00:00") : null;
-    const to = dateTo ? new Date(dateTo + "T23:59:59") : null;
     return allRows.filter((r) => {
       const d = parseBR(r.dataEntrada);
       if (!d) return false;
-      if (from && d < from) return false;
-      if (to && d > to) return false;
+      if (dateFrom) {
+        const from = new Date(dateFrom + "T00:00:00");
+        if (d < from) return false;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo + "T23:59:59");
+        if (d > to) return false;
+      }
+      if (corretorFilter !== "__all__" && r.corretor !== corretorFilter) return false;
+      if (empreendimentoFilter !== "__all__" && r.empreendimento !== empreendimentoFilter) return false;
       return true;
     });
-  }, [allRows, dateFrom, dateTo]);
+  }, [allRows, dateFrom, dateTo, corretorFilter, empreendimentoFilter]);
 
-  const activeFilter = dateFrom || dateTo;
+  const activeFilter = dateFrom || dateTo || corretorFilter !== "__all__" || empreendimentoFilter !== "__all__";
 
   return (
     <div className="space-y-6">
@@ -82,7 +105,7 @@ function AprovacoesPage() {
       >
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <CalendarDays className="h-4 w-4" />
-          <span className="font-medium">Filtro por período:</span>
+          <span className="font-medium">Período:</span>
         </div>
         <div className="flex items-center gap-2">
           <input
@@ -101,9 +124,51 @@ function AprovacoesPage() {
             placeholder="Até"
           />
         </div>
+
+        <div className="h-5 w-px bg-border/60" />
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Users className="h-4 w-4" />
+          <span className="font-medium">Corretor:</span>
+        </div>
+        <Select value={corretorFilter} onValueChange={setCorretorFilter}>
+          <SelectTrigger className="h-9 w-[160px] rounded-lg border border-input bg-background text-xs shadow-sm focus:ring-1 focus:ring-ring">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos</SelectItem>
+            {corretores.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="h-5 w-px bg-border/60" />
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Building2 className="h-4 w-4" />
+          <span className="font-medium">Empreendimento:</span>
+        </div>
+        <Select value={empreendimentoFilter} onValueChange={setEmpreendimentoFilter}>
+          <SelectTrigger className="h-9 w-[180px] rounded-lg border border-input bg-background text-xs shadow-sm focus:ring-1 focus:ring-ring">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos</SelectItem>
+            {empreendimentos.map((e) => (
+              <SelectItem key={e} value={e}>{e}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {activeFilter && (
           <button
-            onClick={() => { setDateFrom(""); setDateTo(""); }}
+            onClick={() => {
+              setDateFrom("");
+              setDateTo("");
+              setCorretorFilter("__all__");
+              setEmpreendimentoFilter("__all__");
+            }}
             className="flex items-center gap-1 rounded-lg bg-destructive/10 px-2.5 py-1.5 text-xs font-medium text-destructive transition hover:bg-destructive/20"
           >
             <X className="h-3 w-3" /> Limpar
