@@ -46,7 +46,7 @@ export function KPICard({
       className="glass-card p-5 relative overflow-hidden group"
     >
       <div
-        className="absolute -top-12 -right-12 w-36 h-36 rounded-full opacity-20 blur-2xl group-hover:opacity-30 transition-opacity"
+        className="pointer-events-none absolute -top-12 -right-12 w-36 h-36 rounded-full opacity-20 blur-2xl group-hover:opacity-30 transition-opacity"
         style={{ background: ACCENTS[accent] }}
       />
       <div className="flex items-start justify-between gap-3 mb-3">
