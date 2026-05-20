@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import data from "@/data/approvals.json";
 import type { Approval } from "@/components/aprovacoes/types";
@@ -11,6 +11,7 @@ import { TimelineChart } from "@/components/aprovacoes/TimelineChart";
 import { TopClients } from "@/components/aprovacoes/TopClients";
 import { ClientsTable } from "@/components/aprovacoes/ClientsTable";
 import { parseBR } from "@/components/aprovacoes/utils";
+import { isHouse } from "@/lib/team";
 import {
   Select,
   SelectContent,
@@ -35,13 +36,25 @@ function AprovacoesPage() {
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [dateFrom, setDateFrom] = useState(iso(firstOfMonth));
   const [dateTo, setDateTo] = useState(iso(today));
+  const [teamFilter, setTeamFilter] = useState<"__all__" | "house" | "imob">("__all__");
   const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
   const [empreendimentoFilter, setEmpreendimentoFilter] = useState<string>("__all__");
 
-  const corretores = useMemo(
-    () => Array.from(new Set(allRows.map((r) => r.corretor).filter(Boolean))).sort(),
-    [allRows]
-  );
+  const corretores = useMemo(() => {
+    const names = Array.from(new Set(allRows.map((r) => r.corretor).filter(Boolean)));
+    const filteredByTeam =
+      teamFilter === "__all__"
+        ? names
+        : names.filter((n) => (teamFilter === "house" ? isHouse(n) : !isHouse(n)));
+    return filteredByTeam.sort();
+  }, [allRows, teamFilter]);
+
+  useEffect(() => {
+    if (corretorFilter !== "__all__" && !corretores.includes(corretorFilter)) {
+      setCorretorFilter("__all__");
+    }
+  }, [corretores, corretorFilter]);
+
   const empreendimentos = useMemo(
     () => Array.from(new Set(allRows.map((r) => r.empreendimento).filter(Boolean))).sort(),
     [allRows]
@@ -59,13 +72,18 @@ function AprovacoesPage() {
         const to = new Date(dateTo + "T23:59:59");
         if (d > to) return false;
       }
+      if (teamFilter !== "__all__") {
+        const house = isHouse(r.corretor);
+        if (teamFilter === "house" && !house) return false;
+        if (teamFilter === "imob" && house) return false;
+      }
       if (corretorFilter !== "__all__" && r.corretor !== corretorFilter) return false;
       if (empreendimentoFilter !== "__all__" && r.empreendimento !== empreendimentoFilter) return false;
       return true;
     });
-  }, [allRows, dateFrom, dateTo, corretorFilter, empreendimentoFilter]);
+  }, [allRows, dateFrom, dateTo, teamFilter, corretorFilter, empreendimentoFilter]);
 
-  const activeFilter = dateFrom || dateTo || corretorFilter !== "__all__" || empreendimentoFilter !== "__all__";
+  const activeFilter = dateFrom || dateTo || teamFilter !== "__all__" || corretorFilter !== "__all__" || empreendimentoFilter !== "__all__";
 
   return (
     <div className="space-y-6">
@@ -132,16 +150,41 @@ function AprovacoesPage() {
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Users className="h-4 w-4" />
+          <span className="font-medium">Time:</span>
+        </div>
+        <div className="flex items-center gap-1 rounded-lg border border-input bg-background p-0.5 shadow-sm">
+          {([
+            { v: "__all__", label: "Todos" },
+            { v: "house", label: "House" },
+            { v: "imob", label: "Imob" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.v}
+              onClick={() => setTeamFilter(opt.v)}
+              className={`rounded-md px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider transition ${
+                teamFilter === opt.v
+                  ? "bg-primary text-primary-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-medium">Corretor:</span>
         </div>
         <Select value={corretorFilter} onValueChange={setCorretorFilter}>
-          <SelectTrigger className="h-9 w-[160px] rounded-lg border border-input bg-background text-xs shadow-sm focus:ring-1 focus:ring-ring">
+          <SelectTrigger className="h-9 w-[180px] rounded-lg border border-input bg-background text-xs shadow-sm focus:ring-1 focus:ring-ring">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Todos</SelectItem>
             {corretores.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+              <SelectItem key={c} value={c}>
+                {c} {isHouse(c) ? "· House" : "· Imob"}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -169,6 +212,7 @@ function AprovacoesPage() {
             onClick={() => {
               setDateFrom(iso(firstOfMonth));
               setDateTo(iso(today));
+              setTeamFilter("__all__");
               setCorretorFilter("__all__");
               setEmpreendimentoFilter("__all__");
             }}
