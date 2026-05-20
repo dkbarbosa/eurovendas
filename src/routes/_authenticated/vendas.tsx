@@ -173,6 +173,37 @@ function Vendas() {
         </motion.div>
       )}
 
+      <motion.div
+        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}
+        className="glass-card p-3 flex flex-wrap items-end gap-3"
+      >
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">De</label>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 w-40" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Até</label>
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 w-40" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Valor mínimo</label>
+          <Input type="number" inputMode="numeric" value={valMin} onChange={(e) => setValMin(e.target.value)} placeholder="R$ 0" className="h-9 w-36" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Valor máximo</label>
+          <Input type="number" inputMode="numeric" value={valMax} onChange={(e) => setValMax(e.target.value)} placeholder="R$ ∞" className="h-9 w-36" />
+        </div>
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">
+            {filtered.length} de {sales.length} · VGV {fmtBRL(filtered.reduce((s, r) => s + (r.valor_venda ?? 0), 0))}
+          </span>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearAll} className="h-8 text-xs">Limpar</Button>
+          )}
+        </div>
+      </motion.div>
+
+
       <div className="grid gap-4 lg:grid-cols-12">
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
