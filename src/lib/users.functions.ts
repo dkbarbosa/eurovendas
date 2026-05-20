@@ -1,8 +1,32 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 type Role = "admin" | "diretor" | "gerente" | "corretor";
+
+const RoleSchema = z.enum(["admin", "diretor", "gerente", "corretor"]);
+
+const InviteSchema = z.object({
+  email: z.string().trim().toLowerCase().email("E-mail inválido").max(254),
+  password: z
+    .string()
+    .min(8, "Senha precisa de no mínimo 8 caracteres")
+    .max(128, "Senha muito longa"),
+  displayName: z.string().trim().min(1, "Nome obrigatório").max(120),
+  role: RoleSchema,
+});
+
+const SetRoleSchema = z.object({
+  userId: z.string().uuid("ID de usuário inválido"),
+  role: RoleSchema,
+  enable: z.boolean(),
+});
+
+const DeleteUserSchema = z.object({
+  userId: z.string().uuid("ID de usuário inválido"),
+});
+
 
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
@@ -34,7 +58,9 @@ export const listUsers = createServerFn({ method: "GET" })
 
 export const inviteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { email: string; password: string; displayName: string; role: Role }) => d)
+  .inputValidator((d: { email: string; password: string; displayName: string; role: Role }) =>
+    InviteSchema.parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
@@ -49,9 +75,6 @@ export const inviteUser = createServerFn({ method: "POST" })
     await supabaseAdmin
       .from("profiles")
       .upsert({ id: uid, email: data.email, display_name: data.displayName });
-    if (data.role !== "admin") {
-      // remove auto-admin if first user case happened to fire (shouldn't here, but safety)
-    }
     await supabaseAdmin
       .from("user_roles")
       .upsert({ user_id: uid, role: data.role }, { onConflict: "user_id,role" });
@@ -60,7 +83,7 @@ export const inviteUser = createServerFn({ method: "POST" })
 
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { userId: string; role: Role; enable: boolean }) => d)
+  .inputValidator((d: { userId: string; role: Role; enable: boolean }) => SetRoleSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     if (data.enable) {
@@ -79,7 +102,7 @@ export const setUserRole = createServerFn({ method: "POST" })
 
 export const deleteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { userId: string }) => d)
+  .inputValidator((d: { userId: string }) => DeleteUserSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     if (data.userId === context.userId) throw new Error("Você não pode remover a si mesmo.");

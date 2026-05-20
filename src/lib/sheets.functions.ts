@@ -1,7 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
+import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { extractSpreadsheetId, parseSheetRows } from "./sheets.server";
+
+const SheetConfigSchema = z.object({
+  spreadsheetId: z.string().trim().min(1, "Informe a URL ou ID da planilha").max(2048),
+  range: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .regex(/^[A-Za-z0-9 _\-!:]+$/, "Range com caracteres inválidos")
+    .optional(),
+});
+
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_sheets/v4";
 
@@ -121,7 +134,7 @@ export const syncFromSheets = createServerFn({ method: "POST" })
   });
 
 export const updateSheetConfig = createServerFn({ method: "POST" })
-  .inputValidator((input: { spreadsheetId: string; range?: string }) => input)
+  .inputValidator((input: { spreadsheetId: string; range?: string }) => SheetConfigSchema.parse(input))
   .handler(async ({ data }) => {
     const admin = await requireAdmin();
     if (!admin.ok) return { ok: false, error: admin.error };
