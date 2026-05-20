@@ -484,18 +484,22 @@ function Dashboard() {
           </div>
         </ChartCard>
 
-        <ChartCard title="Meta vs Realizado" subtitle={`${(realPct * 100).toFixed(1)}% da meta`} delay={0.1}>
+        <ChartCard title="Meta vs Realizado" subtitle={`${(realPct * 100).toFixed(1)}% da meta · ${metaOnTrack ? "acima" : "abaixo"}`} delay={0.1}>
           <div className="h-80 relative flex items-center justify-center">
             <ResponsiveContainer>
               <RadialBarChart
                 innerRadius="62%" outerRadius="100%"
-                data={[{ name: "Meta", value: realPct * 100, fill: "url(#radGrad)" }]}
+                data={[{ name: "Meta", value: realPct * 100, fill: metaOnTrack ? "url(#radGradPos)" : "url(#radGradNeg)" }]}
                 startAngle={210} endAngle={-30}
               >
                 <defs>
-                  <linearGradient id="radGrad" x1="0" y1="0" x2="1" y2="0">
+                  <linearGradient id="radGradPos" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="#15CAB6" />
-                    <stop offset="100%" stopColor="#007FFF" />
+                    <stop offset="100%" stopColor="#6EE7B7" />
+                  </linearGradient>
+                  <linearGradient id="radGradNeg" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#F6B53D" />
+                    <stop offset="100%" stopColor="#FF5C8A" />
                   </linearGradient>
                 </defs>
                 <RadialBar dataKey="value" cornerRadius={20}
@@ -505,8 +509,12 @@ function Dashboard() {
               </RadialBarChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <div className="font-display text-4xl font-semibold text-gradient-primary glow-breathe">
-                {(realPct * 100).toFixed(0)}%
+              <div className={`font-display text-4xl font-semibold glow-breathe ${metaOnTrack ? "text-gradient-primary" : "text-gradient-gold"}`}>
+                {(realPct * 100).toFixed(1)}%
+              </div>
+              <div className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${metaOnTrack ? "text-success" : "text-destructive"}`}>
+                {metaOnTrack ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {metaOnTrack ? "+" : ""}{(metaDelta * 100).toFixed(1)}% vs meta
               </div>
               <div className="text-xs text-muted-foreground mt-1">{fmtBRLCompact(m.vgv)} de {fmtBRLCompact(metaVgv)}</div>
             </div>
