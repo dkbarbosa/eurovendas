@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import data from "@/data/approvals.json";
 import type { Approval } from "@/components/aprovacoes/types";
