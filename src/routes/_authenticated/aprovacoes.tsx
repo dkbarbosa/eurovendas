@@ -32,21 +32,37 @@ function AprovacoesPage() {
   const allRows = data as Approval[];
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
+  const [empreendimentoFilter, setEmpreendimentoFilter] = useState<string>("__all__");
+
+  const corretores = useMemo(
+    () => Array.from(new Set(allRows.map((r) => r.corretor).filter(Boolean))).sort(),
+    [allRows]
+  );
+  const empreendimentos = useMemo(
+    () => Array.from(new Set(allRows.map((r) => r.empreendimento).filter(Boolean))).sort(),
+    [allRows]
+  );
 
   const filtered = useMemo(() => {
-    if (!dateFrom && !dateTo) return allRows;
-    const from = dateFrom ? new Date(dateFrom + "T00:00:00") : null;
-    const to = dateTo ? new Date(dateTo + "T23:59:59") : null;
     return allRows.filter((r) => {
       const d = parseBR(r.dataEntrada);
       if (!d) return false;
-      if (from && d < from) return false;
-      if (to && d > to) return false;
+      if (dateFrom) {
+        const from = new Date(dateFrom + "T00:00:00");
+        if (d < from) return false;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo + "T23:59:59");
+        if (d > to) return false;
+      }
+      if (corretorFilter !== "__all__" && r.corretor !== corretorFilter) return false;
+      if (empreendimentoFilter !== "__all__" && r.empreendimento !== empreendimentoFilter) return false;
       return true;
     });
-  }, [allRows, dateFrom, dateTo]);
+  }, [allRows, dateFrom, dateTo, corretorFilter, empreendimentoFilter]);
 
-  const activeFilter = dateFrom || dateTo;
+  const activeFilter = dateFrom || dateTo || corretorFilter !== "__all__" || empreendimentoFilter !== "__all__";
 
   return (
     <div className="space-y-6">
