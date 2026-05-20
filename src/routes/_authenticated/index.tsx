@@ -202,7 +202,7 @@ function Dashboard() {
       byCorretor, byGerente, byEmp, byMonth, byStatus, months };
   }, [sales]);
 
-  const metaVgv = cfg?.meta_vgv ?? 5_000_000;
+  const metaVgv = 5_000_000;
   const realPct = Math.min(1.5, m.vgv / metaVgv);
   const metaDelta = m.vgv / metaVgv - 1; // positivo = acima da meta, negativo = abaixo
   const metaOnTrack = realPct >= 1;
@@ -309,7 +309,7 @@ function Dashboard() {
           value={`${(periodGrowth.g * 100).toFixed(1)}%`}
           delta={periodGrowth.g}
           hint={`${periodGrowth.label} · ${fmtBRLCompact(periodGrowth.cur)} vs ${fmtBRLCompact(periodGrowth.prev)}`}
-          accent="neutral"
+          accent={periodGrowth.g >= 0 ? "teal" : "gold"}
           icon={<TrendingUp className="w-4 h-4" />}
           index={3}
           extra={
@@ -371,7 +371,7 @@ function Dashboard() {
           value={`${(realPct * 100).toFixed(1)}%`}
           delta={metaDelta}
           hint={`Meta ${fmtBRLCompact(metaVgv)} · ${metaOnTrack ? "acima" : "abaixo"} ${(Math.abs(metaDelta) * 100).toFixed(1)}%`}
-          accent={metaOnTrack ? "teal" : "neutral"}
+          accent={metaOnTrack ? "teal" : "gold"}
           icon={<Target className="w-4 h-4" />}
           index={7}
         />
@@ -421,8 +421,12 @@ function Dashboard() {
                 onClick={() => toggleStatus(s.name)}
                 className={`glass-card p-5 text-left relative overflow-hidden group ${activeStatuses.includes(s.name) ? "ring-2 ring-primary/60" : ""}`}
               >
-                <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"
+                <div className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-30 blur-3xl group-hover:opacity-50 transition-opacity"
                   style={{ background: statusColor(s.name) }} />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 flex items-center justify-center opacity-[0.08] group-hover:opacity-[0.14] transition-opacity"
+                  style={{ color: statusColor(s.name) }}>
+                  <ShoppingBag className="w-36 h-36" strokeWidth={1} />
+                </div>
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
                     <span className="relative flex w-2.5 h-2.5">
