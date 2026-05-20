@@ -33,6 +33,7 @@ function Page() {
   const [dateTo, setDateTo] = useState<string>(iso(today));
   const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
   const [empFilter, setEmpFilter] = useState<string>("__all__");
+  const [origin, setOrigin] = useState<"all" | "house" | "parceiro">("all");
 
   const { data: all = [] } = useQuery({
     queryKey: ["sales-corr-full"],
