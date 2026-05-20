@@ -127,36 +127,42 @@ function Dashboard() {
     });
   }, [allSales, year, month, activeStatuses]);
 
-  // ── Crescimento por período (independente do filtro de mês) ──
+  // ── Crescimento por período (ancorado no filtro de Ano/Mês) ──
   const periodGrowth = useMemo(() => {
     const today = new Date();
-    const y = today.getUTCFullYear();
-    const mo = today.getUTCMonth(); // 0-based
+    // Referência: usa filtro selecionado; se "Todos", usa hoje.
+    const refY = year !== "all" ? Number(year) : today.getUTCFullYear();
+    const refM =
+      month !== "all"
+        ? Number(month) - 1
+        : year !== "all"
+          ? 11 // ano selecionado, mês = "todos" → ancora no fim do ano
+          : today.getUTCMonth();
     let curStart: Date, curEnd: Date, prevStart: Date, prevEnd: Date, label: string;
     if (growthPeriod === "month") {
-      curStart = new Date(Date.UTC(y, mo, 1));
-      curEnd = new Date(Date.UTC(y, mo + 1, 1));
-      prevStart = new Date(Date.UTC(y, mo - 1, 1));
+      curStart = new Date(Date.UTC(refY, refM, 1));
+      curEnd = new Date(Date.UTC(refY, refM + 1, 1));
+      prevStart = new Date(Date.UTC(refY, refM - 1, 1));
       prevEnd = curStart;
       label = "vs mês anterior";
     } else if (growthPeriod === "quarter") {
-      const q = Math.floor(mo / 3);
-      curStart = new Date(Date.UTC(y, q * 3, 1));
-      curEnd = new Date(Date.UTC(y, q * 3 + 3, 1));
-      prevStart = new Date(Date.UTC(y, q * 3 - 3, 1));
+      const q = Math.floor(refM / 3);
+      curStart = new Date(Date.UTC(refY, q * 3, 1));
+      curEnd = new Date(Date.UTC(refY, q * 3 + 3, 1));
+      prevStart = new Date(Date.UTC(refY, q * 3 - 3, 1));
       prevEnd = curStart;
       label = "vs trimestre anterior";
     } else if (growthPeriod === "semester") {
-      const sem = mo < 6 ? 0 : 1;
-      curStart = new Date(Date.UTC(y, sem * 6, 1));
-      curEnd = new Date(Date.UTC(y, sem * 6 + 6, 1));
-      prevStart = new Date(Date.UTC(y, sem * 6 - 6, 1));
+      const sem = refM < 6 ? 0 : 1;
+      curStart = new Date(Date.UTC(refY, sem * 6, 1));
+      curEnd = new Date(Date.UTC(refY, sem * 6 + 6, 1));
+      prevStart = new Date(Date.UTC(refY, sem * 6 - 6, 1));
       prevEnd = curStart;
       label = "vs semestre anterior";
     } else {
-      curStart = new Date(Date.UTC(y, 0, 1));
-      curEnd = new Date(Date.UTC(y + 1, 0, 1));
-      prevStart = new Date(Date.UTC(y - 1, 0, 1));
+      curStart = new Date(Date.UTC(refY, 0, 1));
+      curEnd = new Date(Date.UTC(refY + 1, 0, 1));
+      prevStart = new Date(Date.UTC(refY - 1, 0, 1));
       prevEnd = curStart;
       label = "vs ano anterior";
     }
@@ -170,7 +176,7 @@ function Dashboard() {
     }
     const g = prev > 0 ? (cur - prev) / prev : cur > 0 ? 1 : 0;
     return { g, label, cur, prev };
-  }, [allSales, growthPeriod]);
+  }, [allSales, growthPeriod, year, month]);
 
   // ── Métricas ──────────────────────────────────────────────
   const m = useMemo(() => {
