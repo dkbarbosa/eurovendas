@@ -7,11 +7,12 @@ import { fmtBRL, fmtNum } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarDays, Users, Building2, X } from "lucide-react";
+import { CalendarDays, Users, Building2, X, Home, Handshake } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
+import { isHouse } from "@/lib/team";
 
 export const Route = createFileRoute("/_authenticated/corretores")({ component: Page });
 
