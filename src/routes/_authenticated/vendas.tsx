@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { fmtBRL, fmtDate } from "@/lib/format";
-import { Download, Search } from "lucide-react";
+import { Download, Search, Users } from "lucide-react";
+import { isHouse } from "@/lib/team";
 import * as XLSX from "xlsx";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
