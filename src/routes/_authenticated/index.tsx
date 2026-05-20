@@ -421,8 +421,12 @@ function Dashboard() {
                 onClick={() => toggleStatus(s.name)}
                 className={`glass-card p-5 text-left relative overflow-hidden group ${activeStatuses.includes(s.name) ? "ring-2 ring-primary/60" : ""}`}
               >
-                <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"
+                <div className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-30 blur-3xl group-hover:opacity-50 transition-opacity"
                   style={{ background: statusColor(s.name) }} />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 flex items-center justify-center opacity-[0.08] group-hover:opacity-[0.14] transition-opacity"
+                  style={{ color: statusColor(s.name) }}>
+                  <ShoppingBag className="w-36 h-36" strokeWidth={1} />
+                </div>
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
                     <span className="relative flex w-2.5 h-2.5">
