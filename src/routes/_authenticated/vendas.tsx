@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { fmtBRL, fmtDate } from "@/lib/format";
-import { Download, Search } from "lucide-react";
+import { Download, Search, Users } from "lucide-react";
+import { isHouse } from "@/lib/team";
 import * as XLSX from "xlsx";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -29,6 +31,8 @@ function Vendas() {
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [teamFilter, setTeamFilter] = useState<"all" | "house" | "imob">("all");
+  const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
   const [dateFrom, setDateFrom] = useState<string>(iso(firstOfMonth));
   const [dateTo, setDateTo] = useState<string>(iso(today));
   const [valMin, setValMin] = useState<string>("");
@@ -48,6 +52,18 @@ function Vendas() {
     return Array.from(set).sort();
   }, [sales]);
 
+  const corretoresList = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of sales) {
+      const c = r.corretor;
+      if (!c) continue;
+      if (teamFilter === "house" && !isHouse(c)) continue;
+      if (teamFilter === "imob" && isHouse(c)) continue;
+      set.add(c);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [sales, teamFilter]);
+
   const filtered = useMemo(() => {
     const s = q.toLowerCase();
     const min = valMin ? Number(valMin) : null;
@@ -58,14 +74,20 @@ function Vendas() {
       if (dateTo && (!r.data || r.data > dateTo)) return false;
       if (min != null && (r.valor_venda ?? 0) < min) return false;
       if (max != null && (r.valor_venda ?? 0) > max) return false;
+      if (teamFilter !== "all") {
+        const house = isHouse(r.corretor);
+        if (teamFilter === "house" && !house) return false;
+        if (teamFilter === "imob" && house) return false;
+      }
+      if (corretorFilter !== "__all__" && r.corretor !== corretorFilter) return false;
       if (!s) return true;
       return [r.empreendimento, r.unidade, r.comprador, r.corretor, r.gerente, r.status]
         .filter(Boolean).join(" ").toLowerCase().includes(s);
     });
-  }, [sales, q, statusFilter, dateFrom, dateTo, valMin, valMax]);
+  }, [sales, q, statusFilter, dateFrom, dateTo, valMin, valMax, teamFilter, corretorFilter]);
 
-  const hasActiveFilters = statusFilter.length > 0 || dateFrom || dateTo || valMin || valMax || q;
-  const clearAll = () => { setStatusFilter([]); setDateFrom(iso(firstOfMonth)); setDateTo(iso(today)); setValMin(""); setValMax(""); setQ(""); };
+  const hasActiveFilters = statusFilter.length > 0 || dateFrom || dateTo || valMin || valMax || q || teamFilter !== "all" || corretorFilter !== "__all__";
+  const clearAll = () => { setStatusFilter([]); setDateFrom(iso(firstOfMonth)); setDateTo(iso(today)); setValMin(""); setValMax(""); setQ(""); setTeamFilter("all"); setCorretorFilter("__all__"); };
 
 
   const byEmp = useMemo(() => {
@@ -175,6 +197,43 @@ function Vendas() {
           )}
         </motion.div>
       )}
+
+      <motion.div
+        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.04 }}
+        className="flex flex-wrap items-center gap-2"
+      >
+        <span className="text-xs uppercase tracking-widest text-muted-foreground mr-1 flex items-center gap-1">
+          <Users className="w-3.5 h-3.5" /> Time
+        </span>
+        {([
+          ["all", "Todos", sales.length],
+          ["house", "House", sales.filter((r) => isHouse(r.corretor)).length],
+          ["imob", "Imob", sales.filter((r) => r.corretor && !isHouse(r.corretor)).length],
+        ] as const).map(([k, lbl, count]) => (
+          <button
+            key={k}
+            onClick={() => { setTeamFilter(k as typeof teamFilter); setCorretorFilter("__all__"); }}
+            className={`px-3 py-1 rounded-full text-xs border transition ${
+              teamFilter === k
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-secondary/40 border-border hover:bg-secondary"
+            }`}
+          >
+            {lbl} <span className="opacity-70 ml-1">{count}</span>
+          </button>
+        ))}
+        <div className="h-6 w-px bg-border mx-1" />
+        <Select value={corretorFilter} onValueChange={setCorretorFilter}>
+          <SelectTrigger className="h-8 w-56 text-xs"><SelectValue placeholder="Corretor" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos os corretores</SelectItem>
+            {corretoresList.map((c) => (
+              <SelectItem key={c} value={c}>{c} · {isHouse(c) ? "House" : "Imob"}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </motion.div>
+
 
       <motion.div
         initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}

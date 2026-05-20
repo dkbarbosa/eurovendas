@@ -114,6 +114,7 @@ function Dashboard() {
   const [hideGerente, setHideGerente] = useState<boolean>(true);
   const [hideLiq, setHideLiq] = useState<boolean>(true);
   const [growthPeriod, setGrowthPeriod] = useState<"month" | "quarter" | "semester" | "year">("month");
+  const [teamFilter, setTeamFilter] = useState<"all" | "house" | "imob">("all");
   const toggleStatus = (s: string) =>
     setActiveStatuses((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
@@ -124,9 +125,14 @@ function Dashboard() {
       if (year !== "all" && d.getUTCFullYear() !== Number(year)) return false;
       if (month !== "all" && d.getUTCMonth() + 1 !== Number(month)) return false;
       if (activeStatuses.length > 0 && !activeStatuses.includes(s.status ?? "")) return false;
+      if (teamFilter !== "all") {
+        const house = isHouse(s.corretor);
+        if (teamFilter === "house" && !house) return false;
+        if (teamFilter === "imob" && house) return false;
+      }
       return true;
     });
-  }, [allSales, year, month, activeStatuses]);
+  }, [allSales, year, month, activeStatuses, teamFilter]);
 
   // ── Crescimento por período (ancorado no filtro de Ano/Mês) ──
   const periodGrowth = useMemo(() => {
@@ -301,6 +307,29 @@ function Dashboard() {
 
         <div className="h-6 w-px bg-border mx-1" />
 
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-muted-foreground" />
+          {([
+            ["all", "Todos"],
+            ["house", "House"],
+            ["imob", "Imob"],
+          ] as const).map(([k, lbl]) => (
+            <button
+              key={k}
+              onClick={() => setTeamFilter(k)}
+              className={`px-3 py-1 rounded-full text-xs border transition ${
+                teamFilter === k
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-secondary/40 border-border hover:bg-secondary"
+              }`}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+
+        <div className="h-6 w-px bg-border mx-1" />
+
         <div className="flex items-center gap-2 flex-wrap">
           <CircleDot className="w-4 h-4 text-muted-foreground" />
           <StatusChip active={activeStatuses.length === 0} onClick={() => setActiveStatuses([])} label="Todos" color="#9ca3af" />
@@ -309,9 +338,9 @@ function Dashboard() {
           ))}
         </div>
 
-        {(year !== "all" || month !== "all" || activeStatuses.length > 0) && (
+        {(year !== "all" || month !== "all" || activeStatuses.length > 0 || teamFilter !== "all") && (
           <Button variant="ghost" size="sm" className="ml-auto h-8"
-            onClick={() => { setYear("all"); setMonth("all"); setActiveStatuses([]); }}>
+            onClick={() => { setYear("all"); setMonth("all"); setActiveStatuses([]); setTeamFilter("all"); }}>
             Limpar
           </Button>
         )}
