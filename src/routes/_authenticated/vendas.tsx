@@ -26,6 +26,10 @@ const PIE_COLORS = ["oklch(0.82 0.16 185)", "oklch(0.78 0.12 82)", "oklch(0.7 0.
 function Vendas() {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [valMin, setValMin] = useState<string>("");
+  const [valMax, setValMax] = useState<string>("");
   const { data: sales = [] } = useQuery({
     queryKey: ["sales-all"],
     queryFn: async () => {
@@ -43,13 +47,23 @@ function Vendas() {
 
   const filtered = useMemo(() => {
     const s = q.toLowerCase();
+    const min = valMin ? Number(valMin) : null;
+    const max = valMax ? Number(valMax) : null;
     return sales.filter((r) => {
       if (statusFilter.length && !statusFilter.includes(r.status ?? "—")) return false;
+      if (dateFrom && (!r.data || r.data < dateFrom)) return false;
+      if (dateTo && (!r.data || r.data > dateTo)) return false;
+      if (min != null && (r.valor_venda ?? 0) < min) return false;
+      if (max != null && (r.valor_venda ?? 0) > max) return false;
       if (!s) return true;
       return [r.empreendimento, r.unidade, r.comprador, r.corretor, r.gerente, r.status]
         .filter(Boolean).join(" ").toLowerCase().includes(s);
     });
-  }, [sales, q, statusFilter]);
+  }, [sales, q, statusFilter, dateFrom, dateTo, valMin, valMax]);
+
+  const hasActiveFilters = statusFilter.length > 0 || dateFrom || dateTo || valMin || valMax || q;
+  const clearAll = () => { setStatusFilter([]); setDateFrom(""); setDateTo(""); setValMin(""); setValMax(""); setQ(""); };
+
 
   const byEmp = useMemo(() => {
     const m = new Map<string, { vgv: number; n: number }>();
@@ -158,6 +172,37 @@ function Vendas() {
           )}
         </motion.div>
       )}
+
+      <motion.div
+        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}
+        className="glass-card p-3 flex flex-wrap items-end gap-3"
+      >
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">De</label>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 w-40" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Até</label>
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 w-40" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Valor mínimo</label>
+          <Input type="number" inputMode="numeric" value={valMin} onChange={(e) => setValMin(e.target.value)} placeholder="R$ 0" className="h-9 w-36" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Valor máximo</label>
+          <Input type="number" inputMode="numeric" value={valMax} onChange={(e) => setValMax(e.target.value)} placeholder="R$ ∞" className="h-9 w-36" />
+        </div>
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">
+            {filtered.length} de {sales.length} · VGV {fmtBRL(filtered.reduce((s, r) => s + (r.valor_venda ?? 0), 0))}
+          </span>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearAll} className="h-8 text-xs">Limpar</Button>
+          )}
+        </div>
+      </motion.div>
+
 
       <div className="grid gap-4 lg:grid-cols-12">
         <motion.div

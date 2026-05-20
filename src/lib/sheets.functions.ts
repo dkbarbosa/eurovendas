@@ -85,15 +85,15 @@ export const syncFromSheets = createServerFn({ method: "POST" })
         pctGerente: Number(cfg.pct_gerente_default ?? 0.007),
       });
 
-      // Upsert by row_hash; also wipe stale rows not present anymore.
+      // Full snapshot: wipe everything and reinsert. Garante consistência 1:1 com a planilha.
+      const { error: delErr } = await supabaseAdmin.from("sales").delete().not("id", "is", null);
+      if (delErr) throw delErr;
       if (rows.length > 0) {
         const now = new Date().toISOString();
         const { error: upErr } = await supabaseAdmin
           .from("sales")
-          .upsert(rows.map((row) => ({ ...row, updated_at: now })), { onConflict: "row_hash" });
+          .insert(rows.map((row) => ({ ...row, updated_at: now })));
         if (upErr) throw upErr;
-        const hashes = rows.map((r) => r.row_hash);
-        await supabaseAdmin.from("sales").delete().not("row_hash", "in", `(${hashes.map((h) => `"${h}"`).join(",")})`);
       }
 
       if (logId) {
