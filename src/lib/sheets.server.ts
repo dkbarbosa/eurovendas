@@ -105,7 +105,8 @@ export function parseSheetRows(
   if (!values || values.length === 0) return [];
   const rows = values.slice(1); // skip header
   const out: SaleRow[] = [];
-  for (const row of rows) {
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
     const data = parseDate(row[0]);
     const empreendimento = (row[1] as string) || null;
     const unidade = row[2] != null ? String(row[2]) : null;
