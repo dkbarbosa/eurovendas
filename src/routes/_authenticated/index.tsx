@@ -194,7 +194,7 @@ function Dashboard() {
         ? (byMonth[cur].vgv - byMonth[prev].vgv) / byMonth[prev].vgv
         : 0;
 
-    return { vgv, com, comGer, comLiq, ticket, topC, topG, topE, growth,
+    return { vgv, com, comGer, comGerGeral: vgv * 0.004, comLiq, ticket, topC, topG, topE, growth,
       byCorretor, byGerente, byEmp, byMonth, byStatus, months };
   }, [sales]);
 
