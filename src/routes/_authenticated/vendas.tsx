@@ -65,7 +65,7 @@ function Vendas() {
   }, [sales, q, statusFilter, dateFrom, dateTo, valMin, valMax]);
 
   const hasActiveFilters = statusFilter.length > 0 || dateFrom || dateTo || valMin || valMax || q;
-  const clearAll = () => { setStatusFilter([]); setDateFrom(""); setDateTo(""); setValMin(""); setValMax(""); setQ(""); };
+  const clearAll = () => { setStatusFilter([]); setDateFrom(iso(firstOfMonth)); setDateTo(iso(today)); setValMin(""); setValMax(""); setQ(""); };
 
 
   const byEmp = useMemo(() => {
