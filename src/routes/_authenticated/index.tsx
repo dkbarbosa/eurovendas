@@ -741,6 +741,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 
 function AgendamentosMiniCard() {
   const { data: events = [], isLoading } = useAgendamentos();
+  type Ev = (typeof events)[number];
   const { data: knownBrokers = [] } = useQuery({
     queryKey: ["known-brokers"],
     queryFn: async () => {
