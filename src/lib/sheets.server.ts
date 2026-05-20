@@ -151,7 +151,7 @@ export function parseSheetRows(
       observacoes: (row[20] as string) || null,
       row_hash: "",
     };
-    sale.row_hash = hashRow([data, empreendimento, unidade, comprador, String(valor_venda)]);
+    sale.row_hash = hashRow([data, empreendimento, unidade, comprador, String(valor_venda), String(i)]);
     out.push(sale);
   }
   return out;
