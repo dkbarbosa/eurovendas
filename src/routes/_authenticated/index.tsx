@@ -736,3 +736,96 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
     </div>
   );
 }
+
+function AgendamentosMiniCard() {
+  const { data: events = [], isLoading } = useAgendamentos();
+  const { data: knownBrokers = [] } = useQuery({
+    queryKey: ["known-brokers"],
+    queryFn: async () => {
+      const { data } = await supabase.from("sales").select("corretor").not("corretor", "is", null).limit(5000);
+      const set = new Set<string>();
+      for (const r of data ?? []) if (r.corretor) set.add(r.corretor as string);
+      return Array.from(set);
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(startOfDay.getTime() + 864e5);
+
+  const m = useMemo(() => {
+    const inMonth = events
+      .filter((e) => e.status !== "cancelled")
+      .map((e) => {
+        const p = parseAgendamento(e.summary, e.description, e.creatorEmail, knownBrokers);
+        return { e, d: e.start ? new Date(e.start) : null, origin: p.origin, broker: p.broker };
+      })
+      .filter((x) => x.d && x.d >= monthStart && x.d < monthEnd);
+
+    const hoje = inMonth.filter((x) => x.d! >= startOfDay && x.d! < endOfDay).length;
+    const futuros = inMonth.filter((x) => x.d! >= now).length;
+    const house = inMonth.filter((x) => x.origin === "house").length;
+    const imob = inMonth.filter((x) => x.origin === "parceiro").length;
+
+    const days = new Map<string, number>();
+    for (const x of inMonth) {
+      const k = `${x.d!.getDate()}`;
+      days.set(k, (days.get(k) ?? 0) + 1);
+    }
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const series = Array.from({ length: daysInMonth }, (_, i) => ({ d: i + 1, total: days.get(`${i + 1}`) ?? 0 }));
+    return { total: inMonth.length, hoje, futuros, house, imob, series };
+  }, [events, knownBrokers, monthStart, monthEnd, now, startOfDay, endOfDay]);
+
+  return (
+    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5">
+      <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "var(--gradient-primary)" }}>
+            <CalendarDays className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <div>
+            <div className="text-sm font-medium">Agendamentos do mês</div>
+            <div className="text-xs text-muted-foreground">Sincronizado em tempo real do Google Calendar</div>
+          </div>
+        </div>
+        <a href="/agendamentos" className="text-xs text-muted-foreground hover:text-foreground transition">Ver tudo →</a>
+      </div>
+      {isLoading ? (
+        <div className="text-xs text-muted-foreground">Carregando…</div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-center">
+          <Stat label="Total no mês" value={fmtNum(m.total)} />
+          <Stat label="Hoje" value={fmtNum(m.hoje)} />
+          <Stat label="Futuros" value={fmtNum(m.futuros)} />
+          <Stat label="House / Imob" value={`${fmtNum(m.house)} / ${fmtNum(m.imob)}`} />
+          <div className="h-16 md:col-span-1 col-span-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={m.series} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="ag-mini" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2DE2C9" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="#2DE2C9" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="total" stroke="#2DE2C9" strokeWidth={2} fill="url(#ag-mini)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+    </motion.section>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="font-display text-2xl font-semibold tracking-tight mt-1">{value}</div>
+    </div>
+  );
+}
