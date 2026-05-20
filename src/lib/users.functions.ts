@@ -1,8 +1,32 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 type Role = "admin" | "diretor" | "gerente" | "corretor";
+
+const RoleSchema = z.enum(["admin", "diretor", "gerente", "corretor"]);
+
+const InviteSchema = z.object({
+  email: z.string().trim().toLowerCase().email("E-mail inválido").max(254),
+  password: z
+    .string()
+    .min(8, "Senha precisa de no mínimo 8 caracteres")
+    .max(128, "Senha muito longa"),
+  displayName: z.string().trim().min(1, "Nome obrigatório").max(120),
+  role: RoleSchema,
+});
+
+const SetRoleSchema = z.object({
+  userId: z.string().uuid("ID de usuário inválido"),
+  role: RoleSchema,
+  enable: z.boolean(),
+});
+
+const DeleteUserSchema = z.object({
+  userId: z.string().uuid("ID de usuário inválido"),
+});
+
 
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
