@@ -466,7 +466,7 @@ function Dashboard() {
 
       {/* Top destaques */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <KPICard label="Melhor corretor" value={m.topC?.name ?? "—"} hint={fmtBRL(m.topC?.vgv ?? 0)} accent="teal" icon={<Trophy className="w-4 h-4" />} index={0} />
+        <KPICard label="Melhor corretor" value={m.topC?.name ?? "—"} hint={`${fmtBRL(m.topC?.vgv ?? 0)} · ${m.topC ? (isHouse(m.topC.name) ? "Equipe House" : "Parceiro") : "—"}`} accent="teal" icon={<Trophy className="w-4 h-4" />} index={0} />
         <KPICard label="Melhor gerente" value={m.topG?.name ?? "—"} hint={fmtBRL(m.topG?.vgv ?? 0)} accent="azure" icon={<Users className="w-4 h-4" />} index={1} />
         <KPICard label="Melhor empreendimento" value={m.topE?.name ?? "—"} hint={fmtBRL(m.topE?.vgv ?? 0)} accent="gold" icon={<Building2 className="w-4 h-4" />} index={2} />
       </section>
