@@ -167,8 +167,8 @@ function AprovacoesPage() {
         {activeFilter && (
           <button
             onClick={() => {
-              setDateFrom("");
-              setDateTo("");
+              setDateFrom(iso(firstOfMonth));
+              setDateTo(iso(today));
               setCorretorFilter("__all__");
               setEmpreendimentoFilter("__all__");
             }}
