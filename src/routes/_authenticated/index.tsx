@@ -209,9 +209,20 @@ function Dashboard() {
       byCorretor, byGerente, byEmp, byMonth, byStatus, months };
   }, [sales]);
 
+  // Meta: soma RESERVADO + VENDIDO, subtrai DISTRATO/CANCELADO
   const metaVgv = 5_000_000;
-  const realPct = Math.min(1.5, m.vgv / metaVgv);
-  const metaDelta = m.vgv / metaVgv - 1; // positivo = acima da meta, negativo = abaixo
+  const metaRealizado = useMemo(() => {
+    let total = 0;
+    for (const s of sales) {
+      const st = (s.status ?? "").toUpperCase();
+      const v = s.valor_venda ?? 0;
+      if (st === "RESERVADO" || st === "VENDIDO") total += v;
+      else if (st === "DISTRATO" || st === "CANCELADO") total -= v;
+    }
+    return total;
+  }, [sales]);
+  const realPct = Math.min(1.5, metaRealizado / metaVgv);
+  const metaDelta = metaRealizado / metaVgv - 1;
   const metaOnTrack = realPct >= 1;
 
   const corretorRanking = Object.entries(m.byCorretor)
@@ -540,7 +551,7 @@ function Dashboard() {
                 {metaOnTrack ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                 {metaOnTrack ? "+" : ""}{(metaDelta * 100).toFixed(1)}% vs meta
               </div>
-              <div className="text-xs text-muted-foreground mt-1">{fmtBRLCompact(m.vgv)} de {fmtBRLCompact(metaVgv)}</div>
+              <div className="text-xs text-muted-foreground mt-1">{fmtBRLCompact(metaRealizado)} de {fmtBRLCompact(metaVgv)}</div>
             </div>
           </div>
         </ChartCard>
