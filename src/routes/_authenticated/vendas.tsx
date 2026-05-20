@@ -26,6 +26,10 @@ const PIE_COLORS = ["oklch(0.82 0.16 185)", "oklch(0.78 0.12 82)", "oklch(0.7 0.
 function Vendas() {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [valMin, setValMin] = useState<string>("");
+  const [valMax, setValMax] = useState<string>("");
   const { data: sales = [] } = useQuery({
     queryKey: ["sales-all"],
     queryFn: async () => {
@@ -43,13 +47,23 @@ function Vendas() {
 
   const filtered = useMemo(() => {
     const s = q.toLowerCase();
+    const min = valMin ? Number(valMin) : null;
+    const max = valMax ? Number(valMax) : null;
     return sales.filter((r) => {
       if (statusFilter.length && !statusFilter.includes(r.status ?? "—")) return false;
+      if (dateFrom && (!r.data || r.data < dateFrom)) return false;
+      if (dateTo && (!r.data || r.data > dateTo)) return false;
+      if (min != null && (r.valor_venda ?? 0) < min) return false;
+      if (max != null && (r.valor_venda ?? 0) > max) return false;
       if (!s) return true;
       return [r.empreendimento, r.unidade, r.comprador, r.corretor, r.gerente, r.status]
         .filter(Boolean).join(" ").toLowerCase().includes(s);
     });
-  }, [sales, q, statusFilter]);
+  }, [sales, q, statusFilter, dateFrom, dateTo, valMin, valMax]);
+
+  const hasActiveFilters = statusFilter.length > 0 || dateFrom || dateTo || valMin || valMax || q;
+  const clearAll = () => { setStatusFilter([]); setDateFrom(""); setDateTo(""); setValMin(""); setValMax(""); setQ(""); };
+
 
   const byEmp = useMemo(() => {
     const m = new Map<string, { vgv: number; n: number }>();
