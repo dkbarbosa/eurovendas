@@ -62,9 +62,11 @@ function Page() {
       if (dateTo && (!r.data || r.data > dateTo)) return false;
       if (corretorFilter !== "__all__" && r.corretor !== corretorFilter) return false;
       if (empFilter !== "__all__" && r.empreendimento !== empFilter) return false;
+      if (origin === "house" && !isHouse(r.corretor)) return false;
+      if (origin === "parceiro" && isHouse(r.corretor)) return false;
       return true;
     });
-  }, [all, dateFrom, dateTo, corretorFilter, empFilter]);
+  }, [all, dateFrom, dateTo, corretorFilter, empFilter, origin]);
 
   const rows = useMemo(() => {
     const map: Record<string, { vgv: number; com: number; n: number }> = {};
