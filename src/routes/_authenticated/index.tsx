@@ -371,7 +371,7 @@ function Dashboard() {
           value={`${(realPct * 100).toFixed(1)}%`}
           delta={metaDelta}
           hint={`Meta ${fmtBRLCompact(metaVgv)} · ${metaOnTrack ? "acima" : "abaixo"} ${(Math.abs(metaDelta) * 100).toFixed(1)}%`}
-          accent={metaOnTrack ? "teal" : "neutral"}
+          accent={metaOnTrack ? "teal" : "gold"}
           icon={<Target className="w-4 h-4" />}
           index={7}
         />
