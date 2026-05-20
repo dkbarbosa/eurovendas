@@ -257,20 +257,31 @@ function Page() {
       >
         <table className="w-full text-sm">
           <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="text-left p-3">#</th><th className="text-left p-3">Corretor</th><th className="text-right p-3">Vendas</th><th className="text-right p-3">VGV</th><th className="text-right p-3">Comissão</th></tr>
+            <tr><th className="text-left p-3">#</th><th className="text-left p-3">Corretor</th><th className="text-left p-3">Origem</th><th className="text-right p-3">Vendas</th><th className="text-right p-3">VGV</th><th className="text-right p-3">Comissão</th></tr>
           </thead>
           <tbody>
-            {rows.map((v, i) => (
-              <tr key={v.name} className="border-t border-border hover:bg-secondary/30">
-                <td className="p-3 text-muted-foreground">{i + 1}</td>
-                <td className="p-3 font-medium">{v.name}</td>
-                <td className="p-3 text-right">{fmtNum(v.n)}</td>
-                <td className="p-3 text-right text-gradient-primary font-medium">{fmtBRL(v.vgv)}</td>
-                <td className="p-3 text-right">{fmtBRL(v.com)}</td>
-              </tr>
-            ))}
+            {rows.map((v, i) => {
+              const house = isHouse(v.name);
+              return (
+                <tr key={v.name} className="border-t border-border hover:bg-secondary/30">
+                  <td className="p-3 text-muted-foreground">{i + 1}</td>
+                  <td className="p-3 font-medium">{v.name}</td>
+                  <td className="p-3">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${
+                      house ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-400"
+                    }`}>
+                      {house ? <Home className="w-3 h-3" /> : <Handshake className="w-3 h-3" />}
+                      {house ? "House" : "Parceiro"}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">{fmtNum(v.n)}</td>
+                  <td className="p-3 text-right text-gradient-primary font-medium">{fmtBRL(v.vgv)}</td>
+                  <td className="p-3 text-right">{fmtBRL(v.com)}</td>
+                </tr>
+              );
+            })}
             {rows.length === 0 && (
-              <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhum dado no período.</td></tr>
+              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum dado no período.</td></tr>
             )}
           </tbody>
         </table>
