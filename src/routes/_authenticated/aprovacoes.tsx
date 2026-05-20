@@ -11,7 +11,14 @@ import { TimelineChart } from "@/components/aprovacoes/TimelineChart";
 import { TopClients } from "@/components/aprovacoes/TopClients";
 import { ClientsTable } from "@/components/aprovacoes/ClientsTable";
 import { parseBR } from "@/components/aprovacoes/utils";
-import { Activity, TrendingUp, CalendarDays, X } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Activity, TrendingUp, CalendarDays, X, Users, Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/aprovacoes")({
