@@ -761,12 +761,12 @@ function AgendamentosMiniCard() {
 
   const m = useMemo(() => {
     const inMonth = events
-      .filter((e) => e.status !== "cancelled")
-      .map((e) => {
+      .filter((e: Ev) => e.status !== "cancelled")
+      .map((e: Ev) => {
         const p = parseAgendamento(e.summary, e.description, e.creatorEmail, knownBrokers);
         return { e, d: e.start ? new Date(e.start) : null, origin: p.origin, broker: p.broker };
       })
-      .filter((x) => x.d && x.d >= monthStart && x.d < monthEnd);
+      .filter((x: { d: Date | null }) => x.d && x.d >= monthStart && x.d < monthEnd);
 
     const hoje = inMonth.filter((x) => x.d! >= startOfDay && x.d! < endOfDay).length;
     const futuros = inMonth.filter((x) => x.d! >= now).length;
