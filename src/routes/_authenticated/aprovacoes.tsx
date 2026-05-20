@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import data from "@/data/approvals.json";
 import type { Approval } from "@/components/aprovacoes/types";
@@ -9,7 +10,9 @@ import { EmpreendimentoBars } from "@/components/aprovacoes/EmpreendimentoBars";
 import { TimelineChart } from "@/components/aprovacoes/TimelineChart";
 import { TopClients } from "@/components/aprovacoes/TopClients";
 import { ClientsTable } from "@/components/aprovacoes/ClientsTable";
-import { Activity, TrendingUp } from "lucide-react";
+import { parseBR } from "@/components/aprovacoes/utils";
+import { Activity, TrendingUp, CalendarDays, X } from "lucide-react";
+import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/aprovacoes")({
   component: AprovacoesPage,
