@@ -105,7 +105,7 @@ function AprovacoesPage() {
       >
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <CalendarDays className="h-4 w-4" />
-          <span className="font-medium">Filtro por período:</span>
+          <span className="font-medium">Período:</span>
         </div>
         <div className="flex items-center gap-2">
           <input
@@ -124,9 +124,51 @@ function AprovacoesPage() {
             placeholder="Até"
           />
         </div>
+
+        <div className="h-5 w-px bg-border/60" />
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Users className="h-4 w-4" />
+          <span className="font-medium">Corretor:</span>
+        </div>
+        <Select value={corretorFilter} onValueChange={setCorretorFilter}>
+          <SelectTrigger className="h-9 w-[160px] rounded-lg border border-input bg-background text-xs shadow-sm focus:ring-1 focus:ring-ring">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos</SelectItem>
+            {corretores.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="h-5 w-px bg-border/60" />
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Building2 className="h-4 w-4" />
+          <span className="font-medium">Empreendimento:</span>
+        </div>
+        <Select value={empreendimentoFilter} onValueChange={setEmpreendimentoFilter}>
+          <SelectTrigger className="h-9 w-[180px] rounded-lg border border-input bg-background text-xs shadow-sm focus:ring-1 focus:ring-ring">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos</SelectItem>
+            {empreendimentos.map((e) => (
+              <SelectItem key={e} value={e}>{e}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {activeFilter && (
           <button
-            onClick={() => { setDateFrom(""); setDateTo(""); }}
+            onClick={() => {
+              setDateFrom("");
+              setDateTo("");
+              setCorretorFilter("__all__");
+              setEmpreendimentoFilter("__all__");
+            }}
             className="flex items-center gap-1 rounded-lg bg-destructive/10 px-2.5 py-1.5 text-xs font-medium text-destructive transition hover:bg-destructive/20"
           >
             <X className="h-3 w-3" /> Limpar
