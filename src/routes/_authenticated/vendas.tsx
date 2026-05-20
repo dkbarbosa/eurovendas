@@ -30,6 +30,8 @@ function Vendas() {
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [teamFilter, setTeamFilter] = useState<"all" | "house" | "imob">("all");
+  const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
   const [dateFrom, setDateFrom] = useState<string>(iso(firstOfMonth));
   const [dateTo, setDateTo] = useState<string>(iso(today));
   const [valMin, setValMin] = useState<string>("");
