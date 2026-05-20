@@ -551,7 +551,7 @@ function Dashboard() {
                 {metaOnTrack ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                 {metaOnTrack ? "+" : ""}{(metaDelta * 100).toFixed(1)}% vs meta
               </div>
-              <div className="text-xs text-muted-foreground mt-1">{fmtBRLCompact(m.vgv)} de {fmtBRLCompact(metaVgv)}</div>
+              <div className="text-xs text-muted-foreground mt-1">{fmtBRLCompact(metaRealizado)} de {fmtBRLCompact(metaVgv)}</div>
             </div>
           </div>
         </ChartCard>
