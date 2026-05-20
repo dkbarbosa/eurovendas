@@ -152,12 +152,59 @@ function Page() {
           </SelectContent>
         </Select>
 
+        <div className="h-5 w-px bg-border mx-1" />
+
+        <div className="flex items-center gap-1 rounded-full bg-secondary/40 p-1">
+          {([
+            ["all", "Todos", null],
+            ["house", "Equipe House", <Home key="h" className="w-3 h-3" />],
+            ["parceiro", "Parceiros", <Handshake key="p" className="w-3 h-3" />],
+          ] as const).map(([k, lbl, ic]) => (
+            <button
+              key={k}
+              onClick={() => setOrigin(k)}
+              className={`flex items-center gap-1 h-7 px-3 rounded-full text-[11px] uppercase tracking-wider transition ${
+                origin === k
+                  ? "bg-primary/20 text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {ic}
+              {lbl}
+            </button>
+          ))}
+        </div>
+
         {hasActive && (
           <Button variant="ghost" size="sm" onClick={clearAll} className="ml-auto h-8 text-xs">
             <X className="w-3 h-3 mr-1" /> Limpar
           </Button>
         )}
       </motion.div>
+
+      {/* Resumo House x Parceiros */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="glass-card p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+            <Home className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Equipe House</div>
+            <div className="font-display text-xl font-semibold">{fmtBRL(summary.house.vgv)}</div>
+            <div className="text-xs text-muted-foreground">{fmtNum(summary.house.n)} vendas</div>
+          </div>
+        </div>
+        <div className="glass-card p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
+            <Handshake className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Parceiros (imobiliárias)</div>
+            <div className="font-display text-xl font-semibold">{fmtBRL(summary.parc.vgv)}</div>
+            <div className="text-xs text-muted-foreground">{fmtNum(summary.parc.n)} vendas</div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-12">
         <motion.div
