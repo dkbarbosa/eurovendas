@@ -199,6 +199,43 @@ function Vendas() {
       )}
 
       <motion.div
+        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.04 }}
+        className="flex flex-wrap items-center gap-2"
+      >
+        <span className="text-xs uppercase tracking-widest text-muted-foreground mr-1 flex items-center gap-1">
+          <Users className="w-3.5 h-3.5" /> Time
+        </span>
+        {([
+          ["all", "Todos", sales.length],
+          ["house", "House", sales.filter((r) => isHouse(r.corretor)).length],
+          ["imob", "Imob", sales.filter((r) => r.corretor && !isHouse(r.corretor)).length],
+        ] as const).map(([k, lbl, count]) => (
+          <button
+            key={k}
+            onClick={() => { setTeamFilter(k as typeof teamFilter); setCorretorFilter("__all__"); }}
+            className={`px-3 py-1 rounded-full text-xs border transition ${
+              teamFilter === k
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-secondary/40 border-border hover:bg-secondary"
+            }`}
+          >
+            {lbl} <span className="opacity-70 ml-1">{count}</span>
+          </button>
+        ))}
+        <div className="h-6 w-px bg-border mx-1" />
+        <Select value={corretorFilter} onValueChange={setCorretorFilter}>
+          <SelectTrigger className="h-8 w-56 text-xs"><SelectValue placeholder="Corretor" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos os corretores</SelectItem>
+            {corretoresList.map((c) => (
+              <SelectItem key={c} value={c}>{c} · {isHouse(c) ? "House" : "Imob"}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </motion.div>
+
+
+      <motion.div
         initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}
         className="glass-card p-3 flex flex-wrap items-end gap-3"
       >
