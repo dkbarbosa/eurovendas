@@ -95,19 +95,6 @@ export function KPICard({
           <>{value}</>
         )}
       </div>
-      <div className="flex items-center justify-between mt-2 min-h-5">
-        <div className="text-xs text-muted-foreground truncate">{hint}</div>
-        {delta != null && (
-          <div
-            className={`text-xs flex items-center gap-1 font-medium ${
-              delta >= 0 ? "text-success" : "text-destructive"
-            }`}
-          >
-            {delta >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {(delta * 100).toFixed(1)}%
-          </div>
-        )}
-      </div>
       <div className="relative flex items-center justify-between mt-2 min-h-5">
         <div className="text-xs text-muted-foreground truncate">{hint}</div>
         {delta != null && (
