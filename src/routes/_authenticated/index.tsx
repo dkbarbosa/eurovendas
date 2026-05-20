@@ -26,7 +26,7 @@ import { KPICard } from "@/components/KPICard";
 import { ChartCard } from "@/components/ChartCard";
 import { fmtBRL, fmtBRLCompact, fmtNum } from "@/lib/format";
 import {
-  DollarSign, ShoppingBag, Trophy, Building2, Target, TrendingUp,
+  DollarSign, ShoppingBag, Trophy, Building2, Target, TrendingUp, TrendingDown,
   Users, Award, Filter, CalendarDays, CircleDot,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
