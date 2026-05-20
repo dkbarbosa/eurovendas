@@ -198,8 +198,10 @@ function Dashboard() {
       byCorretor, byGerente, byEmp, byMonth, byStatus, months };
   }, [sales]);
 
-  const metaVgv = cfg?.meta_vgv ?? 7_000_000;
+  const metaVgv = cfg?.meta_vgv ?? 5_000_000;
   const realPct = Math.min(1.5, m.vgv / metaVgv);
+  const metaDelta = m.vgv / metaVgv - 1; // positivo = acima da meta, negativo = abaixo
+  const metaOnTrack = realPct >= 1;
 
   const corretorRanking = Object.entries(m.byCorretor)
     .map(([name, v]) => ({ name, vgv: v.vgv, count: v.count, com: v.com }))
