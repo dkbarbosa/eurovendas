@@ -7,11 +7,12 @@ import { fmtBRL, fmtNum } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarDays, Users, Building2, X } from "lucide-react";
+import { CalendarDays, Users, Building2, X, Home, Handshake } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
+import { isHouse } from "@/lib/team";
 
 export const Route = createFileRoute("/_authenticated/corretores")({ component: Page });
 
@@ -32,6 +33,7 @@ function Page() {
   const [dateTo, setDateTo] = useState<string>(iso(today));
   const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
   const [empFilter, setEmpFilter] = useState<string>("__all__");
+  const [origin, setOrigin] = useState<"all" | "house" | "parceiro">("all");
 
   const { data: all = [] } = useQuery({
     queryKey: ["sales-corr-full"],
@@ -60,9 +62,11 @@ function Page() {
       if (dateTo && (!r.data || r.data > dateTo)) return false;
       if (corretorFilter !== "__all__" && r.corretor !== corretorFilter) return false;
       if (empFilter !== "__all__" && r.empreendimento !== empFilter) return false;
+      if (origin === "house" && !isHouse(r.corretor)) return false;
+      if (origin === "parceiro" && isHouse(r.corretor)) return false;
       return true;
     });
-  }, [all, dateFrom, dateTo, corretorFilter, empFilter]);
+  }, [all, dateFrom, dateTo, corretorFilter, empFilter, origin]);
 
   const rows = useMemo(() => {
     const map: Record<string, { vgv: number; com: number; n: number }> = {};
@@ -79,14 +83,28 @@ function Page() {
   }, [data]);
 
   const top = rows.slice(0, 10);
+
+  // Resumo House x Parceiros (sempre sobre 'data' já filtrado por período/origem)
+  const summary = useMemo(() => {
+    let house = { vgv: 0, n: 0 };
+    let parc = { vgv: 0, n: 0 };
+    for (const r of data) {
+      const bucket = isHouse(r.corretor) ? house : parc;
+      bucket.vgv += r.valor_venda ?? 0;
+      bucket.n += 1;
+    }
+    return { house, parc };
+  }, [data]);
+
   const hasActive =
     dateFrom !== iso(firstOfMonth) || dateTo !== iso(today) ||
-    corretorFilter !== "__all__" || empFilter !== "__all__";
+    corretorFilter !== "__all__" || empFilter !== "__all__" || origin !== "all";
   const clearAll = () => {
     setDateFrom(iso(firstOfMonth));
     setDateTo(iso(today));
     setCorretorFilter("__all__");
     setEmpFilter("__all__");
+    setOrigin("all");
   };
 
   return (
@@ -134,12 +152,59 @@ function Page() {
           </SelectContent>
         </Select>
 
+        <div className="h-5 w-px bg-border mx-1" />
+
+        <div className="flex items-center gap-1 rounded-full bg-secondary/40 p-1">
+          {([
+            ["all", "Todos", null],
+            ["house", "Equipe House", <Home key="h" className="w-3 h-3" />],
+            ["parceiro", "Parceiros", <Handshake key="p" className="w-3 h-3" />],
+          ] as const).map(([k, lbl, ic]) => (
+            <button
+              key={k}
+              onClick={() => setOrigin(k)}
+              className={`flex items-center gap-1 h-7 px-3 rounded-full text-[11px] uppercase tracking-wider transition ${
+                origin === k
+                  ? "bg-primary/20 text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {ic}
+              {lbl}
+            </button>
+          ))}
+        </div>
+
         {hasActive && (
           <Button variant="ghost" size="sm" onClick={clearAll} className="ml-auto h-8 text-xs">
             <X className="w-3 h-3 mr-1" /> Limpar
           </Button>
         )}
       </motion.div>
+
+      {/* Resumo House x Parceiros */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="glass-card p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+            <Home className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Equipe House</div>
+            <div className="font-display text-xl font-semibold">{fmtBRL(summary.house.vgv)}</div>
+            <div className="text-xs text-muted-foreground">{fmtNum(summary.house.n)} vendas</div>
+          </div>
+        </div>
+        <div className="glass-card p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
+            <Handshake className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Parceiros (imobiliárias)</div>
+            <div className="font-display text-xl font-semibold">{fmtBRL(summary.parc.vgv)}</div>
+            <div className="text-xs text-muted-foreground">{fmtNum(summary.parc.n)} vendas</div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-12">
         <motion.div
@@ -192,20 +257,31 @@ function Page() {
       >
         <table className="w-full text-sm">
           <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="text-left p-3">#</th><th className="text-left p-3">Corretor</th><th className="text-right p-3">Vendas</th><th className="text-right p-3">VGV</th><th className="text-right p-3">Comissão</th></tr>
+            <tr><th className="text-left p-3">#</th><th className="text-left p-3">Corretor</th><th className="text-left p-3">Origem</th><th className="text-right p-3">Vendas</th><th className="text-right p-3">VGV</th><th className="text-right p-3">Comissão</th></tr>
           </thead>
           <tbody>
-            {rows.map((v, i) => (
-              <tr key={v.name} className="border-t border-border hover:bg-secondary/30">
-                <td className="p-3 text-muted-foreground">{i + 1}</td>
-                <td className="p-3 font-medium">{v.name}</td>
-                <td className="p-3 text-right">{fmtNum(v.n)}</td>
-                <td className="p-3 text-right text-gradient-primary font-medium">{fmtBRL(v.vgv)}</td>
-                <td className="p-3 text-right">{fmtBRL(v.com)}</td>
-              </tr>
-            ))}
+            {rows.map((v, i) => {
+              const house = isHouse(v.name);
+              return (
+                <tr key={v.name} className="border-t border-border hover:bg-secondary/30">
+                  <td className="p-3 text-muted-foreground">{i + 1}</td>
+                  <td className="p-3 font-medium">{v.name}</td>
+                  <td className="p-3">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${
+                      house ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-400"
+                    }`}>
+                      {house ? <Home className="w-3 h-3" /> : <Handshake className="w-3 h-3" />}
+                      {house ? "House" : "Parceiro"}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">{fmtNum(v.n)}</td>
+                  <td className="p-3 text-right text-gradient-primary font-medium">{fmtBRL(v.vgv)}</td>
+                  <td className="p-3 text-right">{fmtBRL(v.com)}</td>
+                </tr>
+              );
+            })}
             {rows.length === 0 && (
-              <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhum dado no período.</td></tr>
+              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum dado no período.</td></tr>
             )}
           </tbody>
         </table>

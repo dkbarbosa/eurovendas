@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { isHouse } from "@/lib/team";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Dashboard });
 
@@ -127,36 +128,42 @@ function Dashboard() {
     });
   }, [allSales, year, month, activeStatuses]);
 
-  // ── Crescimento por período (independente do filtro de mês) ──
+  // ── Crescimento por período (ancorado no filtro de Ano/Mês) ──
   const periodGrowth = useMemo(() => {
     const today = new Date();
-    const y = today.getUTCFullYear();
-    const mo = today.getUTCMonth(); // 0-based
+    // Referência: usa filtro selecionado; se "Todos", usa hoje.
+    const refY = year !== "all" ? Number(year) : today.getUTCFullYear();
+    const refM =
+      month !== "all"
+        ? Number(month) - 1
+        : year !== "all"
+          ? 11 // ano selecionado, mês = "todos" → ancora no fim do ano
+          : today.getUTCMonth();
     let curStart: Date, curEnd: Date, prevStart: Date, prevEnd: Date, label: string;
     if (growthPeriod === "month") {
-      curStart = new Date(Date.UTC(y, mo, 1));
-      curEnd = new Date(Date.UTC(y, mo + 1, 1));
-      prevStart = new Date(Date.UTC(y, mo - 1, 1));
+      curStart = new Date(Date.UTC(refY, refM, 1));
+      curEnd = new Date(Date.UTC(refY, refM + 1, 1));
+      prevStart = new Date(Date.UTC(refY, refM - 1, 1));
       prevEnd = curStart;
       label = "vs mês anterior";
     } else if (growthPeriod === "quarter") {
-      const q = Math.floor(mo / 3);
-      curStart = new Date(Date.UTC(y, q * 3, 1));
-      curEnd = new Date(Date.UTC(y, q * 3 + 3, 1));
-      prevStart = new Date(Date.UTC(y, q * 3 - 3, 1));
+      const q = Math.floor(refM / 3);
+      curStart = new Date(Date.UTC(refY, q * 3, 1));
+      curEnd = new Date(Date.UTC(refY, q * 3 + 3, 1));
+      prevStart = new Date(Date.UTC(refY, q * 3 - 3, 1));
       prevEnd = curStart;
       label = "vs trimestre anterior";
     } else if (growthPeriod === "semester") {
-      const sem = mo < 6 ? 0 : 1;
-      curStart = new Date(Date.UTC(y, sem * 6, 1));
-      curEnd = new Date(Date.UTC(y, sem * 6 + 6, 1));
-      prevStart = new Date(Date.UTC(y, sem * 6 - 6, 1));
+      const sem = refM < 6 ? 0 : 1;
+      curStart = new Date(Date.UTC(refY, sem * 6, 1));
+      curEnd = new Date(Date.UTC(refY, sem * 6 + 6, 1));
+      prevStart = new Date(Date.UTC(refY, sem * 6 - 6, 1));
       prevEnd = curStart;
       label = "vs semestre anterior";
     } else {
-      curStart = new Date(Date.UTC(y, 0, 1));
-      curEnd = new Date(Date.UTC(y + 1, 0, 1));
-      prevStart = new Date(Date.UTC(y - 1, 0, 1));
+      curStart = new Date(Date.UTC(refY, 0, 1));
+      curEnd = new Date(Date.UTC(refY + 1, 0, 1));
+      prevStart = new Date(Date.UTC(refY - 1, 0, 1));
       prevEnd = curStart;
       label = "vs ano anterior";
     }
@@ -170,7 +177,7 @@ function Dashboard() {
     }
     const g = prev > 0 ? (cur - prev) / prev : cur > 0 ? 1 : 0;
     return { g, label, cur, prev };
-  }, [allSales, growthPeriod]);
+  }, [allSales, growthPeriod, year, month]);
 
   // ── Métricas ──────────────────────────────────────────────
   const m = useMemo(() => {
@@ -459,7 +466,7 @@ function Dashboard() {
 
       {/* Top destaques */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <KPICard label="Melhor corretor" value={m.topC?.name ?? "—"} hint={fmtBRL(m.topC?.vgv ?? 0)} accent="teal" icon={<Trophy className="w-4 h-4" />} index={0} />
+        <KPICard label="Melhor corretor" value={m.topC?.name ?? "—"} hint={`${fmtBRL(m.topC?.vgv ?? 0)} · ${m.topC ? (isHouse(m.topC.name) ? "Equipe House" : "Parceiro") : "—"}`} accent="teal" icon={<Trophy className="w-4 h-4" />} index={0} />
         <KPICard label="Melhor gerente" value={m.topG?.name ?? "—"} hint={fmtBRL(m.topG?.vgv ?? 0)} accent="azure" icon={<Users className="w-4 h-4" />} index={1} />
         <KPICard label="Melhor empreendimento" value={m.topE?.name ?? "—"} hint={fmtBRL(m.topE?.vgv ?? 0)} accent="gold" icon={<Building2 className="w-4 h-4" />} index={2} />
       </section>
