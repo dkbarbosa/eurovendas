@@ -108,9 +108,13 @@ function Dashboard() {
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getUTCFullYear()));
   const [month, setMonth] = useState<string>(String(now.getUTCMonth() + 1));
-  const [activeStatus, setActiveStatus] = useState<string>("all");
-  const [hideCommissions, setHideCommissions] = useState<boolean>(true);
+  const [activeStatuses, setActiveStatuses] = useState<string[]>([]);
+  const [hideBruta, setHideBruta] = useState<boolean>(true);
+  const [hideGerente, setHideGerente] = useState<boolean>(true);
+  const [hideLiq, setHideLiq] = useState<boolean>(true);
   const [growthPeriod, setGrowthPeriod] = useState<"month" | "quarter" | "semester" | "year">("month");
+  const toggleStatus = (s: string) =>
+    setActiveStatuses((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
   const sales = useMemo(() => {
     return allSales.filter((s) => {
