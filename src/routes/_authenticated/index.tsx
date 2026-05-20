@@ -108,9 +108,13 @@ function Dashboard() {
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getUTCFullYear()));
   const [month, setMonth] = useState<string>(String(now.getUTCMonth() + 1));
-  const [activeStatus, setActiveStatus] = useState<string>("all");
-  const [hideCommissions, setHideCommissions] = useState<boolean>(true);
+  const [activeStatuses, setActiveStatuses] = useState<string[]>([]);
+  const [hideBruta, setHideBruta] = useState<boolean>(true);
+  const [hideGerente, setHideGerente] = useState<boolean>(true);
+  const [hideLiq, setHideLiq] = useState<boolean>(true);
   const [growthPeriod, setGrowthPeriod] = useState<"month" | "quarter" | "semester" | "year">("month");
+  const toggleStatus = (s: string) =>
+    setActiveStatuses((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
   const sales = useMemo(() => {
     return allSales.filter((s) => {
@@ -118,10 +122,10 @@ function Dashboard() {
       const d = new Date(s.data);
       if (year !== "all" && d.getUTCFullYear() !== Number(year)) return false;
       if (month !== "all" && d.getUTCMonth() + 1 !== Number(month)) return false;
-      if (activeStatus !== "all" && s.status !== activeStatus) return false;
+      if (activeStatuses.length > 0 && !activeStatuses.includes(s.status ?? "")) return false;
       return true;
     });
-  }, [allSales, year, month, activeStatus]);
+  }, [allSales, year, month, activeStatuses]);
 
   // ── Crescimento por período (independente do filtro de mês) ──
   const periodGrowth = useMemo(() => {
@@ -281,15 +285,15 @@ function Dashboard() {
 
         <div className="flex items-center gap-2 flex-wrap">
           <CircleDot className="w-4 h-4 text-muted-foreground" />
-          <StatusChip active={activeStatus === "all"} onClick={() => setActiveStatus("all")} label="Todos" color="#9ca3af" />
+          <StatusChip active={activeStatuses.length === 0} onClick={() => setActiveStatuses([])} label="Todos" color="#9ca3af" />
           {statuses.map((s) => (
-            <StatusChip key={s} active={activeStatus === s} onClick={() => setActiveStatus(s)} label={s} color={statusColor(s)} />
+            <StatusChip key={s} active={activeStatuses.includes(s)} onClick={() => toggleStatus(s)} label={s} color={statusColor(s)} />
           ))}
         </div>
 
-        {(year !== "all" || month !== "all" || activeStatus !== "all") && (
+        {(year !== "all" || month !== "all" || activeStatuses.length > 0) && (
           <Button variant="ghost" size="sm" className="ml-auto h-8"
-            onClick={() => { setYear("all"); setMonth("all"); setActiveStatus("all"); }}>
+            onClick={() => { setYear("all"); setMonth("all"); setActiveStatuses([]); }}>
             Limpar
           </Button>
         )}
@@ -339,8 +343,8 @@ function Dashboard() {
           accent="teal"
           icon={<Award className="w-4 h-4" />}
           index={4}
-          hidden={hideCommissions}
-          onToggleHidden={() => setHideCommissions((v) => !v)}
+          hidden={hideBruta}
+          onToggleHidden={() => setHideBruta((v) => !v)}
         />
         <KPICard
           label="Comissão Gerente"
@@ -349,10 +353,19 @@ function Dashboard() {
           accent="azure"
           icon={<Award className="w-4 h-4" />}
           index={5}
-          hidden={hideCommissions}
-          onToggleHidden={() => setHideCommissions((v) => !v)}
+          hidden={hideGerente}
+          onToggleHidden={() => setHideGerente((v) => !v)}
         />
-        <KPICard label="Comissão Líq. Corretor" value={m.comLiq} format={fmtBRLCompact} accent="gold" icon={<Award className="w-4 h-4" />} index={6} />
+        <KPICard
+          label="Comissão Líq. Corretor"
+          value={m.comLiq}
+          format={fmtBRLCompact}
+          accent="gold"
+          icon={<Award className="w-4 h-4" />}
+          index={6}
+          hidden={hideLiq}
+          onToggleHidden={() => setHideLiq((v) => !v)}
+        />
         <KPICard
           label="Meta atingida"
           value={`${(realPct * 100).toFixed(1)}%`}
@@ -405,8 +418,8 @@ function Dashboard() {
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.4, delay: i * 0.05 }}
                 whileHover={{ y: -3 }}
-                onClick={() => setActiveStatus(activeStatus === s.name ? "all" : s.name)}
-                className={`glass-card p-5 text-left relative overflow-hidden group ${activeStatus === s.name ? "ring-2 ring-primary/60" : ""}`}
+                onClick={() => toggleStatus(s.name)}
+                className={`glass-card p-5 text-left relative overflow-hidden group ${activeStatuses.includes(s.name) ? "ring-2 ring-primary/60" : ""}`}
               >
                 <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-20 blur-2xl group-hover:opacity-40 transition-opacity"
                   style={{ background: statusColor(s.name) }} />
