@@ -212,6 +212,7 @@ function AprovacoesPage() {
             onClick={() => {
               setDateFrom(iso(firstOfMonth));
               setDateTo(iso(today));
+              setTeamFilter("__all__");
               setCorretorFilter("__all__");
               setEmpreendimentoFilter("__all__");
             }}
