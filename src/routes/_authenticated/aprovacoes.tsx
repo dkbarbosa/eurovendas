@@ -11,6 +11,7 @@ import { TimelineChart } from "@/components/aprovacoes/TimelineChart";
 import { TopClients } from "@/components/aprovacoes/TopClients";
 import { ClientsTable } from "@/components/aprovacoes/ClientsTable";
 import { parseBR } from "@/components/aprovacoes/utils";
+import { isHouse } from "@/lib/team";
 import {
   Select,
   SelectContent,
