@@ -49,11 +49,11 @@ function AprovacoesPage() {
     return filteredByTeam.sort();
   }, [allRows, teamFilter]);
 
-  // Se o corretor selecionado não pertence mais ao time escolhido, limpa
-  if (corretorFilter !== "__all__" && !corretores.includes(corretorFilter)) {
-    // schedule reset
-    queueMicrotask(() => setCorretorFilter("__all__"));
-  }
+  useEffect(() => {
+    if (corretorFilter !== "__all__" && !corretores.includes(corretorFilter)) {
+      setCorretorFilter("__all__");
+    }
+  }, [corretores, corretorFilter]);
 
   const empreendimentos = useMemo(
     () => Array.from(new Set(allRows.map((r) => r.empreendimento).filter(Boolean))).sort(),
