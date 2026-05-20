@@ -1,9 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtBRL, fmtNum } from "@/lib/format";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CalendarDays, Users, Building2, X } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,
@@ -20,13 +24,45 @@ const TOOLTIP = {
 const COLORS = ["oklch(0.82 0.16 185)", "oklch(0.78 0.12 82)", "oklch(0.7 0.18 30)", "oklch(0.6 0.18 300)", "oklch(0.65 0.18 140)", "oklch(0.7 0.15 250)", "oklch(0.75 0.16 50)"];
 
 function Page() {
-  const { data = [] } = useQuery({
-    queryKey: ["sales-corr"],
+  const today = new Date();
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const [dateFrom, setDateFrom] = useState<string>(iso(firstOfMonth));
+  const [dateTo, setDateTo] = useState<string>(iso(today));
+  const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
+  const [empFilter, setEmpFilter] = useState<string>("__all__");
+
+  const { data: all = [] } = useQuery({
+    queryKey: ["sales-corr-full"],
     queryFn: async () => {
-      const { data } = await supabase.from("sales").select("corretor,valor_venda,comissao_bruta").limit(5000);
+      const { data } = await supabase
+        .from("sales")
+        .select("data,corretor,empreendimento,valor_venda,comissao_bruta")
+        .limit(5000);
       return data ?? [];
     },
+    refetchInterval: 60_000,
   });
+
+  const corretoresList = useMemo(
+    () => Array.from(new Set(all.map((r) => r.corretor).filter(Boolean))).sort() as string[],
+    [all]
+  );
+  const empList = useMemo(
+    () => Array.from(new Set(all.map((r) => r.empreendimento).filter(Boolean))).sort() as string[],
+    [all]
+  );
+
+  const data = useMemo(() => {
+    return all.filter((r) => {
+      if (dateFrom && (!r.data || r.data < dateFrom)) return false;
+      if (dateTo && (!r.data || r.data > dateTo)) return false;
+      if (corretorFilter !== "__all__" && r.corretor !== corretorFilter) return false;
+      if (empFilter !== "__all__" && r.empreendimento !== empFilter) return false;
+      return true;
+    });
+  }, [all, dateFrom, dateTo, corretorFilter, empFilter]);
 
   const rows = useMemo(() => {
     const map: Record<string, { vgv: number; com: number; n: number }> = {};
@@ -43,13 +79,67 @@ function Page() {
   }, [data]);
 
   const top = rows.slice(0, 10);
+  const hasActive =
+    dateFrom !== iso(firstOfMonth) || dateTo !== iso(today) ||
+    corretorFilter !== "__all__" || empFilter !== "__all__";
+  const clearAll = () => {
+    setDateFrom(iso(firstOfMonth));
+    setDateTo(iso(today));
+    setCorretorFilter("__all__");
+    setEmpFilter("__all__");
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <div className="text-xs uppercase tracking-widest text-muted-foreground">Análise</div>
         <h1 className="font-display text-3xl font-semibold tracking-tight mt-1">Ranking de corretores</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {data.length} vendas no período · VGV {fmtBRL(data.reduce((s, r) => s + (r.valor_venda ?? 0), 0))}
+        </p>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+        className="glass-card p-3 flex flex-wrap items-end gap-3"
+      >
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <CalendarDays className="w-4 h-4" /><span>Período:</span>
+        </div>
+        <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 w-40" />
+        <span className="text-xs text-muted-foreground">até</span>
+        <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 w-40" />
+
+        <div className="h-5 w-px bg-border mx-1" />
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Users className="w-4 h-4" /><span>Corretor:</span>
+        </div>
+        <Select value={corretorFilter} onValueChange={setCorretorFilter}>
+          <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos</SelectItem>
+            {corretoresList.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Building2 className="w-4 h-4" /><span>Empreendimento:</span>
+        </div>
+        <Select value={empFilter} onValueChange={setEmpFilter}>
+          <SelectTrigger className="h-9 w-[200px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos</SelectItem>
+            {empList.map((e) => (<SelectItem key={e} value={e}>{e}</SelectItem>))}
+          </SelectContent>
+        </Select>
+
+        {hasActive && (
+          <Button variant="ghost" size="sm" onClick={clearAll} className="ml-auto h-8 text-xs">
+            <X className="w-3 h-3 mr-1" /> Limpar
+          </Button>
+        )}
+      </motion.div>
 
       <div className="grid gap-4 lg:grid-cols-12">
         <motion.div
@@ -114,6 +204,9 @@ function Page() {
                 <td className="p-3 text-right">{fmtBRL(v.com)}</td>
               </tr>
             ))}
+            {rows.length === 0 && (
+              <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhum dado no período.</td></tr>
+            )}
           </tbody>
         </table>
       </motion.div>

@@ -105,8 +105,9 @@ function Dashboard() {
     return Array.from(set);
   }, [allSales]);
 
-  const [year, setYear] = useState<string>("all");
-  const [month, setMonth] = useState<string>("all");
+  const now = new Date();
+  const [year, setYear] = useState<string>(String(now.getUTCFullYear()));
+  const [month, setMonth] = useState<string>(String(now.getUTCMonth() + 1));
   const [activeStatus, setActiveStatus] = useState<string>("all");
 
   const sales = useMemo(() => {

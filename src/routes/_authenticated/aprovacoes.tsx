@@ -30,8 +30,11 @@ export const Route = createFileRoute("/_authenticated/aprovacoes")({
 
 function AprovacoesPage() {
   const allRows = data as Approval[];
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const today = new Date();
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const [dateFrom, setDateFrom] = useState(iso(firstOfMonth));
+  const [dateTo, setDateTo] = useState(iso(today));
   const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
   const [empreendimentoFilter, setEmpreendimentoFilter] = useState<string>("__all__");
 
@@ -164,8 +167,8 @@ function AprovacoesPage() {
         {activeFilter && (
           <button
             onClick={() => {
-              setDateFrom("");
-              setDateTo("");
+              setDateFrom(iso(firstOfMonth));
+              setDateTo(iso(today));
               setCorretorFilter("__all__");
               setEmpreendimentoFilter("__all__");
             }}

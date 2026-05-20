@@ -24,10 +24,13 @@ const TOOLTIP = {
 const PIE_COLORS = ["oklch(0.82 0.16 185)", "oklch(0.78 0.12 82)", "oklch(0.7 0.18 30)", "oklch(0.6 0.18 300)", "oklch(0.65 0.18 140)"];
 
 function Vendas() {
+  const today = new Date();
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>(iso(firstOfMonth));
+  const [dateTo, setDateTo] = useState<string>(iso(today));
   const [valMin, setValMin] = useState<string>("");
   const [valMax, setValMax] = useState<string>("");
   const { data: sales = [] } = useQuery({
@@ -62,7 +65,7 @@ function Vendas() {
   }, [sales, q, statusFilter, dateFrom, dateTo, valMin, valMax]);
 
   const hasActiveFilters = statusFilter.length > 0 || dateFrom || dateTo || valMin || valMax || q;
-  const clearAll = () => { setStatusFilter([]); setDateFrom(""); setDateTo(""); setValMin(""); setValMax(""); setQ(""); };
+  const clearAll = () => { setStatusFilter([]); setDateFrom(iso(firstOfMonth)); setDateTo(iso(today)); setValMin(""); setValMax(""); setQ(""); };
 
 
   const byEmp = useMemo(() => {
