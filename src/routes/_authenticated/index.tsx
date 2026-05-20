@@ -109,6 +109,8 @@ function Dashboard() {
   const [year, setYear] = useState<string>(String(now.getUTCFullYear()));
   const [month, setMonth] = useState<string>(String(now.getUTCMonth() + 1));
   const [activeStatus, setActiveStatus] = useState<string>("all");
+  const [hideCommissions, setHideCommissions] = useState<boolean>(true);
+  const [growthPeriod, setGrowthPeriod] = useState<"month" | "quarter" | "semester" | "year">("month");
 
   const sales = useMemo(() => {
     return allSales.filter((s) => {
@@ -120,6 +122,51 @@ function Dashboard() {
       return true;
     });
   }, [allSales, year, month, activeStatus]);
+
+  // ── Crescimento por período (independente do filtro de mês) ──
+  const periodGrowth = useMemo(() => {
+    const today = new Date();
+    const y = today.getUTCFullYear();
+    const mo = today.getUTCMonth(); // 0-based
+    let curStart: Date, curEnd: Date, prevStart: Date, prevEnd: Date, label: string;
+    if (growthPeriod === "month") {
+      curStart = new Date(Date.UTC(y, mo, 1));
+      curEnd = new Date(Date.UTC(y, mo + 1, 1));
+      prevStart = new Date(Date.UTC(y, mo - 1, 1));
+      prevEnd = curStart;
+      label = "vs mês anterior";
+    } else if (growthPeriod === "quarter") {
+      const q = Math.floor(mo / 3);
+      curStart = new Date(Date.UTC(y, q * 3, 1));
+      curEnd = new Date(Date.UTC(y, q * 3 + 3, 1));
+      prevStart = new Date(Date.UTC(y, q * 3 - 3, 1));
+      prevEnd = curStart;
+      label = "vs trimestre anterior";
+    } else if (growthPeriod === "semester") {
+      const sem = mo < 6 ? 0 : 1;
+      curStart = new Date(Date.UTC(y, sem * 6, 1));
+      curEnd = new Date(Date.UTC(y, sem * 6 + 6, 1));
+      prevStart = new Date(Date.UTC(y, sem * 6 - 6, 1));
+      prevEnd = curStart;
+      label = "vs semestre anterior";
+    } else {
+      curStart = new Date(Date.UTC(y, 0, 1));
+      curEnd = new Date(Date.UTC(y + 1, 0, 1));
+      prevStart = new Date(Date.UTC(y - 1, 0, 1));
+      prevEnd = curStart;
+      label = "vs ano anterior";
+    }
+    let cur = 0, prev = 0;
+    for (const s of allSales) {
+      if (!s.data) continue;
+      const d = new Date(s.data);
+      const v = s.valor_venda ?? 0;
+      if (d >= curStart && d < curEnd) cur += v;
+      else if (d >= prevStart && d < prevEnd) prev += v;
+    }
+    const g = prev > 0 ? (cur - prev) / prev : cur > 0 ? 1 : 0;
+    return { g, label, cur, prev };
+  }, [allSales, growthPeriod]);
 
   // ── Métricas ──────────────────────────────────────────────
   const m = useMemo(() => {
