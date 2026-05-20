@@ -49,16 +49,17 @@ function IntegPage() {
   });
 
   const saveMut = useMutation({
-    mutationFn: () => update({ data: { spreadsheetId: url }, headers: { Authorization: `Bearer ${session?.access_token ?? ""}` } }),
+    mutationFn: () => update({ data: { spreadsheetId: url } }),
     onSuccess: () => {
       toast.success("URL salva.");
       qc.invalidateQueries({ queryKey: ["config-int"] });
     },
-    onError: async (e: unknown) => toast.error(e instanceof Response ? await e.text() : e instanceof Error ? e.message : String(e)),
+    onError: async (e: unknown) =>
+      toast.error(e instanceof Response ? await e.text() : e instanceof Error ? e.message : String(e)),
   });
 
   const syncMut = useMutation({
-    mutationFn: () => sync({ headers: { Authorization: `Bearer ${session?.access_token ?? ""}` } }),
+    mutationFn: () => sync({}),
     onSuccess: (r: { ok: boolean; rows: number; error?: string }) => {
       if (!r.ok) {
         toast.error(r.error ?? "Falha ao sincronizar");
@@ -68,7 +69,8 @@ function IntegPage() {
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["sync-log"] });
     },
-    onError: async (e: unknown) => toast.error(e instanceof Response ? await e.text() : e instanceof Error ? e.message : String(e)),
+    onError: async (e: unknown) =>
+      toast.error(e instanceof Response ? await e.text() : e instanceof Error ? e.message : String(e)),
   });
 
   if (!isAdmin) return <div className="text-muted-foreground">Acesso restrito a administradores.</div>;
