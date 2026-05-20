@@ -114,6 +114,7 @@ function Dashboard() {
   const [hideGerente, setHideGerente] = useState<boolean>(true);
   const [hideLiq, setHideLiq] = useState<boolean>(true);
   const [growthPeriod, setGrowthPeriod] = useState<"month" | "quarter" | "semester" | "year">("month");
+  const [teamFilter, setTeamFilter] = useState<"all" | "house" | "imob">("all");
   const toggleStatus = (s: string) =>
     setActiveStatuses((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
@@ -124,9 +125,14 @@ function Dashboard() {
       if (year !== "all" && d.getUTCFullYear() !== Number(year)) return false;
       if (month !== "all" && d.getUTCMonth() + 1 !== Number(month)) return false;
       if (activeStatuses.length > 0 && !activeStatuses.includes(s.status ?? "")) return false;
+      if (teamFilter !== "all") {
+        const house = isHouse(s.corretor);
+        if (teamFilter === "house" && !house) return false;
+        if (teamFilter === "imob" && house) return false;
+      }
       return true;
     });
-  }, [allSales, year, month, activeStatuses]);
+  }, [allSales, year, month, activeStatuses, teamFilter]);
 
   // ── Crescimento por período (ancorado no filtro de Ano/Mês) ──
   const periodGrowth = useMemo(() => {
