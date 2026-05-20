@@ -109,6 +109,8 @@ function Dashboard() {
   const [year, setYear] = useState<string>(String(now.getUTCFullYear()));
   const [month, setMonth] = useState<string>(String(now.getUTCMonth() + 1));
   const [activeStatus, setActiveStatus] = useState<string>("all");
+  const [hideCommissions, setHideCommissions] = useState<boolean>(true);
+  const [growthPeriod, setGrowthPeriod] = useState<"month" | "quarter" | "semester" | "year">("month");
 
   const sales = useMemo(() => {
     return allSales.filter((s) => {
@@ -120,6 +122,51 @@ function Dashboard() {
       return true;
     });
   }, [allSales, year, month, activeStatus]);
+
+  // ── Crescimento por período (independente do filtro de mês) ──
+  const periodGrowth = useMemo(() => {
+    const today = new Date();
+    const y = today.getUTCFullYear();
+    const mo = today.getUTCMonth(); // 0-based
+    let curStart: Date, curEnd: Date, prevStart: Date, prevEnd: Date, label: string;
+    if (growthPeriod === "month") {
+      curStart = new Date(Date.UTC(y, mo, 1));
+      curEnd = new Date(Date.UTC(y, mo + 1, 1));
+      prevStart = new Date(Date.UTC(y, mo - 1, 1));
+      prevEnd = curStart;
+      label = "vs mês anterior";
+    } else if (growthPeriod === "quarter") {
+      const q = Math.floor(mo / 3);
+      curStart = new Date(Date.UTC(y, q * 3, 1));
+      curEnd = new Date(Date.UTC(y, q * 3 + 3, 1));
+      prevStart = new Date(Date.UTC(y, q * 3 - 3, 1));
+      prevEnd = curStart;
+      label = "vs trimestre anterior";
+    } else if (growthPeriod === "semester") {
+      const sem = mo < 6 ? 0 : 1;
+      curStart = new Date(Date.UTC(y, sem * 6, 1));
+      curEnd = new Date(Date.UTC(y, sem * 6 + 6, 1));
+      prevStart = new Date(Date.UTC(y, sem * 6 - 6, 1));
+      prevEnd = curStart;
+      label = "vs semestre anterior";
+    } else {
+      curStart = new Date(Date.UTC(y, 0, 1));
+      curEnd = new Date(Date.UTC(y + 1, 0, 1));
+      prevStart = new Date(Date.UTC(y - 1, 0, 1));
+      prevEnd = curStart;
+      label = "vs ano anterior";
+    }
+    let cur = 0, prev = 0;
+    for (const s of allSales) {
+      if (!s.data) continue;
+      const d = new Date(s.data);
+      const v = s.valor_venda ?? 0;
+      if (d >= curStart && d < curEnd) cur += v;
+      else if (d >= prevStart && d < prevEnd) prev += v;
+    }
+    const g = prev > 0 ? (cur - prev) / prev : cur > 0 ? 1 : 0;
+    return { g, label, cur, prev };
+  }, [allSales, growthPeriod]);
 
   // ── Métricas ──────────────────────────────────────────────
   const m = useMemo(() => {
@@ -147,7 +194,7 @@ function Dashboard() {
         ? (byMonth[cur].vgv - byMonth[prev].vgv) / byMonth[prev].vgv
         : 0;
 
-    return { vgv, com, comGer, comLiq, ticket, topC, topG, topE, growth,
+    return { vgv, com, comGer, comGerGeral: vgv * 0.004, comLiq, ticket, topC, topG, topE, growth,
       byCorretor, byGerente, byEmp, byMonth, byStatus, months };
   }, [sales]);
 
@@ -251,12 +298,72 @@ function Dashboard() {
         <KPICard label="VGV Total" value={m.vgv} format={fmtBRLCompact} accent="teal" icon={<DollarSign className="w-4 h-4" />} index={0} />
         <KPICard label="Vendas" value={sales.length} format={fmtNum} accent="azure" icon={<ShoppingBag className="w-4 h-4" />} index={1} />
         <KPICard label="Ticket Médio" value={m.ticket} format={fmtBRLCompact} accent="gold" icon={<TrendingUp className="w-4 h-4" />} index={2} />
-        <KPICard label="Crescimento M/M" value={`${(m.growth * 100).toFixed(1)}%`} delta={m.growth} accent="neutral" icon={<TrendingUp className="w-4 h-4" />} index={3} />
-        <KPICard label="Comissão Bruta" value={m.com} format={fmtBRLCompact} accent="teal" icon={<Award className="w-4 h-4" />} index={4} />
-        <KPICard label="Comissão Gerente" value={m.comGer} format={fmtBRLCompact} accent="azure" icon={<Award className="w-4 h-4" />} index={5} />
-        <KPICard label="Comissão Líq. Corretor" value={m.comLiq} format={fmtBRLCompact} accent="gold" icon={<Award className="w-4 h-4" />} index={6} />
-        <KPICard label="Meta atingida" value={`${(realPct * 100).toFixed(1)}%`} hint={`Meta ${fmtBRLCompact(metaVgv)}`} accent="neutral" icon={<Target className="w-4 h-4" />} index={7} />
+        <KPICard
+          label="Crescimento"
+          value={`${(periodGrowth.g * 100).toFixed(1)}%`}
+          delta={periodGrowth.g}
+          hint={`${periodGrowth.label} · ${fmtBRLCompact(periodGrowth.cur)} vs ${fmtBRLCompact(periodGrowth.prev)}`}
+          accent="neutral"
+          icon={<TrendingUp className="w-4 h-4" />}
+          index={3}
+          extra={
+            <div className="flex flex-wrap gap-1">
+              {([
+                ["month", "Mensal"],
+                ["quarter", "Trimestre"],
+                ["semester", "Semestre"],
+                ["year", "Anual"],
+              ] as const).map(([k, lbl]) => (
+                <button
+                  key={k}
+                  onClick={() => setGrowthPeriod(k)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border transition ${
+                    growthPeriod === k
+                      ? "bg-primary/15 border-primary/50 text-foreground"
+                      : "border-border bg-secondary/30 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          }
+        />
+        <KPICard
+          label="Comissão Bruta"
+          value={m.com}
+          format={fmtBRLCompact}
+          accent="teal"
+          icon={<Award className="w-4 h-4" />}
+          index={4}
+          hidden={hideCommissions}
+          onToggleHidden={() => setHideCommissions((v) => !v)}
+        />
+        <KPICard
+          label="Comissão Gerente"
+          value={m.comGer}
+          format={fmtBRLCompact}
+          accent="azure"
+          icon={<Award className="w-4 h-4" />}
+          index={5}
+          hidden={hideCommissions}
+          onToggleHidden={() => setHideCommissions((v) => !v)}
+        />
+        <KPICard
+          label="Comissão Gerente Geral"
+          value={m.comGerGeral}
+          format={fmtBRLCompact}
+          hint="0,4% sobre o VGV total"
+          accent="azure"
+          icon={<Award className="w-4 h-4" />}
+          index={6}
+          hidden={hideCommissions}
+          onToggleHidden={() => setHideCommissions((v) => !v)}
+        />
+        <KPICard label="Comissão Líq. Corretor" value={m.comLiq} format={fmtBRLCompact} accent="gold" icon={<Award className="w-4 h-4" />} index={7} />
+        <KPICard label="Meta atingida" value={`${(realPct * 100).toFixed(1)}%`} hint={`Meta ${fmtBRLCompact(metaVgv)}`} accent="neutral" icon={<Target className="w-4 h-4" />} index={8} />
       </section>
+
 
       {/* Status — visão dedicada */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">

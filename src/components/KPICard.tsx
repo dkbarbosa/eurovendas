@@ -1,6 +1,6 @@
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, type ReactNode } from "react";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Eye, EyeOff } from "lucide-react";
 
 interface KPICardProps {
   label: string;
@@ -11,6 +11,9 @@ interface KPICardProps {
   icon?: ReactNode;
   accent?: "teal" | "azure" | "gold" | "neutral";
   index?: number;
+  hidden?: boolean;
+  onToggleHidden?: () => void;
+  extra?: ReactNode;
 }
 
 const ACCENTS = {
@@ -29,6 +32,9 @@ export function KPICard({
   icon,
   accent = "teal",
   index = 0,
+  hidden = false,
+  onToggleHidden,
+  extra,
 }: KPICardProps) {
   const numeric = typeof value === "number";
   return (
@@ -45,17 +51,35 @@ export function KPICard({
       />
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="text-xs uppercase tracking-widest text-muted-foreground">{label}</div>
-        {icon && (
-          <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-primary-foreground"
-            style={{ background: ACCENTS[accent] }}
-          >
-            {icon}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {onToggleHidden && (
+            <button
+              type="button"
+              onClick={onToggleHidden}
+              className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition"
+              aria-label={hidden ? "Mostrar valor" : "Ocultar valor"}
+            >
+              {hidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            </button>
+          )}
+          {icon && (
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-primary-foreground"
+              style={{ background: ACCENTS[accent] }}
+            >
+              {icon}
+            </div>
+          )}
+        </div>
       </div>
       <div className="font-display text-3xl font-semibold tracking-tight">
-        {numeric && format ? <Counter value={value as number} format={format} /> : <>{value}</>}
+        {hidden ? (
+          <span className="tracking-widest text-muted-foreground">R$ ••••••</span>
+        ) : numeric && format ? (
+          <Counter value={value as number} format={format} />
+        ) : (
+          <>{value}</>
+        )}
       </div>
       <div className="flex items-center justify-between mt-2 min-h-5">
         <div className="text-xs text-muted-foreground truncate">{hint}</div>
@@ -70,6 +94,7 @@ export function KPICard({
           </div>
         )}
       </div>
+      {extra && <div className="mt-3">{extra}</div>}
     </motion.div>
   );
 }
