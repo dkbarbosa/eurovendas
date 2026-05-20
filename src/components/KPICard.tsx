@@ -49,7 +49,21 @@ export function KPICard({
         className="pointer-events-none absolute -top-12 -right-12 w-36 h-36 rounded-full opacity-20 blur-2xl group-hover:opacity-30 transition-opacity"
         style={{ background: ACCENTS[accent] }}
       />
-      <div className="flex items-start justify-between gap-3 mb-3">
+      {/* Background dynamic icon */}
+      {icon && (
+        <motion.div
+          aria-hidden
+          initial={{ opacity: 0, scale: 0.9, rotate: -6 }}
+          animate={{ opacity: 0.08, scale: 1, rotate: 0 }}
+          transition={{ duration: 0.9, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+          className="pointer-events-none absolute inset-y-0 right-0 w-1/2 flex items-center justify-center text-foreground group-hover:opacity-[0.14] transition-opacity"
+        >
+          <div className="[&_svg]:w-36 [&_svg]:h-36 [&_svg]:stroke-[1]">
+            {icon}
+          </div>
+        </motion.div>
+      )}
+      <div className="relative flex items-start justify-between gap-3 mb-3">
         <div className="text-xs uppercase tracking-widest text-muted-foreground">{label}</div>
         <div className="flex items-center gap-2">
           {onToggleHidden && (
@@ -64,7 +78,7 @@ export function KPICard({
           )}
           {icon && (
             <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-primary-foreground"
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-primary-foreground shadow-md"
               style={{ background: ACCENTS[accent] }}
             >
               {icon}
@@ -72,7 +86,7 @@ export function KPICard({
           )}
         </div>
       </div>
-      <div className="font-display text-3xl font-semibold tracking-tight">
+      <div className="relative font-display text-3xl font-semibold tracking-tight">
         {hidden ? (
           <span className="tracking-widest text-muted-foreground">R$ ••••••</span>
         ) : numeric && format ? (
