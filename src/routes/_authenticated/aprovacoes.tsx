@@ -36,13 +36,25 @@ function AprovacoesPage() {
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [dateFrom, setDateFrom] = useState(iso(firstOfMonth));
   const [dateTo, setDateTo] = useState(iso(today));
+  const [teamFilter, setTeamFilter] = useState<"__all__" | "house" | "imob">("__all__");
   const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
   const [empreendimentoFilter, setEmpreendimentoFilter] = useState<string>("__all__");
 
-  const corretores = useMemo(
-    () => Array.from(new Set(allRows.map((r) => r.corretor).filter(Boolean))).sort(),
-    [allRows]
-  );
+  const corretores = useMemo(() => {
+    const names = Array.from(new Set(allRows.map((r) => r.corretor).filter(Boolean)));
+    const filteredByTeam =
+      teamFilter === "__all__"
+        ? names
+        : names.filter((n) => (teamFilter === "house" ? isHouse(n) : !isHouse(n)));
+    return filteredByTeam.sort();
+  }, [allRows, teamFilter]);
+
+  // Se o corretor selecionado não pertence mais ao time escolhido, limpa
+  if (corretorFilter !== "__all__" && !corretores.includes(corretorFilter)) {
+    // schedule reset
+    queueMicrotask(() => setCorretorFilter("__all__"));
+  }
+
   const empreendimentos = useMemo(
     () => Array.from(new Set(allRows.map((r) => r.empreendimento).filter(Boolean))).sort(),
     [allRows]
