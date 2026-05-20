@@ -51,6 +51,18 @@ function Vendas() {
     return Array.from(set).sort();
   }, [sales]);
 
+  const corretoresList = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of sales) {
+      const c = r.corretor;
+      if (!c) continue;
+      if (teamFilter === "house" && !isHouse(c)) continue;
+      if (teamFilter === "imob" && isHouse(c)) continue;
+      set.add(c);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [sales, teamFilter]);
+
   const filtered = useMemo(() => {
     const s = q.toLowerCase();
     const min = valMin ? Number(valMin) : null;
@@ -61,14 +73,20 @@ function Vendas() {
       if (dateTo && (!r.data || r.data > dateTo)) return false;
       if (min != null && (r.valor_venda ?? 0) < min) return false;
       if (max != null && (r.valor_venda ?? 0) > max) return false;
+      if (teamFilter !== "all") {
+        const house = isHouse(r.corretor);
+        if (teamFilter === "house" && !house) return false;
+        if (teamFilter === "imob" && house) return false;
+      }
+      if (corretorFilter !== "__all__" && r.corretor !== corretorFilter) return false;
       if (!s) return true;
       return [r.empreendimento, r.unidade, r.comprador, r.corretor, r.gerente, r.status]
         .filter(Boolean).join(" ").toLowerCase().includes(s);
     });
-  }, [sales, q, statusFilter, dateFrom, dateTo, valMin, valMax]);
+  }, [sales, q, statusFilter, dateFrom, dateTo, valMin, valMax, teamFilter, corretorFilter]);
 
-  const hasActiveFilters = statusFilter.length > 0 || dateFrom || dateTo || valMin || valMax || q;
-  const clearAll = () => { setStatusFilter([]); setDateFrom(iso(firstOfMonth)); setDateTo(iso(today)); setValMin(""); setValMax(""); setQ(""); };
+  const hasActiveFilters = statusFilter.length > 0 || dateFrom || dateTo || valMin || valMax || q || teamFilter !== "all" || corretorFilter !== "__all__";
+  const clearAll = () => { setStatusFilter([]); setDateFrom(iso(firstOfMonth)); setDateTo(iso(today)); setValMin(""); setValMax(""); setQ(""); setTeamFilter("all"); setCorretorFilter("__all__"); };
 
 
   const byEmp = useMemo(() => {
