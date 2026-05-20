@@ -58,7 +58,9 @@ export const listUsers = createServerFn({ method: "GET" })
 
 export const inviteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { email: string; password: string; displayName: string; role: Role }) => d)
+  .inputValidator((d: { email: string; password: string; displayName: string; role: Role }) =>
+    InviteSchema.parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
@@ -73,9 +75,6 @@ export const inviteUser = createServerFn({ method: "POST" })
     await supabaseAdmin
       .from("profiles")
       .upsert({ id: uid, email: data.email, display_name: data.displayName });
-    if (data.role !== "admin") {
-      // remove auto-admin if first user case happened to fire (shouldn't here, but safety)
-    }
     await supabaseAdmin
       .from("user_roles")
       .upsert({ user_id: uid, role: data.role }, { onConflict: "user_id,role" });
@@ -84,7 +83,7 @@ export const inviteUser = createServerFn({ method: "POST" })
 
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { userId: string; role: Role; enable: boolean }) => d)
+  .inputValidator((d: { userId: string; role: Role; enable: boolean }) => SetRoleSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     if (data.enable) {
@@ -103,7 +102,7 @@ export const setUserRole = createServerFn({ method: "POST" })
 
 export const deleteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { userId: string }) => d)
+  .inputValidator((d: { userId: string }) => DeleteUserSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     if (data.userId === context.userId) throw new Error("Você não pode remover a si mesmo.");
