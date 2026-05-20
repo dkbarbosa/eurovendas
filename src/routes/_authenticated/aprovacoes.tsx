@@ -72,13 +72,18 @@ function AprovacoesPage() {
         const to = new Date(dateTo + "T23:59:59");
         if (d > to) return false;
       }
+      if (teamFilter !== "__all__") {
+        const house = isHouse(r.corretor);
+        if (teamFilter === "house" && !house) return false;
+        if (teamFilter === "imob" && house) return false;
+      }
       if (corretorFilter !== "__all__" && r.corretor !== corretorFilter) return false;
       if (empreendimentoFilter !== "__all__" && r.empreendimento !== empreendimentoFilter) return false;
       return true;
     });
-  }, [allRows, dateFrom, dateTo, corretorFilter, empreendimentoFilter]);
+  }, [allRows, dateFrom, dateTo, teamFilter, corretorFilter, empreendimentoFilter]);
 
-  const activeFilter = dateFrom || dateTo || corretorFilter !== "__all__" || empreendimentoFilter !== "__all__";
+  const activeFilter = dateFrom || dateTo || teamFilter !== "__all__" || corretorFilter !== "__all__" || empreendimentoFilter !== "__all__";
 
   return (
     <div className="space-y-6">
