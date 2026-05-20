@@ -32,6 +32,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { isHouse } from "@/lib/team";
+import { useAgendamentos } from "@/hooks/use-agendamentos";
+import { parseAgendamento } from "@/lib/agendamentos-parse";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Dashboard });
 
