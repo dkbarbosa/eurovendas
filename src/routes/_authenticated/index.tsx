@@ -285,15 +285,15 @@ function Dashboard() {
 
         <div className="flex items-center gap-2 flex-wrap">
           <CircleDot className="w-4 h-4 text-muted-foreground" />
-          <StatusChip active={activeStatus === "all"} onClick={() => setActiveStatus("all")} label="Todos" color="#9ca3af" />
+          <StatusChip active={activeStatuses.length === 0} onClick={() => setActiveStatuses([])} label="Todos" color="#9ca3af" />
           {statuses.map((s) => (
-            <StatusChip key={s} active={activeStatus === s} onClick={() => setActiveStatus(s)} label={s} color={statusColor(s)} />
+            <StatusChip key={s} active={activeStatuses.includes(s)} onClick={() => toggleStatus(s)} label={s} color={statusColor(s)} />
           ))}
         </div>
 
-        {(year !== "all" || month !== "all" || activeStatus !== "all") && (
+        {(year !== "all" || month !== "all" || activeStatuses.length > 0) && (
           <Button variant="ghost" size="sm" className="ml-auto h-8"
-            onClick={() => { setYear("all"); setMonth("all"); setActiveStatus("all"); }}>
+            onClick={() => { setYear("all"); setMonth("all"); setActiveStatuses([]); }}>
             Limpar
           </Button>
         )}
