@@ -298,12 +298,72 @@ function Dashboard() {
         <KPICard label="VGV Total" value={m.vgv} format={fmtBRLCompact} accent="teal" icon={<DollarSign className="w-4 h-4" />} index={0} />
         <KPICard label="Vendas" value={sales.length} format={fmtNum} accent="azure" icon={<ShoppingBag className="w-4 h-4" />} index={1} />
         <KPICard label="Ticket Médio" value={m.ticket} format={fmtBRLCompact} accent="gold" icon={<TrendingUp className="w-4 h-4" />} index={2} />
-        <KPICard label="Crescimento M/M" value={`${(m.growth * 100).toFixed(1)}%`} delta={m.growth} accent="neutral" icon={<TrendingUp className="w-4 h-4" />} index={3} />
-        <KPICard label="Comissão Bruta" value={m.com} format={fmtBRLCompact} accent="teal" icon={<Award className="w-4 h-4" />} index={4} />
-        <KPICard label="Comissão Gerente" value={m.comGer} format={fmtBRLCompact} accent="azure" icon={<Award className="w-4 h-4" />} index={5} />
-        <KPICard label="Comissão Líq. Corretor" value={m.comLiq} format={fmtBRLCompact} accent="gold" icon={<Award className="w-4 h-4" />} index={6} />
-        <KPICard label="Meta atingida" value={`${(realPct * 100).toFixed(1)}%`} hint={`Meta ${fmtBRLCompact(metaVgv)}`} accent="neutral" icon={<Target className="w-4 h-4" />} index={7} />
+        <KPICard
+          label="Crescimento"
+          value={`${(periodGrowth.g * 100).toFixed(1)}%`}
+          delta={periodGrowth.g}
+          hint={`${periodGrowth.label} · ${fmtBRLCompact(periodGrowth.cur)} vs ${fmtBRLCompact(periodGrowth.prev)}`}
+          accent="neutral"
+          icon={<TrendingUp className="w-4 h-4" />}
+          index={3}
+          extra={
+            <div className="flex flex-wrap gap-1">
+              {([
+                ["month", "Mensal"],
+                ["quarter", "Trimestre"],
+                ["semester", "Semestre"],
+                ["year", "Anual"],
+              ] as const).map(([k, lbl]) => (
+                <button
+                  key={k}
+                  onClick={() => setGrowthPeriod(k)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border transition ${
+                    growthPeriod === k
+                      ? "bg-primary/15 border-primary/50 text-foreground"
+                      : "border-border bg-secondary/30 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          }
+        />
+        <KPICard
+          label="Comissão Bruta"
+          value={m.com}
+          format={fmtBRLCompact}
+          accent="teal"
+          icon={<Award className="w-4 h-4" />}
+          index={4}
+          hidden={hideCommissions}
+          onToggleHidden={() => setHideCommissions((v) => !v)}
+        />
+        <KPICard
+          label="Comissão Gerente"
+          value={m.comGer}
+          format={fmtBRLCompact}
+          accent="azure"
+          icon={<Award className="w-4 h-4" />}
+          index={5}
+          hidden={hideCommissions}
+          onToggleHidden={() => setHideCommissions((v) => !v)}
+        />
+        <KPICard
+          label="Comissão Gerente Geral"
+          value={m.comGerGeral}
+          format={fmtBRLCompact}
+          hint="0,4% sobre o VGV total"
+          accent="azure"
+          icon={<Award className="w-4 h-4" />}
+          index={6}
+          hidden={hideCommissions}
+          onToggleHidden={() => setHideCommissions((v) => !v)}
+        />
+        <KPICard label="Comissão Líq. Corretor" value={m.comLiq} format={fmtBRLCompact} accent="gold" icon={<Award className="w-4 h-4" />} index={7} />
+        <KPICard label="Meta atingida" value={`${(realPct * 100).toFixed(1)}%`} hint={`Meta ${fmtBRLCompact(metaVgv)}`} accent="neutral" icon={<Target className="w-4 h-4" />} index={8} />
       </section>
+
 
       {/* Status — visão dedicada */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
