@@ -343,8 +343,8 @@ function Dashboard() {
           accent="teal"
           icon={<Award className="w-4 h-4" />}
           index={4}
-          hidden={hideCommissions}
-          onToggleHidden={() => setHideCommissions((v) => !v)}
+          hidden={hideBruta}
+          onToggleHidden={() => setHideBruta((v) => !v)}
         />
         <KPICard
           label="Comissão Gerente"
@@ -353,10 +353,19 @@ function Dashboard() {
           accent="azure"
           icon={<Award className="w-4 h-4" />}
           index={5}
-          hidden={hideCommissions}
-          onToggleHidden={() => setHideCommissions((v) => !v)}
+          hidden={hideGerente}
+          onToggleHidden={() => setHideGerente((v) => !v)}
         />
-        <KPICard label="Comissão Líq. Corretor" value={m.comLiq} format={fmtBRLCompact} accent="gold" icon={<Award className="w-4 h-4" />} index={6} />
+        <KPICard
+          label="Comissão Líq. Corretor"
+          value={m.comLiq}
+          format={fmtBRLCompact}
+          accent="gold"
+          icon={<Award className="w-4 h-4" />}
+          index={6}
+          hidden={hideLiq}
+          onToggleHidden={() => setHideLiq((v) => !v)}
+        />
         <KPICard
           label="Meta atingida"
           value={`${(realPct * 100).toFixed(1)}%`}
