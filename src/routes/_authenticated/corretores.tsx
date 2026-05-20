@@ -83,14 +83,28 @@ function Page() {
   }, [data]);
 
   const top = rows.slice(0, 10);
+
+  // Resumo House x Parceiros (sempre sobre 'data' já filtrado por período/origem)
+  const summary = useMemo(() => {
+    let house = { vgv: 0, n: 0 };
+    let parc = { vgv: 0, n: 0 };
+    for (const r of data) {
+      const bucket = isHouse(r.corretor) ? house : parc;
+      bucket.vgv += r.valor_venda ?? 0;
+      bucket.n += 1;
+    }
+    return { house, parc };
+  }, [data]);
+
   const hasActive =
     dateFrom !== iso(firstOfMonth) || dateTo !== iso(today) ||
-    corretorFilter !== "__all__" || empFilter !== "__all__";
+    corretorFilter !== "__all__" || empFilter !== "__all__" || origin !== "all";
   const clearAll = () => {
     setDateFrom(iso(firstOfMonth));
     setDateTo(iso(today));
     setCorretorFilter("__all__");
     setEmpFilter("__all__");
+    setOrigin("all");
   };
 
   return (
