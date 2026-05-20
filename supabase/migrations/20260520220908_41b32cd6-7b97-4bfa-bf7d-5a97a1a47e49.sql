@@ -1,0 +1,2 @@
+UPDATE auth.users SET email = regexp_replace(email, '\.br$', '') WHERE email IN ('ronaldo@euroempreendimentos.com.br','debora@euroempreendimentos.com.br');
+UPDATE public.profiles SET email = regexp_replace(email, '\.br$', '') WHERE email IN ('ronaldo@euroempreendimentos.com.br','debora@euroempreendimentos.com.br');

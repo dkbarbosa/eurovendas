@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthLayout() {
-  const { session, loading, roles, isAdmin, signOut } = useAuth();
+  const { session, loading, rolesLoading, roles, isAdmin, signOut } = useAuth();
   const nav = useNavigate();
   const isDiretor = roles.includes("diretor");
   const allowed = isAdmin || isDiretor;
@@ -19,7 +19,7 @@ function AuthLayout() {
     if (!loading && !session) nav({ to: "/login" });
   }, [session, loading, nav]);
 
-  if (loading || !session) {
+  if (loading || !session || rolesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

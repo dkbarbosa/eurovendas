@@ -10,6 +10,7 @@ interface AuthCtx {
   roles: Role[];
   isAdmin: boolean;
   loading: boolean;
+  rolesLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -21,20 +22,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
       if (s?.user) {
+        setRolesLoading(true);
         // defer to avoid blocking the auth callback
         setTimeout(() => loadRoles(s.user.id), 0);
       } else {
         setRoles([]);
+        setRolesLoading(false);
       }
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      if (data.session?.user) loadRoles(data.session.user.id);
+      if (data.session?.user) {
+        setRolesLoading(true);
+        loadRoles(data.session.user.id);
+      } else {
+        setRolesLoading(false);
+      }
       setLoading(false);
     });
     return () => sub.subscription.unsubscribe();
@@ -43,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function loadRoles(userId: string) {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
     setRoles((data ?? []).map((r) => r.role as Role));
+    setRolesLoading(false);
   }
 
   const value: AuthCtx = {
@@ -51,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     roles,
     isAdmin: roles.includes("admin"),
     loading,
+    rolesLoading,
     signIn: async (email, password) => {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       return { error: error?.message ?? null };
