@@ -23,6 +23,13 @@ export const Route = createFileRoute("/_authenticated/financeiro")({
 const BRL = (n: number | null | undefined) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const fmtBR = (d: string | null | undefined) => {
+  if (!d) return "—";
+  const s = String(d).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
+};
+
 function FinanceiroPage() {
   const { isStaff, isFinanceiro, isAdmin } = useAuth();
   const allowed = isFinanceiro || isAdmin;
