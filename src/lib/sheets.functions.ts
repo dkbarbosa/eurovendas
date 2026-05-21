@@ -98,15 +98,41 @@ export const syncFromSheets = createServerFn({ method: "POST" })
         pctGerente: Number(cfg.pct_gerente_default ?? 0.007),
       });
 
-      // Full snapshot: wipe everything and reinsert. Garante consistência 1:1 com a planilha.
-      const { error: delErr } = await supabaseAdmin.from("sales").delete().not("id", "is", null);
-      if (delErr) throw delErr;
+      // Upsert por row_hash (preserva IDs de vendas referenciadas por solicitações).
+      const now = new Date().toISOString();
       if (rows.length > 0) {
-        const now = new Date().toISOString();
         const { error: upErr } = await supabaseAdmin
           .from("sales")
-          .insert(rows.map((row) => ({ ...row, updated_at: now })));
+          .upsert(
+            rows.map((row) => ({ ...row, updated_at: now })),
+            { onConflict: "row_hash" },
+          );
         if (upErr) throw upErr;
+      }
+
+      // Remove vendas que sumiram da planilha, exceto as referenciadas por solicitações (FK RESTRICT).
+      const incomingHashes = new Set(rows.map((r) => r.row_hash));
+      const { data: existing } = await supabaseAdmin.from("sales").select("id,row_hash");
+      const stale = (existing ?? []).filter((s) => !incomingHashes.has(s.row_hash as string));
+      if (stale.length > 0) {
+        const staleIds = stale.map((s) => s.id as string);
+        const { data: refsCR } = await supabaseAdmin
+          .from("commission_requests")
+          .select("sale_id")
+          .in("sale_id", staleIds);
+        const { data: refsNF } = await supabaseAdmin
+          .from("nf_requests")
+          .select("sale_id")
+          .in("sale_id", staleIds);
+        const referenced = new Set<string>([
+          ...(refsCR ?? []).map((r) => r.sale_id as string),
+          ...(refsNF ?? []).map((r) => r.sale_id as string),
+        ]);
+        const deletable = staleIds.filter((id) => !referenced.has(id));
+        if (deletable.length > 0) {
+          const { error: delErr } = await supabaseAdmin.from("sales").delete().in("id", deletable);
+          if (delErr) throw delErr;
+        }
       }
 
       if (logId) {
