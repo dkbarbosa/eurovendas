@@ -188,28 +188,52 @@ function ComissoesPage() {
 
   // ---- Diálogo NF
   const [nfDialog, setNfDialog] = useState<{ open: boolean; nfId: string | null }>({ open: false, nfId: null });
-  const [nfForm, setNfForm] = useState({ numero_nf: "", arquivo_url: "", observacao: "" });
+  const [nfForm, setNfForm] = useState({ numero_nf: "", observacao: "" });
+  const [nfFile, setNfFile] = useState<File | null>(null);
+  const [uploadingNF, setUploadingNF] = useState(false);
   const openNF = (nfId: string) => {
-    setNfForm({ numero_nf: "", arquivo_url: "", observacao: "" });
+    setNfForm({ numero_nf: "", observacao: "" });
+    setNfFile(null);
     setNfDialog({ open: true, nfId });
   };
   const emitMut = useMutation({
-    mutationFn: () =>
-      fnEmit({
-        data: {
-          id: nfDialog.nfId!,
-          numero_nf: nfForm.numero_nf.trim(),
-          arquivo_url: nfForm.arquivo_url.trim() || undefined,
-          observacao: nfForm.observacao || undefined,
-        },
-      }),
+    mutationFn: async () => {
+      if (!nfFile) throw new Error("Anexe o arquivo da NF (PDF ou XML).");
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) throw new Error("Sessão expirada.");
+      setUploadingNF(true);
+      try {
+        const ext = nfFile.name.split(".").pop() || "bin";
+        const path = `${uid}/${nfDialog.nfId}-${Date.now()}.${ext}`;
+        const up = await supabase.storage.from("nf-files").upload(path, nfFile, {
+          contentType: nfFile.type || "application/octet-stream",
+          upsert: false,
+        });
+        if (up.error) throw new Error(up.error.message);
+        const signed = await supabase.storage.from("nf-files").createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (signed.error || !signed.data?.signedUrl) throw new Error(signed.error?.message || "Falha ao gerar URL.");
+        return fnEmit({
+          data: {
+            id: nfDialog.nfId!,
+            numero_nf: nfForm.numero_nf.trim(),
+            arquivo_url: signed.data.signedUrl,
+            observacao: nfForm.observacao || undefined,
+          },
+        });
+      } finally {
+        setUploadingNF(false);
+      }
+    },
     onSuccess: () => {
-      toast.success("NF marcada como emitida.");
+      toast.success("NF enviada com sucesso.");
       setNfDialog({ open: false, nfId: null });
       qc.invalidateQueries({ queryKey: ["my-broker-sales"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const delReqMut = useMutation({
     mutationFn: (id: string) => fnDelReq({ data: { id } }),
