@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { listAllRequests, decideRequest, markRequestPaid } from "@/lib/requests.functions";
-import { listAllNFs, listEligibleSalesForNF, requestNF, confirmNFReceived, cancelNF } from "@/lib/nf.functions";
+import { listAllRequests, decideRequest, markRequestPaid, deleteCommissionRequest } from "@/lib/requests.functions";
+import { listAllNFs, listEligibleSalesForNF, requestNF, confirmNFReceived, cancelNF, deleteNFRequest } from "@/lib/nf.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlus2 } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlus2, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   component: FinanceiroPage,
@@ -22,6 +22,13 @@ export const Route = createFileRoute("/_authenticated/financeiro")({
 
 const BRL = (n: number | null | undefined) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const fmtBR = (d: string | null | undefined) => {
+  if (!d) return "—";
+  const s = String(d).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
+};
 
 function FinanceiroPage() {
   const { isStaff, isFinanceiro, isAdmin } = useAuth();
@@ -54,9 +61,11 @@ function FinanceiroPage() {
 // =========== ADIANTAMENTOS ===========
 function AdvancesTab() {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const fnList = useServerFn(listAllRequests);
   const fnDecide = useServerFn(decideRequest);
   const fnPaid = useServerFn(markRequestPaid);
+  const fnDel = useServerFn(deleteCommissionRequest);
 
   const [statusFilter, setStatusFilter] = useState<"pendente" | "aprovado" | "negado" | "pago" | "todos">("pendente");
   const [search, setSearch] = useState("");
@@ -100,6 +109,12 @@ function AdvancesTab() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const delMut = useMutation({
+    mutationFn: (id: string) => fnDel({ data: { id } }),
+    onSuccess: () => { toast.success("Excluído."); qc.invalidateQueries({ queryKey: ["all-requests"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   return (
     <>
@@ -175,6 +190,12 @@ function AdvancesTab() {
                   {r.status === "aprovado" && (
                     <Button size="sm" onClick={() => setObs({ open: true, id: r.id, action: "pagar", text: "" })}>
                       <Wallet className="w-3.5 h-3.5 mr-1" />Marcar pago
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <Button size="sm" variant="ghost" className="text-destructive ml-1"
+                      onClick={() => { if (confirm("Excluir esta solicitação? (admin)")) delMut.mutate(r.id); }}>
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   )}
                 </td>
@@ -284,7 +305,7 @@ function RequestNFTab() {
             )}
             {filtered.map((s) => (
               <tr key={s.id} className="border-t border-border">
-                <td className="p-3 whitespace-nowrap">{s.data ?? "—"}</td>
+                <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
                 <td className="p-3 font-medium">{s.comprador ?? "—"}</td>
                 <td className="p-3 text-muted-foreground">{s.empreendimento} / {s.unidade}</td>
                 <td className="p-3">
@@ -330,9 +351,11 @@ function RequestNFTab() {
 // =========== NFS ===========
 function NFTab() {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const fnList = useServerFn(listAllNFs);
   const fnConfirm = useServerFn(confirmNFReceived);
   const fnCancel = useServerFn(cancelNF);
+  const fnDel = useServerFn(deleteNFRequest);
 
   const [statusFilter, setStatusFilter] = useState<"solicitada" | "emitida" | "recebida" | "cancelada" | "todos">("emitida");
   const { data = [], isLoading } = useQuery({ queryKey: ["all-nfs"], queryFn: () => fnList() });
@@ -349,6 +372,11 @@ function NFTab() {
   const cancelMut = useMutation({
     mutationFn: (v: { id: string; motivo: string }) => fnCancel({ data: v }),
     onSuccess: () => { toast.success("NF cancelada."); qc.invalidateQueries({ queryKey: ["all-nfs"] }); setCancelDlg({ open: false, id: null, motivo: "" }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const delMut = useMutation({
+    mutationFn: (id: string) => fnDel({ data: { id } }),
+    onSuccess: () => { toast.success("NF excluída."); qc.invalidateQueries({ queryKey: ["all-nfs"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -412,6 +440,12 @@ function NFTab() {
                     {(n.status === "solicitada" || n.status === "emitida") && (
                       <Button size="sm" variant="outline" onClick={() => setCancelDlg({ open: true, id: n.id, motivo: "" })}>
                         Cancelar
+                      </Button>
+                    )}
+                    {isAdmin && (
+                      <Button size="sm" variant="ghost" className="text-destructive"
+                        onClick={() => { if (confirm("Excluir esta NF? (admin)")) delMut.mutate(n.id); }}>
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     )}
                   </div>
