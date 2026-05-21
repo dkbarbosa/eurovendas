@@ -164,7 +164,31 @@ export const decideRequest = createServerFn({ method: "POST" })
       .select("id");
     if (error) throw new Error(error.message);
     if (!upd || upd.length === 0) throw new Error("Este pedido já foi decidido por outra pessoa.");
-    return { ok: true };
+
+    // Ao aprovar adiantamento, somar o valor na coluna "Adiant. Corr." da planilha.
+    let sheetWarning: string | undefined;
+    if (data.decision === "aprovado") {
+      const { data: req } = await supabaseAdmin
+        .from("commission_requests")
+        .select("tipo, valor_solicitado, sale_id")
+        .eq("id", data.id)
+        .single();
+      if (req?.tipo === "adiantamento" && req.sale_id) {
+        const { data: sale } = await supabaseAdmin
+          .from("sales")
+          .select("data, empreendimento, unidade, comprador, valor_venda")
+          .eq("id", req.sale_id)
+          .single();
+        if (sale) {
+          const res = await addAdvanceToSheet(sale, Number(req.valor_solicitado) || 0);
+          if (!res.ok) {
+            sheetWarning = res.error;
+            console.error("addAdvanceToSheet:", res.error);
+          }
+        }
+      }
+    }
+    return { ok: true, sheetWarning };
   });
 
 // ---------- MARCAR COMO PAGO ----------
