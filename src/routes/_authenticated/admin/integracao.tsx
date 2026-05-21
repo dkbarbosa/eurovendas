@@ -4,12 +4,21 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { syncFromSheets, updateSheetConfig } from "@/lib/sheets.functions";
+import { checkConnectorStatus } from "@/lib/integrations.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
-import { Loader2, RefreshCw, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import {
+  Loader2,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  FileSpreadsheet,
+  CalendarDays,
+} from "lucide-react";
 import { toast } from "sonner";
 import { fmtNum } from "@/lib/format";
 
@@ -17,12 +26,36 @@ export const Route = createFileRoute("/_authenticated/admin/integracao")({
   component: IntegPage,
 });
 
+function StatusBadge({ connected }: { connected: boolean }) {
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <span
+        className={`relative inline-flex h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400" : "bg-destructive"}`}
+      >
+        {connected && (
+          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
+        )}
+      </span>
+      <span className={`text-xs font-medium ${connected ? "text-emerald-400" : "text-destructive"}`}>
+        {connected ? "Conectado" : "Desconectado"}
+      </span>
+    </div>
+  );
+}
+
 function IntegPage() {
   const { isAdmin, session } = useAuth();
   const qc = useQueryClient();
   const sync = useServerFn(syncFromSheets);
   const update = useServerFn(updateSheetConfig);
+  const checkStatus = useServerFn(checkConnectorStatus);
   const [url, setUrl] = useState("");
+
+  const { data: status } = useQuery({
+    queryKey: ["connector-status"],
+    queryFn: async () => checkStatus({}),
+    refetchInterval: 30_000,
+  });
 
   const { data: cfg } = useQuery({
     queryKey: ["config-int"],
@@ -79,13 +112,47 @@ function IntegPage() {
     <div className="max-w-3xl space-y-8">
       <div>
         <div className="text-xs uppercase tracking-widest text-muted-foreground">Administração</div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight mt-1">Integração com Google Sheets</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight mt-1">Integrações</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Cole a URL pública (compartilhada) da planilha. A aba lida será <code className="text-foreground">Equipe Maicon</code>.
+          Gerencie as conexões com Google Sheets e Google Calendar.
         </p>
       </div>
 
+      {/* Status dos conectores */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.0, delay: 0.1 }}
+          className="glass-card p-5 flex items-center gap-4"
+        >
+          <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+            <FileSpreadsheet className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-sm font-medium">Google Sheets</div>
+            <StatusBadge connected={!!status?.sheets} />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
+          className="glass-card p-5 flex items-center gap-4"
+        >
+          <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+            <CalendarDays className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-sm font-medium">Google Calendar</div>
+            <StatusBadge connected={!!status?.calendar} />
+          </div>
+        </motion.div>
+      </div>
+
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 space-y-4">
+        <div className="text-sm font-medium mb-2">Google Sheets — Configuração</div>
         <div className="space-y-1.5">
           <Label htmlFor="url">URL ou ID da planilha</Label>
           <Input
@@ -109,9 +176,6 @@ function IntegPage() {
             {syncMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
             Sincronizar agora
           </Button>
-        </div>
-        <div className="text-xs text-muted-foreground border-t border-border pt-4">
-          Pré-requisito: conector <strong>Google Sheets</strong> conectado no projeto. Caso ainda não esteja, peça ao seu Lovable para "conectar Google Sheets".
         </div>
       </motion.div>
 
