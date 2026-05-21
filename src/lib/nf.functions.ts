@@ -99,7 +99,10 @@ export const markNFEmitted = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => MarkEmittedSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { data: upd, error } = await supabaseAdmin
+    const roles = await getRoles(context.userId);
+    const isAdmin = roles.includes("admin");
+
+    let q = supabaseAdmin
       .from("nf_requests")
       .update({
         status: "emitida",
@@ -109,9 +112,10 @@ export const markNFEmitted = createServerFn({ method: "POST" })
         emitida_at: new Date().toISOString(),
       })
       .eq("id", data.id)
-      .eq("corretor_user_id", context.userId)
-      .eq("status", "solicitada")
-      .select("id");
+      .eq("status", "solicitada");
+    if (!isAdmin) q = q.eq("corretor_user_id", context.userId);
+
+    const { data: upd, error } = await q.select("id");
     if (error) throw new Error(error.message);
     if (!upd?.length) throw new Error("NF não encontrada ou já foi emitida.");
     return { ok: true };

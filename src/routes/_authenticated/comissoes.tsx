@@ -129,10 +129,11 @@ function ComissoesPage() {
           bonus_corretor: Number(reqForm.bonus_corretor.replace(",", ".")) || 0,
           valor_solicitado: Number(reqForm.valor_solicitado.replace(",", ".")) || 0,
           observacao_corretor: reqForm.observacao || undefined,
+          act_as_corretor: isStaff ? activeBrokerArg : undefined,
         },
       }),
     onSuccess: () => {
-      toast.success("Solicitação enviada ao financeiro.");
+      toast.success(isStaff ? "Pedido de teste criado." : "Solicitação enviada ao financeiro.");
       setReqDialog({ open: false, sale: null });
       qc.invalidateQueries({ queryKey: ["my-broker-sales"] });
     },
@@ -287,15 +288,13 @@ function ComissoesPage() {
                       </td>
                       <td className="p-3">
                         <div className="flex flex-col gap-1.5">
-                          {!isStaff && (
-                            <Button size="sm" variant="outline" disabled={hasPending} onClick={() => openReq(s)}>
-                              {hasPending ? "Pendente" : "Solicitar"}
-                            </Button>
-                          )}
-                          {!isStaff && nfSolicitada && (
+                          <Button size="sm" variant="outline" disabled={hasPending} onClick={() => openReq(s)}>
+                            {hasPending ? "Pendente" : isStaff ? "Solicitar (teste)" : "Solicitar"}
+                          </Button>
+                          {nfSolicitada && (
                             <Button size="sm" onClick={() => openNF(nfSolicitada.id)}
                               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
-                              Emitir NF
+                              {isStaff ? "Emitir NF (teste)" : "Emitir NF"}
                             </Button>
                           )}
                         </div>
