@@ -40,31 +40,33 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
     let nome: string | null = null;
 
     if (isAdmin && data.act_as_corretor) {
+      // Modo teste: admin age em nome de um corretor (mapeamento opcional)
+      nome = data.act_as_corretor;
       const { data: map } = await supabaseAdmin
         .from("broker_mapping")
-        .select("user_id,corretor_nome")
+        .select("user_id")
         .eq("corretor_nome", data.act_as_corretor)
         .eq("ativo", true)
         .maybeSingle();
-      if (!map) throw new Error(`Corretor "${data.act_as_corretor}" não está vinculado a um usuário.`);
-      actorUserId = map.user_id;
-      nome = map.corretor_nome;
+      actorUserId = map?.user_id ?? context.userId;
     } else {
       nome = await getCorretorNome(context.userId);
       if (!nome) throw new Error("Seu usuário não está vinculado a um corretor. Fale com o administrador.");
     }
 
-    const { data: sale } = await supabaseAdmin
+    const { data: sale, error: saleErr } = await supabaseAdmin
       .from("sales").select("id,corretor").eq("id", data.sale_id).maybeSingle();
-    if (!sale) throw new Error("Venda não encontrada.");
-    if (sale.corretor !== nome) throw new Error("Esta venda não está vinculada ao corretor.");
+    if (saleErr) throw new Error(`Falha ao consultar venda: ${saleErr.message}`);
+    if (!sale) throw new Error("Venda não encontrada no sistema.");
+    if ((sale.corretor ?? "").trim().toLowerCase() !== nome.trim().toLowerCase())
+      throw new Error(`Esta venda está vinculada a "${sale.corretor}", não a "${nome}".`);
 
     const { data: pend } = await supabaseAdmin
       .from("commission_requests").select("id").eq("sale_id", data.sale_id).eq("status", "pendente").maybeSingle();
     if (pend) throw new Error("Já existe um pedido pendente para esta venda.");
 
     const obs = isAdmin && data.act_as_corretor
-      ? `[TESTE — admin] ${data.observacao_corretor ?? ""}`.trim()
+      ? `[TESTE — admin agindo como ${data.act_as_corretor}] ${data.observacao_corretor ?? ""}`.trim()
       : data.observacao_corretor ?? null;
 
     const { error } = await supabaseAdmin.from("commission_requests").insert({
@@ -77,6 +79,18 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
       observacao_corretor: obs,
       status: "pendente",
     });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------- EXCLUIR PEDIDO (admin) ----------
+export const deleteCommissionRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    if (!roles.includes("admin")) throw new Error("Apenas administradores podem excluir solicitações.");
+    const { error } = await supabaseAdmin.from("commission_requests").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
