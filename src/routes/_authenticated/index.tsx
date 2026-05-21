@@ -566,7 +566,7 @@ function Dashboard() {
         </ChartCard>
 
         <ChartCard title="Meta vs Realizado" subtitle={`${(realPct * 100).toFixed(1)}% da meta · ${metaOnTrack ? "acima" : "abaixo"}`} delay={0.1}>
-          <div className="h-80 relative flex items-center justify-center">
+          <div className="h-56 relative flex items-center justify-center">
             <ResponsiveContainer>
               <RadialBarChart
                 innerRadius="62%" outerRadius="100%"
@@ -590,18 +590,55 @@ function Dashboard() {
               </RadialBarChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <div className={`font-display text-4xl font-semibold glow-breathe ${metaOnTrack ? "text-gradient-primary" : "text-gradient-gold"}`}>
+              <div className={`font-display text-3xl font-semibold glow-breathe ${metaOnTrack ? "text-gradient-primary" : "text-gradient-gold"}`}>
                 {(realPct * 100).toFixed(1)}%
               </div>
-              <div className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${metaOnTrack ? "text-success" : "text-destructive"}`}>
+              <div className={`mt-1 inline-flex items-center gap-1 text-[11px] font-medium ${metaOnTrack ? "text-success" : "text-destructive"}`}>
                 {metaOnTrack ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                 {metaOnTrack ? "+" : ""}{(metaDelta * 100).toFixed(1)}% vs meta
               </div>
-              <div className="text-xs text-muted-foreground mt-1">{fmtBRLCompact(metaRealizado)} de {fmtBRLCompact(metaVgv)}</div>
+              <div className="text-[11px] text-muted-foreground mt-1">{fmtBRLCompact(metaRealizado)} / {fmtBRLCompact(metaVgv)}</div>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-lg bg-secondary/30 border border-border p-2.5">
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#4D8DFF" }} />
+                Reservado
+              </div>
+              <div className="font-display text-base font-semibold mt-1">{fmtBRLCompact(metaBreakdown.reservado)}</div>
+              <div className="text-[10px] text-muted-foreground">{fmtNum(metaBreakdown.nRes)} vendas</div>
+            </div>
+            <div className="rounded-lg bg-secondary/30 border border-border p-2.5">
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#2DE2C9" }} />
+                Vendido
+              </div>
+              <div className="font-display text-base font-semibold mt-1">{fmtBRLCompact(metaBreakdown.vendido)}</div>
+              <div className="text-[10px] text-muted-foreground">{fmtNum(metaBreakdown.nVen)} vendas</div>
+            </div>
+            <div className="rounded-lg bg-secondary/30 border border-border p-2.5">
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#FF5C8A" }} />
+                Distratos
+              </div>
+              <div className="font-display text-base font-semibold mt-1 text-destructive">−{fmtBRLCompact(metaBreakdown.distrato)}</div>
+              <div className="text-[10px] text-muted-foreground">{fmtNum(metaBreakdown.nDis)} vendas</div>
+            </div>
+            <div className="rounded-lg bg-secondary/30 border border-border p-2.5">
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                <Target className="w-3 h-3" />
+                {metaOnTrack ? "Excedente" : "Falta p/ meta"}
+              </div>
+              <div className={`font-display text-base font-semibold mt-1 ${metaOnTrack ? "text-gradient-primary" : "text-gradient-gold"}`}>
+                {metaOnTrack ? fmtBRLCompact(metaRealizado - metaVgv) : fmtBRLCompact(metaFalta)}
+              </div>
+              <div className="text-[10px] text-muted-foreground">meta {fmtBRLCompact(metaVgv)}</div>
             </div>
           </div>
         </ChartCard>
       </section>
+
 
       {/* Ranking + Empreendimentos */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
