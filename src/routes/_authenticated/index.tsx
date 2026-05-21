@@ -223,18 +223,24 @@ function Dashboard() {
       byCorretor, byGerente, byEmp, byMonth, byStatus, months };
   }, [sales]);
 
-  // Meta: soma RESERVADO + VENDIDO, subtrai DISTRATO/CANCELADO
+  // Meta: conta vendas válidas (qualquer status que não seja distrato/cancelado),
+  // subtraindo distratos. Match flexível por substring para tolerar variações da planilha.
   const metaVgv = 5_000_000;
   const metaBreakdown = useMemo(() => {
-    let reservado = 0, vendido = 0, distrato = 0, nRes = 0, nVen = 0, nDis = 0;
+    let reservado = 0, vendido = 0, distrato = 0, outros = 0;
+    let nRes = 0, nVen = 0, nDis = 0, nOut = 0;
     for (const s of sales) {
-      const st = (s.status ?? "").toUpperCase();
+      const st = (s.status ?? "").toUpperCase().trim();
       const v = s.valor_venda ?? 0;
-      if (st === "RESERVADO") { reservado += v; nRes++; }
-      else if (st === "VENDIDO") { vendido += v; nVen++; }
-      else if (st === "DISTRATO" || st === "CANCELADO") { distrato += v; nDis++; }
+      const isDistrato = st.includes("DISTRATO") || st.includes("CANCEL");
+      const isReservado = st.includes("RESERV");
+      const isVendido = st.includes("VEND") || st.includes("PAG") || st.includes("LIBER");
+      if (isDistrato) { distrato += v; nDis++; }
+      else if (isReservado) { reservado += v; nRes++; }
+      else if (isVendido) { vendido += v; nVen++; }
+      else { outros += v; nOut++; }
     }
-    return { reservado, vendido, distrato, nRes, nVen, nDis, total: reservado + vendido - distrato };
+    return { reservado, vendido, distrato, outros, nRes, nVen, nDis, nOut, total: reservado + vendido + outros - distrato };
   }, [sales]);
   const metaRealizado = metaBreakdown.total;
   const metaFalta = Math.max(0, metaVgv - metaRealizado);

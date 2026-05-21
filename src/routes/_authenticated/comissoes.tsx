@@ -311,12 +311,22 @@ function ComissoesPage() {
               <h3 className="font-display text-lg mb-3">Comissão por mês</h3>
               <div className="h-64">
                 <ResponsiveContainer>
-                  <BarChart data={monthly}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                    <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))" }} />
-                    <Bar dataKey="comissao" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                  <BarChart data={monthly} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="comBarGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="oklch(0.78 0.16 180)" stopOpacity={1} />
+                        <stop offset="100%" stopColor="oklch(0.55 0.14 200)" stopOpacity={0.85} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 8%)" />
+                    <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "oklch(0.78 0.02 270)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "oklch(0.78 0.02 270)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip
+                      formatter={(v: number) => BRL(v)}
+                      cursor={{ fill: "oklch(1 0 0 / 4%)" }}
+                      contentStyle={{ background: "oklch(0.16 0.02 270)", border: "1px solid oklch(1 0 0 / 10%)", borderRadius: 12, fontSize: 12 }}
+                    />
+                    <Bar dataKey="comissao" fill="url(#comBarGrad)" radius={[8, 8, 0, 0]} maxBarSize={56} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -325,12 +335,18 @@ function ComissoesPage() {
               <h3 className="font-display text-lg mb-3">Vendas por mês</h3>
               <div className="h-64">
                 <ResponsiveContainer>
-                  <LineChart data={monthly}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                    <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))" }} />
-                    <Line type="monotone" dataKey="vendas" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+                  <LineChart data={monthly} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="vendasLineGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="oklch(0.78 0.16 180)" />
+                        <stop offset="100%" stopColor="oklch(0.78 0.14 90)" />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 8%)" />
+                    <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "oklch(0.78 0.02 270)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "oklch(0.78 0.02 270)" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip contentStyle={{ background: "oklch(0.16 0.02 270)", border: "1px solid oklch(1 0 0 / 10%)", borderRadius: 12, fontSize: 12 }} />
+                    <Line type="monotone" dataKey="vendas" stroke="url(#vendasLineGrad)" strokeWidth={2.5} dot={{ r: 3, fill: "oklch(0.78 0.16 180)" }} activeDot={{ r: 5 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
