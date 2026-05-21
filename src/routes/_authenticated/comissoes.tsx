@@ -379,6 +379,27 @@ function ComissoesPage() {
                           {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1">
                               <RequestPill r={r} />
+                              {r.status === "negado" && r.motivo_negacao && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      title="Ver motivo da negação"
+                                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                                    >
+                                      <MessageSquareWarning className="w-3 h-3" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="start" className="w-72 p-3 space-y-2">
+                                    <div className="flex items-center gap-1.5 text-destructive text-xs font-semibold uppercase tracking-wide">
+                                      <AlertTriangle className="w-3.5 h-3.5" />
+                                      Motivo da negação
+                                    </div>
+                                    <p className="text-sm text-foreground/90 whitespace-pre-wrap break-words">
+                                      {r.motivo_negacao}
+                                    </p>
+                                  </PopoverContent>
+                                </Popover>
+                              )}
                               {isAdmin && (
                                 <button title="Excluir (admin)" onClick={() => {
                                   if (confirm("Excluir esta solicitação?")) delReqMut.mutate(r.id);
