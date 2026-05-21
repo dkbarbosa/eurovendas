@@ -17,12 +17,14 @@ import { isHouse } from "@/lib/team";
 export const Route = createFileRoute("/_authenticated/corretores")({ component: Page });
 
 const TOOLTIP = {
-  background: "oklch(0.16 0.02 270)",
-  border: "1px solid oklch(1 0 0 / 10%)",
+  background: "rgba(15, 18, 32, 0.95)",
+  border: "1px solid rgba(45, 226, 201, 0.25)",
   borderRadius: 12,
   fontSize: 12,
+  boxShadow: "0 10px 40px -10px rgba(45, 226, 201, 0.35)",
 };
-const COLORS = ["oklch(0.82 0.16 185)", "oklch(0.78 0.12 82)", "oklch(0.7 0.18 30)", "oklch(0.6 0.18 300)", "oklch(0.65 0.18 140)", "oklch(0.7 0.15 250)", "oklch(0.75 0.16 50)"];
+const COLORS = ["#2DE2C9", "#D6AF55", "#4D8DFF", "#FF5C8A", "#9A7CFF", "#6EE7B7", "#F97316", "#38BDF8"];
+
 
 function Page() {
   const today = new Date();
