@@ -14,6 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
+      broker_mapping: {
+        Row: {
+          ativo: boolean
+          corretor_nome: string
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          corretor_nome: string
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          corretor_nome?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broker_mapping_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_requests: {
+        Row: {
+          bonus_corretor: number
+          corretor_user_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          motivo_negacao: string | null
+          observacao_corretor: string | null
+          observacao_financeiro: string | null
+          paid_at: string | null
+          sale_id: string
+          status: Database["public"]["Enums"]["request_status"]
+          tipo: Database["public"]["Enums"]["request_type"]
+          updated_at: string
+          valor_sinal: number
+          valor_solicitado: number
+        }
+        Insert: {
+          bonus_corretor?: number
+          corretor_user_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          motivo_negacao?: string | null
+          observacao_corretor?: string | null
+          observacao_financeiro?: string | null
+          paid_at?: string | null
+          sale_id: string
+          status?: Database["public"]["Enums"]["request_status"]
+          tipo?: Database["public"]["Enums"]["request_type"]
+          updated_at?: string
+          valor_sinal?: number
+          valor_solicitado: number
+        }
+        Update: {
+          bonus_corretor?: number
+          corretor_user_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          motivo_negacao?: string | null
+          observacao_corretor?: string | null
+          observacao_financeiro?: string | null
+          paid_at?: string | null
+          sale_id?: string
+          status?: Database["public"]["Enums"]["request_status"]
+          tipo?: Database["public"]["Enums"]["request_type"]
+          updated_at?: string
+          valor_sinal?: number
+          valor_solicitado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_requests_corretor_user_id_fkey"
+            columns: ["corretor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_requests_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       config_kv: {
         Row: {
           key: string
@@ -31,6 +142,82 @@ export type Database = {
           value?: Json
         }
         Relationships: []
+      }
+      nf_requests: {
+        Row: {
+          arquivo_nf_url: string | null
+          cancelada_at: string | null
+          corretor_user_id: string
+          created_at: string
+          emitida_at: string | null
+          id: string
+          numero_nf: string | null
+          observacao_corretor: string | null
+          observacao_financeiro: string | null
+          observacao_recebimento: string | null
+          recebida_at: string | null
+          sale_id: string
+          solicitado_por: string
+          status: Database["public"]["Enums"]["nf_status"]
+          updated_at: string
+        }
+        Insert: {
+          arquivo_nf_url?: string | null
+          cancelada_at?: string | null
+          corretor_user_id: string
+          created_at?: string
+          emitida_at?: string | null
+          id?: string
+          numero_nf?: string | null
+          observacao_corretor?: string | null
+          observacao_financeiro?: string | null
+          observacao_recebimento?: string | null
+          recebida_at?: string | null
+          sale_id: string
+          solicitado_por: string
+          status?: Database["public"]["Enums"]["nf_status"]
+          updated_at?: string
+        }
+        Update: {
+          arquivo_nf_url?: string | null
+          cancelada_at?: string | null
+          corretor_user_id?: string
+          created_at?: string
+          emitida_at?: string | null
+          id?: string
+          numero_nf?: string | null
+          observacao_corretor?: string | null
+          observacao_financeiro?: string | null
+          observacao_recebimento?: string | null
+          recebida_at?: string | null
+          sale_id?: string
+          solicitado_por?: string
+          status?: Database["public"]["Enums"]["nf_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nf_requests_corretor_user_id_fkey"
+            columns: ["corretor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nf_requests_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nf_requests_solicitado_por_fkey"
+            columns: ["solicitado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -50,6 +237,36 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      request_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          payload: Json | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          payload?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          payload?: Json | null
         }
         Relationships: []
       }
@@ -198,9 +415,13 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_financeiro: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "diretor" | "gerente" | "corretor"
+      app_role: "admin" | "diretor" | "gerente" | "corretor" | "financeiro"
+      nf_status: "solicitada" | "emitida" | "recebida" | "cancelada"
+      request_status: "pendente" | "aprovado" | "negado" | "pago"
+      request_type: "adiantamento" | "comissao_final"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -328,7 +549,10 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "diretor", "gerente", "corretor"],
+      app_role: ["admin", "diretor", "gerente", "corretor", "financeiro"],
+      nf_status: ["solicitada", "emitida", "recebida", "cancelada"],
+      request_status: ["pendente", "aprovado", "negado", "pago"],
+      request_type: ["adiantamento", "comissao_final"],
     },
   },
 } as const

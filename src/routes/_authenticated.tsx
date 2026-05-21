@@ -10,10 +10,10 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthLayout() {
-  const { session, loading, rolesLoading, roles, isAdmin, signOut } = useAuth();
+  const { session, loading, rolesLoading, roles, signOut } = useAuth();
   const nav = useNavigate();
-  const isDiretor = roles.includes("diretor");
-  const allowed = isAdmin || isDiretor;
+  // Qualquer role autenticada com pelo menos 1 role atribuída
+  const allowed = roles.length > 0;
 
   useEffect(() => {
     if (!loading && !session) nav({ to: "/login" });
@@ -34,10 +34,9 @@ function AuthLayout() {
           <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
             <ShieldAlert className="w-6 h-6 text-destructive" />
           </div>
-          <h1 className="font-display text-xl font-semibold">Acesso restrito</h1>
+          <h1 className="font-display text-xl font-semibold">Sem permissão</h1>
           <p className="text-sm text-muted-foreground">
-            Esta plataforma está disponível apenas para diretores. Caso acredite
-            que isso é um engano, fale com o administrador.
+            Sua conta ainda não tem nenhum perfil atribuído. Fale com o administrador.
           </p>
           <Button onClick={() => signOut().then(() => nav({ to: "/login" }))} className="w-full">
             Sair
