@@ -93,16 +93,50 @@ function ComissoesPage() {
     });
   }, [allSales, dateFrom, dateTo, clientSearch]);
 
+  // Mapa de adiantamentos/pagamentos por venda
+  const paidBySale = useMemo(() => {
+    const m = new Map<
+      string,
+      {
+        adiantado: number;
+        finalPago: number;
+        items: Array<{ id: string; tipo: string; valor: number; data: string | null }>;
+      }
+    >();
+    for (const r of requests) {
+      if (r.status !== "pago") continue;
+      const cur = m.get(r.sale_id) ?? { adiantado: 0, finalPago: 0, items: [] };
+      const v = Number(r.valor_solicitado) || 0;
+      if (r.tipo === "adiantamento") cur.adiantado += v;
+      else if (r.tipo === "comissao_final") cur.finalPago += v;
+      cur.items.push({
+        id: r.id,
+        tipo: r.tipo,
+        valor: v,
+        data: (r.paid_at ?? r.decided_at ?? r.created_at) as string | null,
+      });
+      m.set(r.sale_id, cur);
+    }
+    return m;
+  }, [requests]);
+
   const kpis = useMemo(() => {
-    const total = sales.reduce((s, x) => s + (Number(x.comissao_liq_corretor) || 0), 0);
-    const pagas = sales.filter((s) => (s.status ?? "").toLowerCase().includes("pag")).reduce(
-      (s, x) => s + (Number(x.comissao_liq_corretor) || 0),
-      0,
-    );
-    const aReceber = total - pagas;
+    let total = 0;
+    let adiantado = 0;
+    let finalPago = 0;
+    for (const s of sales) {
+      total += Number(s.comissao_liq_corretor) || 0;
+      const p = paidBySale.get(s.id);
+      if (p) {
+        adiantado += p.adiantado;
+        finalPago += p.finalPago;
+      }
+    }
+    const pagas = adiantado + finalPago;
+    const aReceber = Math.max(0, total - pagas);
     const pendReq = requests.filter((r) => r.status === "pendente").length;
-    return { total, pagas, aReceber, pendReq, count: sales.length };
-  }, [sales, requests]);
+    return { total, pagas, aReceber, adiantado, finalPago, pendReq, count: sales.length };
+  }, [sales, requests, paidBySale]);
 
   const monthly = useMemo(() => {
     const map = new Map<string, { mes: string; vendas: number; comissao: number }>();
@@ -126,6 +160,7 @@ function ComissoesPage() {
     }
     return m;
   }, [requests]);
+
 
   const nfsBySale = useMemo(() => {
     const m = new Map<string, typeof nfs>();
@@ -312,12 +347,14 @@ function ComissoesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.total)} />
+            <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantado" value={BRL(kpis.adiantado)} />
             <Kpi icon={<CheckCircle2 className="w-4 h-4" />} label="Já Pago" value={BRL(kpis.pagas)} />
             <Kpi icon={<Clock className="w-4 h-4" />} label="A Receber" value={BRL(kpis.aReceber)} accent />
-            <Kpi icon={<Wallet className="w-4 h-4" />} label="Vendas / Pedidos" value={`${kpis.count} / ${kpis.pendReq}`} />
+            <Kpi icon={<FileText className="w-4 h-4" />} label="Vendas / Pendentes" value={`${kpis.count} / ${kpis.pendReq}`} />
           </div>
+
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="glass-card p-5">
@@ -367,7 +404,7 @@ function ComissoesPage() {
           </div>
 
           <div className="glass-card p-2 overflow-x-auto">
-            <table className="w-full text-sm min-w-[860px]">
+            <table className="w-full text-sm min-w-[1040px]">
               <thead className="text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="text-left p-3">Data</th>
@@ -375,6 +412,8 @@ function ComissoesPage() {
                   <th className="text-left p-3">Empreend. / Un.</th>
                   <th className="text-right p-3">Venda</th>
                   <th className="text-right p-3">Comissão Liq.</th>
+                  <th className="text-right p-3">Adiantado</th>
+                  <th className="text-right p-3">A Receber</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-left p-3">Pedidos / NF</th>
                   <th className="p-3"></th>
@@ -382,18 +421,27 @@ function ComissoesPage() {
               </thead>
               <tbody>
                 {isLoading && (
-                  <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">
+                  <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">
                     <Loader2 className="w-4 h-4 animate-spin inline" />
                   </td></tr>
                 )}
                 {!isLoading && sales.length === 0 && (
-                  <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Nenhuma venda encontrada no período/filtro.</td></tr>
+                  <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma venda encontrada no período/filtro.</td></tr>
                 )}
                 {sales.map((s) => {
                   const reqs = requestsBySale.get(s.id) ?? [];
                   const sNfs = nfsBySale.get(s.id) ?? [];
                   const hasPending = reqs.some((r) => r.status === "pendente");
                   const nfSolicitada = sNfs.find((n) => n.status === "solicitada");
+                  const paid = paidBySale.get(s.id);
+                  const comissaoLiq = Number(s.comissao_liq_corretor) || 0;
+                  const adiantadoSale = paid?.adiantado ?? 0;
+                  const finalPagoSale = paid?.finalPago ?? 0;
+                  const totalPagoSale = adiantadoSale + finalPagoSale;
+                  const aReceberSale = Math.max(0, comissaoLiq - totalPagoSale);
+                  const historico = (paid?.items ?? []).slice().sort((a, b) =>
+                    (b.data ?? "").localeCompare(a.data ?? ""),
+                  );
                   return (
                     <tr key={s.id} className="border-t border-border align-top">
                       <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
@@ -403,8 +451,56 @@ function ComissoesPage() {
                         <div className="text-xs">Unid: {s.unidade ?? "—"}</div>
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">{BRL(s.valor_venda)}</td>
-                      <td className="p-3 text-right whitespace-nowrap font-medium">{BRL(s.comissao_liq_corretor)}</td>
+                      <td className="p-3 text-right whitespace-nowrap font-medium">{BRL(comissaoLiq)}</td>
+                      <td className="p-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className={adiantadoSale > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}>
+                            {BRL(adiantadoSale)}
+                          </span>
+                          {historico.length > 0 && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button
+                                  title="Ver histórico de pagamentos"
+                                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                >
+                                  <Clock className="w-3 h-3" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent align="end" className="w-80 p-3 space-y-2">
+                                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Histórico de pagamentos
+                                </div>
+                                <ul className="space-y-1.5 text-sm">
+                                  {historico.map((h) => (
+                                    <li key={h.id} className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
+                                      <div className="flex flex-col">
+                                        <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                                          {h.tipo === "adiantamento" ? "Adiantamento" : "Comissão final"}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">{fmtBR(h.data)}</span>
+                                      </div>
+                                      <span className="font-medium">{BRL(h.valor)}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                                <div className="pt-2 border-t border-border/60 text-xs space-y-0.5">
+                                  <div className="flex justify-between"><span className="text-muted-foreground">Adiantado</span><span>{BRL(adiantadoSale)}</span></div>
+                                  <div className="flex justify-between"><span className="text-muted-foreground">Comissão final paga</span><span>{BRL(finalPagoSale)}</span></div>
+                                  <div className="flex justify-between font-semibold text-primary"><span>Saldo a receber</span><span>{BRL(aReceberSale)}</span></div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-right whitespace-nowrap">
+                        <span className={aReceberSale > 0 ? "text-primary font-semibold" : "text-emerald-400 font-medium"}>
+                          {BRL(aReceberSale)}
+                        </span>
+                      </td>
                       <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
+
                       <td className="p-3">
                         <div className="space-y-1">
                           {reqs.map((r) => (
