@@ -167,3 +167,15 @@ export const cancelNF = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---------- EXCLUIR NF (admin) ----------
+export const deleteNFRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    if (!roles.includes("admin")) throw new Error("Apenas administradores podem excluir.");
+    const { error } = await supabaseAdmin.from("nf_requests").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
