@@ -165,18 +165,18 @@ export const decideRequest = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!upd || upd.length === 0) throw new Error("Este pedido já foi decidido por outra pessoa.");
 
-    // Ao aprovar adiantamento, somar o valor na coluna "Adiant. Corr." da planilha.
+    // Ao aprovar adiantamento: somar na planilha + abrir solicitação de NF automaticamente.
     let sheetWarning: string | undefined;
     if (data.decision === "aprovado") {
       const { data: req } = await supabaseAdmin
         .from("commission_requests")
-        .select("tipo, valor_solicitado, sale_id")
+        .select("tipo, valor_solicitado, sale_id, corretor_user_id")
         .eq("id", data.id)
         .single();
       if (req?.tipo === "adiantamento" && req.sale_id) {
         const { data: sale } = await supabaseAdmin
           .from("sales")
-          .select("data, empreendimento, unidade, comprador, valor_venda")
+          .select("data, empreendimento, unidade, comprador, valor_venda, corretor")
           .eq("id", req.sale_id)
           .single();
         if (sale) {
@@ -185,6 +185,40 @@ export const decideRequest = createServerFn({ method: "POST" })
             sheetWarning = res.error;
             console.error("addAdvanceToSheet:", res.error);
           }
+        }
+
+        // Cria automaticamente solicitação de NF (se não houver ativa para a venda).
+        try {
+          const { data: active } = await supabaseAdmin
+            .from("nf_requests")
+            .select("id")
+            .eq("sale_id", req.sale_id)
+            .in("status", ["solicitada", "emitida"])
+            .maybeSingle();
+          if (!active) {
+            // Resolver corretor_user_id: usa o do pedido; senão, mapeia pelo nome.
+            let corretorUserId: string | null = req.corretor_user_id ?? null;
+            if (!corretorUserId && sale?.corretor) {
+              const { data: map } = await supabaseAdmin
+                .from("broker_mapping")
+                .select("user_id")
+                .eq("corretor_nome", sale.corretor)
+                .eq("ativo", true)
+                .maybeSingle();
+              corretorUserId = map?.user_id ?? null;
+            }
+            if (corretorUserId) {
+              await supabaseAdmin.from("nf_requests").insert({
+                sale_id: req.sale_id,
+                corretor_user_id: corretorUserId,
+                solicitado_por: context.userId,
+                status: "solicitada",
+                observacao_financeiro: "NF solicitada automaticamente após aprovação de adiantamento.",
+              });
+            }
+          }
+        } catch (e) {
+          console.error("auto-create nf_request:", e);
         }
       }
     }
