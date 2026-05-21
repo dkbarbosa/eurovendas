@@ -416,12 +416,12 @@ function ComissoesPage() {
                       <td className="p-3">
                         <div className="flex flex-col gap-1.5">
                           <Button size="sm" variant="outline" disabled={hasPending} onClick={() => openReq(s)}>
-                            {hasPending ? "Pendente" : isStaff ? "Solicitar (teste)" : "Solicitar"}
+                            {hasPending ? "Pendente" : "Solicitar pagamento"}
                           </Button>
                           {nfSolicitada && (
                             <Button size="sm" onClick={() => openNF(nfSolicitada.id)}
                               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
-                              {isStaff ? "Emitir NF (teste)" : "Emitir NF"}
+                              Emitir NF
                             </Button>
                           )}
                         </div>
