@@ -40,7 +40,7 @@ const ADMIN_NAV = [
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, isFinanceiro, isCorretor, isStaff, signOut } = useAuth();
   const loc = useLocation();
   const nav = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
