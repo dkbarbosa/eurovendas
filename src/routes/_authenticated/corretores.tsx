@@ -17,12 +17,14 @@ import { isHouse } from "@/lib/team";
 export const Route = createFileRoute("/_authenticated/corretores")({ component: Page });
 
 const TOOLTIP = {
-  background: "oklch(0.16 0.02 270)",
-  border: "1px solid oklch(1 0 0 / 10%)",
+  background: "rgba(15, 18, 32, 0.95)",
+  border: "1px solid rgba(45, 226, 201, 0.25)",
   borderRadius: 12,
   fontSize: 12,
+  boxShadow: "0 10px 40px -10px rgba(45, 226, 201, 0.35)",
 };
-const COLORS = ["oklch(0.82 0.16 185)", "oklch(0.78 0.12 82)", "oklch(0.7 0.18 30)", "oklch(0.6 0.18 300)", "oklch(0.65 0.18 140)", "oklch(0.7 0.15 250)", "oklch(0.75 0.16 50)"];
+const COLORS = ["#2DE2C9", "#D6AF55", "#4D8DFF", "#FF5C8A", "#9A7CFF", "#6EE7B7", "#F97316", "#38BDF8"];
+
 
 function Page() {
   const today = new Date();
@@ -217,16 +219,22 @@ function Page() {
               <BarChart data={top} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="corrBar" x1="0" x2="1" y1="0" y2="0">
-                    <stop offset="0%" stopColor="oklch(0.55 0.13 200)" />
-                    <stop offset="100%" stopColor="oklch(0.82 0.16 185)" />
+                    <stop offset="0%" stopColor="#15CAB6" stopOpacity={0.55} />
+                    <stop offset="50%" stopColor="#2DE2C9" />
+                    <stop offset="100%" stopColor="#6EE7B7" />
                   </linearGradient>
+                  <filter id="corrGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
                 </defs>
-                <CartesianGrid stroke="oklch(1 0 0 / 6%)" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 10, fill: "oklch(0.72 0.02 270)" }} tickFormatter={(v) => `${(v / 1e6).toFixed(1)}M`} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "oklch(0.85 0.02 270)" }} width={90} tickLine={false} axisLine={false} />
-                <Tooltip cursor={{ fill: "oklch(1 0 0 / 4%)" }} contentStyle={TOOLTIP}
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.55)" }} tickFormatter={(v) => `${(v / 1e6).toFixed(1)}M`} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.85)" }} width={90} tickLine={false} axisLine={false} />
+                <Tooltip cursor={{ fill: "rgba(45,226,201,0.06)" }} contentStyle={TOOLTIP}
                   formatter={(v: number, _n, p) => [`${fmtBRL(v)} · ${p?.payload?.n} vendas`, "VGV"]} />
-                <Bar dataKey="vgv" fill="url(#corrBar)" radius={[0, 8, 8, 0]} animationDuration={900} />
+                <Bar dataKey="vgv" fill="url(#corrBar)" radius={[0, 8, 8, 0]} animationDuration={1100} style={{ filter: "url(#corrGlow)" }} />
+
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -240,15 +248,24 @@ function Page() {
           <div className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
+                <defs>
+                  {COLORS.map((c, i) => (
+                    <radialGradient key={i} id={`pieG-${i}`} cx="50%" cy="50%" r="65%">
+                      <stop offset="0%" stopColor={c} stopOpacity={1} />
+                      <stop offset="100%" stopColor={c} stopOpacity={0.55} />
+                    </radialGradient>
+                  ))}
+                </defs>
                 <Tooltip contentStyle={TOOLTIP} formatter={(v: number) => fmtBRL(v)} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Pie data={top} dataKey="com" nameKey="name" innerRadius={55} outerRadius={100} paddingAngle={2} stroke="none" animationDuration={900}>
-                  {top.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
+                <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }} />
+                <Pie data={top} dataKey="com" nameKey="name" innerRadius={58} outerRadius={105} paddingAngle={3} stroke="rgba(15,18,32,0.6)" strokeWidth={2} animationDuration={1100}>
+                  {top.map((_, i) => (<Cell key={i} fill={`url(#pieG-${i % COLORS.length})`} />))}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
+
       </div>
 
       <motion.div
