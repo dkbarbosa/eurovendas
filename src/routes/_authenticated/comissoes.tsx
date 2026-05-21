@@ -147,15 +147,21 @@ function ComissoesPage() {
     open: false,
     sale: null,
   });
-  const [reqForm, setReqForm] = useState({
-    tipo: "adiantamento" as "adiantamento" | "comissao_final",
-    valor_sinal: "",
-    bonus_corretor: "",
-    valor_solicitado: "",
+  const [reqForm, setReqForm] = useState<{
+    tipo: "adiantamento" | "comissao_final";
+    valor_sinal: number | null;
+    bonus_corretor: number | null;
+    valor_solicitado: number | null;
+    observacao: string;
+  }>({
+    tipo: "adiantamento",
+    valor_sinal: null,
+    bonus_corretor: null,
+    valor_solicitado: null,
     observacao: "",
   });
   const openReq = (sale: (typeof sales)[number]) => {
-    setReqForm({ tipo: "adiantamento", valor_sinal: "", bonus_corretor: "", valor_solicitado: "", observacao: "" });
+    setReqForm({ tipo: "adiantamento", valor_sinal: null, bonus_corretor: null, valor_solicitado: null, observacao: "" });
     setReqDialog({ open: true, sale });
   };
   const createMut = useMutation({
@@ -164,9 +170,9 @@ function ComissoesPage() {
         data: {
           sale_id: reqDialog.sale!.id,
           tipo: reqForm.tipo,
-          valor_sinal: Number(reqForm.valor_sinal.replace(",", ".")) || 0,
-          bonus_corretor: Number(reqForm.bonus_corretor.replace(",", ".")) || 0,
-          valor_solicitado: Number(reqForm.valor_solicitado.replace(",", ".")) || 0,
+          valor_sinal: reqForm.valor_sinal ?? 0,
+          bonus_corretor: reqForm.bonus_corretor ?? 0,
+          valor_solicitado: reqForm.valor_solicitado ?? 0,
           observacao_corretor: reqForm.observacao || undefined,
           act_as_corretor: isStaff ? activeBrokerArg : undefined,
         },
