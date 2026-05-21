@@ -479,15 +479,15 @@ function ComissoesPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Valor solicitado (R$)</Label>
-                <Input inputMode="decimal" value={reqForm.valor_solicitado} onChange={(e) => setReqForm({ ...reqForm, valor_solicitado: e.target.value })} placeholder="0,00" />
+                <CurrencyInput value={reqForm.valor_solicitado} onValueChange={(v) => setReqForm({ ...reqForm, valor_solicitado: v })} />
               </div>
               <div className="space-y-1.5">
                 <Label>Sinal recebido (R$)</Label>
-                <Input inputMode="decimal" value={reqForm.valor_sinal} onChange={(e) => setReqForm({ ...reqForm, valor_sinal: e.target.value })} placeholder="0,00" />
+                <CurrencyInput value={reqForm.valor_sinal} onValueChange={(v) => setReqForm({ ...reqForm, valor_sinal: v })} />
               </div>
               <div className="space-y-1.5">
                 <Label>Bônus corretor (R$)</Label>
-                <Input inputMode="decimal" value={reqForm.bonus_corretor} onChange={(e) => setReqForm({ ...reqForm, bonus_corretor: e.target.value })} placeholder="0,00" />
+                <CurrencyInput value={reqForm.bonus_corretor} onValueChange={(v) => setReqForm({ ...reqForm, bonus_corretor: v })} />
               </div>
             </div>
             <div className="space-y-1.5">
