@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlus2, Trash2 } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlus2, Trash2, Download } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   component: FinanceiroPage,
