@@ -441,8 +441,9 @@ function ComissoesPage() {
                           {nfSolicitada && (
                             <Button size="sm" onClick={() => openNF(nfSolicitada.id)}
                               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
-                              Emitir NF
+                              Enviar NF
                             </Button>
+
                           )}
                         </div>
                       </td>
