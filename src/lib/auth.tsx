@@ -2,13 +2,19 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type Role = "admin" | "diretor" | "gerente" | "corretor";
+type Role = "admin" | "diretor" | "gerente" | "corretor" | "financeiro";
 
 interface AuthCtx {
   session: Session | null;
   user: User | null;
   roles: Role[];
   isAdmin: boolean;
+  isDiretor: boolean;
+  isFinanceiro: boolean;
+  isCorretor: boolean;
+  isGerente: boolean;
+  isStaff: boolean; // admin OR diretor OR financeiro
+  corretorNome: string | null;
   loading: boolean;
   rolesLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -21,6 +27,7 @@ const Ctx = createContext<AuthCtx | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [corretorNome, setCorretorNome] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [rolesLoading, setRolesLoading] = useState(true);
 
@@ -29,10 +36,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       if (s?.user) {
         setRolesLoading(true);
-        // defer to avoid blocking the auth callback
-        setTimeout(() => loadRoles(s.user.id), 0);
+        setTimeout(() => loadUserContext(s.user.id), 0);
       } else {
         setRoles([]);
+        setCorretorNome(null);
         setRolesLoading(false);
       }
     });
@@ -40,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       if (data.session?.user) {
         setRolesLoading(true);
-        loadRoles(data.session.user.id);
+        loadUserContext(data.session.user.id);
       } else {
         setRolesLoading(false);
       }
@@ -49,17 +56,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  async function loadRoles(userId: string) {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    setRoles((data ?? []).map((r) => r.role as Role));
+  async function loadUserContext(userId: string) {
+    const [{ data: rData }, { data: mData }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("broker_mapping").select("corretor_nome,ativo").eq("user_id", userId).maybeSingle(),
+    ]);
+    setRoles((rData ?? []).map((r) => r.role as Role));
+    setCorretorNome(mData?.ativo ? mData.corretor_nome : null);
     setRolesLoading(false);
   }
+
+  const isAdmin = roles.includes("admin");
+  const isDiretor = roles.includes("diretor");
+  const isFinanceiro = roles.includes("financeiro");
+  const isCorretor = roles.includes("corretor");
+  const isGerente = roles.includes("gerente");
 
   const value: AuthCtx = {
     session,
     user: session?.user ?? null,
     roles,
-    isAdmin: roles.includes("admin"),
+    isAdmin,
+    isDiretor,
+    isFinanceiro,
+    isCorretor,
+    isGerente,
+    isStaff: isAdmin || isDiretor || isFinanceiro,
+    corretorNome,
     loading,
     rolesLoading,
     signIn: async (email, password) => {
