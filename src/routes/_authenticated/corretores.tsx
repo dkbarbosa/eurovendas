@@ -248,15 +248,24 @@ function Page() {
           <div className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
+                <defs>
+                  {COLORS.map((c, i) => (
+                    <radialGradient key={i} id={`pieG-${i}`} cx="50%" cy="50%" r="65%">
+                      <stop offset="0%" stopColor={c} stopOpacity={1} />
+                      <stop offset="100%" stopColor={c} stopOpacity={0.55} />
+                    </radialGradient>
+                  ))}
+                </defs>
                 <Tooltip contentStyle={TOOLTIP} formatter={(v: number) => fmtBRL(v)} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Pie data={top} dataKey="com" nameKey="name" innerRadius={55} outerRadius={100} paddingAngle={2} stroke="none" animationDuration={900}>
-                  {top.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
+                <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }} />
+                <Pie data={top} dataKey="com" nameKey="name" innerRadius={58} outerRadius={105} paddingAngle={3} stroke="rgba(15,18,32,0.6)" strokeWidth={2} animationDuration={1100}>
+                  {top.map((_, i) => (<Cell key={i} fill={`url(#pieG-${i % COLORS.length})`} />))}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
+
       </div>
 
       <motion.div
