@@ -421,7 +421,17 @@ function NFTab() {
                 </td>
                 <td className="p-3">
                   {n.numero_nf ? <span className="font-mono">{n.numero_nf}</span> : <span className="text-muted-foreground">—</span>}
-                  {n.arquivo_nf_url && <a href={n.arquivo_nf_url} target="_blank" rel="noreferrer" className="block text-xs text-primary hover:underline">ver arquivo</a>}
+                  {n.arquivo_nf_url && (
+                    <a
+                      href={n.arquivo_nf_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      download
+                      className="mt-1 inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      <Download className="w-3 h-3" /> Baixar
+                    </a>
+                  )}
                 </td>
                 <td className="p-3"><NFStatusBadge status={n.status} /></td>
                 <td className="p-3 max-w-[220px]">
