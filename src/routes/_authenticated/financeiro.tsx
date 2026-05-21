@@ -351,9 +351,11 @@ function RequestNFTab() {
 // =========== NFS ===========
 function NFTab() {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const fnList = useServerFn(listAllNFs);
   const fnConfirm = useServerFn(confirmNFReceived);
   const fnCancel = useServerFn(cancelNF);
+  const fnDel = useServerFn(deleteNFRequest);
 
   const [statusFilter, setStatusFilter] = useState<"solicitada" | "emitida" | "recebida" | "cancelada" | "todos">("emitida");
   const { data = [], isLoading } = useQuery({ queryKey: ["all-nfs"], queryFn: () => fnList() });
@@ -370,6 +372,11 @@ function NFTab() {
   const cancelMut = useMutation({
     mutationFn: (v: { id: string; motivo: string }) => fnCancel({ data: v }),
     onSuccess: () => { toast.success("NF cancelada."); qc.invalidateQueries({ queryKey: ["all-nfs"] }); setCancelDlg({ open: false, id: null, motivo: "" }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const delMut = useMutation({
+    mutationFn: (id: string) => fnDel({ data: { id } }),
+    onSuccess: () => { toast.success("NF excluída."); qc.invalidateQueries({ queryKey: ["all-nfs"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
