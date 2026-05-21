@@ -14,8 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle } from "lucide-react";
+import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from "recharts";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export const Route = createFileRoute("/_authenticated/comissoes")({
   component: ComissoesPage,
@@ -249,27 +250,8 @@ function ComissoesPage() {
 
       {displayName && (
         <>
-          {/* Banner de pedidos negados — corretor enxerga o motivo */}
-          {deniedAlerts.length > 0 && (
-            <div className="glass-card p-4 border border-destructive/40 bg-destructive/5 space-y-2">
-              <div className="flex items-center gap-2 text-destructive font-medium">
-                <AlertTriangle className="w-4 h-4" />
-                Você tem {deniedAlerts.length} {deniedAlerts.length === 1 ? "solicitação negada" : "solicitações negadas"}
-              </div>
-              <ul className="text-sm space-y-1.5">
-                {deniedAlerts.map((r) => (
-                  <li key={r.id} className="text-foreground/90">
-                    <span className="text-muted-foreground">
-                      {r.tipo === "adiantamento" ? "Adiantamento" : "Comissão"} de {BRL(r.valor_solicitado)} ·
-                    </span>{" "}
-                    <span className="text-destructive">Motivo: {r.motivo_negacao}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           {/* Filtros */}
+
           <div className="glass-card p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
               <div className="space-y-1.5">
@@ -397,6 +379,27 @@ function ComissoesPage() {
                           {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1">
                               <RequestPill r={r} />
+                              {r.status === "negado" && r.motivo_negacao && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      title="Ver motivo da negação"
+                                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                                    >
+                                      <MessageSquareWarning className="w-3 h-3" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="start" className="w-72 p-3 space-y-2">
+                                    <div className="flex items-center gap-1.5 text-destructive text-xs font-semibold uppercase tracking-wide">
+                                      <AlertTriangle className="w-3.5 h-3.5" />
+                                      Motivo da negação
+                                    </div>
+                                    <p className="text-sm text-foreground/90 whitespace-pre-wrap break-words">
+                                      {r.motivo_negacao}
+                                    </p>
+                                  </PopoverContent>
+                                </Popover>
+                              )}
                               {isAdmin && (
                                 <button title="Excluir (admin)" onClick={() => {
                                   if (confirm("Excluir esta solicitação?")) delReqMut.mutate(r.id);
@@ -421,12 +424,6 @@ function ComissoesPage() {
                           {reqs.length === 0 && sNfs.length === 0 && (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
-                          {/* Motivo de negação inline (visível para o corretor) */}
-                          {reqs.filter((r) => r.status === "negado" && r.motivo_negacao).map((r) => (
-                            <div key={`m-${r.id}`} className="text-[11px] text-destructive mt-0.5">
-                              <b>Motivo:</b> {r.motivo_negacao}
-                            </div>
-                          ))}
                         </div>
                       </td>
                       <td className="p-3">
