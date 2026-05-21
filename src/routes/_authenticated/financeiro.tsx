@@ -109,6 +109,12 @@ function AdvancesTab() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const delMut = useMutation({
+    mutationFn: (id: string) => fnDel({ data: { id } }),
+    onSuccess: () => { toast.success("Excluído."); qc.invalidateQueries({ queryKey: ["all-requests"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   return (
     <>
