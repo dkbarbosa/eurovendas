@@ -18,7 +18,7 @@ async function assertFinanceiro(userId: string) {
     throw new Error("Acesso negado: apenas Financeiro.");
 }
 
-// ---------- CRIAR PEDIDO (corretor) ----------
+// ---------- CRIAR PEDIDO (corretor — admin pode agir em nome para testes) ----------
 const CreateRequestSchema = z.object({
   sale_id: z.string().uuid(),
   tipo: z.enum(["adiantamento", "comissao_final"]),
@@ -26,34 +26,55 @@ const CreateRequestSchema = z.object({
   bonus_corretor: z.number().min(0).max(10_000_000),
   valor_solicitado: z.number().min(0.01).max(10_000_000),
   observacao_corretor: z.string().trim().max(2000).optional(),
+  act_as_corretor: z.string().trim().max(255).optional(),
 });
 
 export const createCommissionRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CreateRequestSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const nome = await getCorretorNome(context.userId);
-    if (!nome) throw new Error("Seu usuário não está vinculado a um corretor. Fale com o administrador.");
+    const roles = await getRoles(context.userId);
+    const isAdmin = roles.includes("admin");
 
-    // Confirma que a venda pertence ao corretor
+    let actorUserId = context.userId;
+    let nome: string | null = null;
+
+    if (isAdmin && data.act_as_corretor) {
+      const { data: map } = await supabaseAdmin
+        .from("broker_mapping")
+        .select("user_id,corretor_nome")
+        .eq("corretor_nome", data.act_as_corretor)
+        .eq("ativo", true)
+        .maybeSingle();
+      if (!map) throw new Error(`Corretor "${data.act_as_corretor}" não está vinculado a um usuário.`);
+      actorUserId = map.user_id;
+      nome = map.corretor_nome;
+    } else {
+      nome = await getCorretorNome(context.userId);
+      if (!nome) throw new Error("Seu usuário não está vinculado a um corretor. Fale com o administrador.");
+    }
+
     const { data: sale } = await supabaseAdmin
-      .from("sales").select("id,corretor,comissao_liq_corretor").eq("id", data.sale_id).maybeSingle();
+      .from("sales").select("id,corretor").eq("id", data.sale_id).maybeSingle();
     if (!sale) throw new Error("Venda não encontrada.");
-    if (sale.corretor !== nome) throw new Error("Esta venda não está vinculada ao seu cadastro.");
+    if (sale.corretor !== nome) throw new Error("Esta venda não está vinculada ao corretor.");
 
-    // Já existe pendente?
     const { data: pend } = await supabaseAdmin
       .from("commission_requests").select("id").eq("sale_id", data.sale_id).eq("status", "pendente").maybeSingle();
     if (pend) throw new Error("Já existe um pedido pendente para esta venda.");
 
+    const obs = isAdmin && data.act_as_corretor
+      ? `[TESTE — admin] ${data.observacao_corretor ?? ""}`.trim()
+      : data.observacao_corretor ?? null;
+
     const { error } = await supabaseAdmin.from("commission_requests").insert({
-      corretor_user_id: context.userId,
+      corretor_user_id: actorUserId,
       sale_id: data.sale_id,
       tipo: data.tipo,
       valor_sinal: data.valor_sinal,
       bonus_corretor: data.bonus_corretor,
       valor_solicitado: data.valor_solicitado,
-      observacao_corretor: data.observacao_corretor ?? null,
+      observacao_corretor: obs,
       status: "pendente",
     });
     if (error) throw new Error(error.message);
