@@ -178,6 +178,12 @@ function Dashboard() {
     let cur = 0, prev = 0;
     for (const s of allSales) {
       if (!s.data) continue;
+      if (activeStatuses.length > 0 && !activeStatuses.includes(s.status ?? "")) continue;
+      if (teamFilter !== "all") {
+        const house = isHouse(s.corretor);
+        if (teamFilter === "house" && !house) continue;
+        if (teamFilter === "imob" && house) continue;
+      }
       const d = new Date(s.data);
       const v = s.valor_venda ?? 0;
       if (d >= curStart && d < curEnd) cur += v;
@@ -185,7 +191,7 @@ function Dashboard() {
     }
     const g = prev > 0 ? (cur - prev) / prev : cur > 0 ? 1 : 0;
     return { g, label, cur, prev };
-  }, [allSales, growthPeriod, year, month]);
+  }, [allSales, growthPeriod, year, month, teamFilter, activeStatuses]);
 
   // ── Métricas ──────────────────────────────────────────────
   const m = useMemo(() => {
