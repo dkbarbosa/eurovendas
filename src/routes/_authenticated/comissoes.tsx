@@ -188,28 +188,52 @@ function ComissoesPage() {
 
   // ---- Diálogo NF
   const [nfDialog, setNfDialog] = useState<{ open: boolean; nfId: string | null }>({ open: false, nfId: null });
-  const [nfForm, setNfForm] = useState({ numero_nf: "", arquivo_url: "", observacao: "" });
+  const [nfForm, setNfForm] = useState({ numero_nf: "", observacao: "" });
+  const [nfFile, setNfFile] = useState<File | null>(null);
+  const [uploadingNF, setUploadingNF] = useState(false);
   const openNF = (nfId: string) => {
-    setNfForm({ numero_nf: "", arquivo_url: "", observacao: "" });
+    setNfForm({ numero_nf: "", observacao: "" });
+    setNfFile(null);
     setNfDialog({ open: true, nfId });
   };
   const emitMut = useMutation({
-    mutationFn: () =>
-      fnEmit({
-        data: {
-          id: nfDialog.nfId!,
-          numero_nf: nfForm.numero_nf.trim(),
-          arquivo_url: nfForm.arquivo_url.trim() || undefined,
-          observacao: nfForm.observacao || undefined,
-        },
-      }),
+    mutationFn: async () => {
+      if (!nfFile) throw new Error("Anexe o arquivo da NF (PDF ou XML).");
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) throw new Error("Sessão expirada.");
+      setUploadingNF(true);
+      try {
+        const ext = nfFile.name.split(".").pop() || "bin";
+        const path = `${uid}/${nfDialog.nfId}-${Date.now()}.${ext}`;
+        const up = await supabase.storage.from("nf-files").upload(path, nfFile, {
+          contentType: nfFile.type || "application/octet-stream",
+          upsert: false,
+        });
+        if (up.error) throw new Error(up.error.message);
+        const signed = await supabase.storage.from("nf-files").createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (signed.error || !signed.data?.signedUrl) throw new Error(signed.error?.message || "Falha ao gerar URL.");
+        return fnEmit({
+          data: {
+            id: nfDialog.nfId!,
+            numero_nf: nfForm.numero_nf.trim(),
+            arquivo_url: signed.data.signedUrl,
+            observacao: nfForm.observacao || undefined,
+          },
+        });
+      } finally {
+        setUploadingNF(false);
+      }
+    },
     onSuccess: () => {
-      toast.success("NF marcada como emitida.");
+      toast.success("NF enviada com sucesso.");
       setNfDialog({ open: false, nfId: null });
       qc.invalidateQueries({ queryKey: ["my-broker-sales"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const delReqMut = useMutation({
     mutationFn: (id: string) => fnDelReq({ data: { id } }),
@@ -441,8 +465,9 @@ function ComissoesPage() {
                           {nfSolicitada && (
                             <Button size="sm" onClick={() => openNF(nfSolicitada.id)}
                               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
-                              Emitir NF
+                              Enviar NF
                             </Button>
+
                           )}
                         </div>
                       </td>
@@ -506,12 +531,12 @@ function ComissoesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* DIALOG: Emitir NF */}
+      {/* DIALOG: Enviar NF */}
       <Dialog open={nfDialog.open} onOpenChange={(o) => setNfDialog({ open: o, nfId: o ? nfDialog.nfId : null })}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Emitir Nota Fiscal</DialogTitle>
-            <DialogDescription>Informe o número da NF emitida.</DialogDescription>
+            <DialogTitle>Enviar Nota Fiscal</DialogTitle>
+            <DialogDescription>Informe o número da NF, anexe o arquivo (PDF/XML) e adicione observações se necessário.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -519,23 +544,42 @@ function ComissoesPage() {
               <Input value={nfForm.numero_nf} onChange={(e) => setNfForm({ ...nfForm, numero_nf: e.target.value })} maxLength={80} />
             </div>
             <div className="space-y-1.5">
-              <Label>URL do arquivo (opcional)</Label>
-              <Input value={nfForm.arquivo_url} onChange={(e) => setNfForm({ ...nfForm, arquivo_url: e.target.value })} placeholder="https://…" />
+              <Label>Anexo da NF *</Label>
+              <Input
+                type="file"
+                accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
+                onChange={(e) => setNfFile(e.target.files?.[0] ?? null)}
+              />
+              {nfFile && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {nfFile.name} · {(nfFile.size / 1024).toFixed(0)} KB
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Observações</Label>
-              <Textarea value={nfForm.observacao} onChange={(e) => setNfForm({ ...nfForm, observacao: e.target.value })} rows={3} maxLength={2000} />
+              <Textarea
+                value={nfForm.observacao}
+                onChange={(e) => setNfForm({ ...nfForm, observacao: e.target.value })}
+                rows={3}
+                maxLength={2000}
+                placeholder="Opcional — informações adicionais para o financeiro"
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setNfDialog({ open: false, nfId: null })}>Cancelar</Button>
-            <Button disabled={emitMut.isPending || !nfForm.numero_nf.trim()} onClick={() => emitMut.mutate()}
-              style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
-              {emitMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar emissão"}
+            <Button
+              disabled={emitMut.isPending || uploadingNF || !nfForm.numero_nf.trim() || !nfFile}
+              onClick={() => emitMut.mutate()}
+              style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+            >
+              {emitMut.isPending || uploadingNF ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar NF"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
