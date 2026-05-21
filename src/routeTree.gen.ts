@@ -17,6 +17,7 @@ import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedGerentesRouteImport } from './routes/_authenticated/gerentes'
 import { Route as AuthenticatedEmpreendimentosRouteImport } from './routes/_authenticated/empreendimentos'
 import { Route as AuthenticatedCorretoresRouteImport } from './routes/_authenticated/corretores'
+import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
@@ -62,6 +63,11 @@ const AuthenticatedCorretoresRoute = AuthenticatedCorretoresRouteImport.update({
   path: '/corretores',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedComissoesRoute = AuthenticatedComissoesRouteImport.update({
+  id: '/comissoes',
+  path: '/comissoes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
   id: '/aprovacoes',
   path: '/aprovacoes',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/comissoes': typeof AuthenticatedComissoesRoute
   '/corretores': typeof AuthenticatedCorretoresRoute
   '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/gerentes': typeof AuthenticatedGerentesRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/comissoes': typeof AuthenticatedComissoesRoute
   '/corretores': typeof AuthenticatedCorretoresRoute
   '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/gerentes': typeof AuthenticatedGerentesRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/corretores': typeof AuthenticatedCorretoresRoute
   '/_authenticated/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/_authenticated/gerentes': typeof AuthenticatedGerentesRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/agendamentos'
     | '/aprovacoes'
+    | '/comissoes'
     | '/corretores'
     | '/empreendimentos'
     | '/gerentes'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/agendamentos'
     | '/aprovacoes'
+    | '/comissoes'
     | '/corretores'
     | '/empreendimentos'
     | '/gerentes'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/agendamentos'
     | '/_authenticated/aprovacoes'
+    | '/_authenticated/comissoes'
     | '/_authenticated/corretores'
     | '/_authenticated/empreendimentos'
     | '/_authenticated/gerentes'
@@ -233,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCorretoresRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/comissoes': {
+      id: '/_authenticated/comissoes'
+      path: '/comissoes'
+      fullPath: '/comissoes'
+      preLoaderRoute: typeof AuthenticatedComissoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/aprovacoes': {
       id: '/_authenticated/aprovacoes'
       path: '/aprovacoes'
@@ -267,6 +286,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
+  AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedCorretoresRoute: typeof AuthenticatedCorretoresRoute
   AuthenticatedEmpreendimentosRoute: typeof AuthenticatedEmpreendimentosRoute
   AuthenticatedGerentesRoute: typeof AuthenticatedGerentesRoute
@@ -280,6 +300,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAgendamentosRoute: AuthenticatedAgendamentosRoute,
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
+  AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedCorretoresRoute: AuthenticatedCorretoresRoute,
   AuthenticatedEmpreendimentosRoute: AuthenticatedEmpreendimentosRoute,
   AuthenticatedGerentesRoute: AuthenticatedGerentesRoute,
@@ -301,3 +322,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
