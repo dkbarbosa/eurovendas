@@ -192,6 +192,12 @@ function AdvancesTab() {
                       <Wallet className="w-3.5 h-3.5 mr-1" />Marcar pago
                     </Button>
                   )}
+                  {isAdmin && (
+                    <Button size="sm" variant="ghost" className="text-destructive ml-1"
+                      onClick={() => { if (confirm("Excluir esta solicitação? (admin)")) delMut.mutate(r.id); }}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}
