@@ -424,12 +424,6 @@ function ComissoesPage() {
                           {reqs.length === 0 && sNfs.length === 0 && (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
-                          {/* Motivo de negação inline (visível para o corretor) */}
-                          {reqs.filter((r) => r.status === "negado" && r.motivo_negacao).map((r) => (
-                            <div key={`m-${r.id}`} className="text-[11px] text-destructive mt-0.5">
-                              <b>Motivo:</b> {r.motivo_negacao}
-                            </div>
-                          ))}
                         </div>
                       </td>
                       <td className="p-3">
