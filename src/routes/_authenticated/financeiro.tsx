@@ -442,6 +442,12 @@ function NFTab() {
                         Cancelar
                       </Button>
                     )}
+                    {isAdmin && (
+                      <Button size="sm" variant="ghost" className="text-destructive"
+                        onClick={() => { if (confirm("Excluir esta NF? (admin)")) delMut.mutate(n.id); }}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </td>
               </tr>
