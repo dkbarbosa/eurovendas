@@ -15,6 +15,8 @@ import {
   ClipboardCheck,
   CalendarDays,
   Menu,
+  Wallet,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
