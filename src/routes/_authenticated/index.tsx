@@ -225,19 +225,24 @@ function Dashboard() {
 
   // Meta: soma RESERVADO + VENDIDO, subtrai DISTRATO/CANCELADO
   const metaVgv = 5_000_000;
-  const metaRealizado = useMemo(() => {
-    let total = 0;
+  const metaBreakdown = useMemo(() => {
+    let reservado = 0, vendido = 0, distrato = 0, nRes = 0, nVen = 0, nDis = 0;
     for (const s of sales) {
       const st = (s.status ?? "").toUpperCase();
       const v = s.valor_venda ?? 0;
-      if (st === "RESERVADO" || st === "VENDIDO") total += v;
-      else if (st === "DISTRATO" || st === "CANCELADO") total -= v;
+      if (st === "RESERVADO") { reservado += v; nRes++; }
+      else if (st === "VENDIDO") { vendido += v; nVen++; }
+      else if (st === "DISTRATO" || st === "CANCELADO") { distrato += v; nDis++; }
     }
-    return total;
+    return { reservado, vendido, distrato, nRes, nVen, nDis, total: reservado + vendido - distrato };
   }, [sales]);
+  const metaRealizado = metaBreakdown.total;
+  const metaFalta = Math.max(0, metaVgv - metaRealizado);
   const realPct = Math.min(1.5, metaRealizado / metaVgv);
   const metaDelta = metaRealizado / metaVgv - 1;
   const metaOnTrack = realPct >= 1;
+
+
 
   const corretorRanking = Object.entries(m.byCorretor)
     .map(([name, v]) => ({ name, vgv: v.vgv, count: v.count, com: v.com }))
