@@ -61,9 +61,11 @@ function FinanceiroPage() {
 // =========== ADIANTAMENTOS ===========
 function AdvancesTab() {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const fnList = useServerFn(listAllRequests);
   const fnDecide = useServerFn(decideRequest);
   const fnPaid = useServerFn(markRequestPaid);
+  const fnDel = useServerFn(deleteCommissionRequest);
 
   const [statusFilter, setStatusFilter] = useState<"pendente" | "aprovado" | "negado" | "pago" | "todos">("pendente");
   const [search, setSearch] = useState("");
