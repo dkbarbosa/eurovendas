@@ -250,27 +250,8 @@ function ComissoesPage() {
 
       {displayName && (
         <>
-          {/* Banner de pedidos negados — corretor enxerga o motivo */}
-          {deniedAlerts.length > 0 && (
-            <div className="glass-card p-4 border border-destructive/40 bg-destructive/5 space-y-2">
-              <div className="flex items-center gap-2 text-destructive font-medium">
-                <AlertTriangle className="w-4 h-4" />
-                Você tem {deniedAlerts.length} {deniedAlerts.length === 1 ? "solicitação negada" : "solicitações negadas"}
-              </div>
-              <ul className="text-sm space-y-1.5">
-                {deniedAlerts.map((r) => (
-                  <li key={r.id} className="text-foreground/90">
-                    <span className="text-muted-foreground">
-                      {r.tipo === "adiantamento" ? "Adiantamento" : "Comissão"} de {BRL(r.valor_solicitado)} ·
-                    </span>{" "}
-                    <span className="text-destructive">Motivo: {r.motivo_negacao}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           {/* Filtros */}
+
           <div className="glass-card p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
               <div className="space-y-1.5">
