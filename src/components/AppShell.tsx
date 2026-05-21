@@ -72,17 +72,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-        <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 mb-2">
-          Análise
-        </div>
-        {NAV.map((item) => (
-          <NavLink
-            key={item.to}
-            {...item}
-            active={loc.pathname === item.to}
-            onNavigate={() => setMobileOpen(false)}
-          />
-        ))}
+        {isStaff && (
+          <>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 mb-2">
+              Análise
+            </div>
+            {NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                {...item}
+                active={loc.pathname === item.to}
+                onNavigate={() => setMobileOpen(false)}
+              />
+            ))}
+          </>
+        )}
+
+        {(isCorretor || isStaff) && (
+          <>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 mt-6 mb-2">
+              Meu Painel
+            </div>
+            <NavLink to="/comissoes" label="Comissões" icon={Wallet}
+              active={loc.pathname === "/comissoes"} onNavigate={() => setMobileOpen(false)} />
+          </>
+        )}
+
+        {(isFinanceiro || isAdmin) && (
+          <>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 mt-6 mb-2">
+              Financeiro
+            </div>
+            <NavLink to="/financeiro" label="Painel Financeiro" icon={Receipt}
+              active={loc.pathname === "/financeiro"} onNavigate={() => setMobileOpen(false)} />
+          </>
+        )}
+
         {isAdmin && (
           <>
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 mt-6 mb-2">
