@@ -531,12 +531,12 @@ function ComissoesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* DIALOG: Emitir NF */}
+      {/* DIALOG: Enviar NF */}
       <Dialog open={nfDialog.open} onOpenChange={(o) => setNfDialog({ open: o, nfId: o ? nfDialog.nfId : null })}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Emitir Nota Fiscal</DialogTitle>
-            <DialogDescription>Informe o número da NF emitida.</DialogDescription>
+            <DialogTitle>Enviar Nota Fiscal</DialogTitle>
+            <DialogDescription>Informe o número da NF, anexe o arquivo (PDF/XML) e adicione observações se necessário.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -544,23 +544,42 @@ function ComissoesPage() {
               <Input value={nfForm.numero_nf} onChange={(e) => setNfForm({ ...nfForm, numero_nf: e.target.value })} maxLength={80} />
             </div>
             <div className="space-y-1.5">
-              <Label>URL do arquivo (opcional)</Label>
-              <Input value={nfForm.arquivo_url} onChange={(e) => setNfForm({ ...nfForm, arquivo_url: e.target.value })} placeholder="https://…" />
+              <Label>Anexo da NF *</Label>
+              <Input
+                type="file"
+                accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
+                onChange={(e) => setNfFile(e.target.files?.[0] ?? null)}
+              />
+              {nfFile && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {nfFile.name} · {(nfFile.size / 1024).toFixed(0)} KB
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Observações</Label>
-              <Textarea value={nfForm.observacao} onChange={(e) => setNfForm({ ...nfForm, observacao: e.target.value })} rows={3} maxLength={2000} />
+              <Textarea
+                value={nfForm.observacao}
+                onChange={(e) => setNfForm({ ...nfForm, observacao: e.target.value })}
+                rows={3}
+                maxLength={2000}
+                placeholder="Opcional — informações adicionais para o financeiro"
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setNfDialog({ open: false, nfId: null })}>Cancelar</Button>
-            <Button disabled={emitMut.isPending || !nfForm.numero_nf.trim()} onClick={() => emitMut.mutate()}
-              style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
-              {emitMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar emissão"}
+            <Button
+              disabled={emitMut.isPending || uploadingNF || !nfForm.numero_nf.trim() || !nfFile}
+              onClick={() => emitMut.mutate()}
+              style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+            >
+              {emitMut.isPending || uploadingNF ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar NF"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
