@@ -219,16 +219,22 @@ function Page() {
               <BarChart data={top} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="corrBar" x1="0" x2="1" y1="0" y2="0">
-                    <stop offset="0%" stopColor="oklch(0.55 0.13 200)" />
-                    <stop offset="100%" stopColor="oklch(0.82 0.16 185)" />
+                    <stop offset="0%" stopColor="#15CAB6" stopOpacity={0.55} />
+                    <stop offset="50%" stopColor="#2DE2C9" />
+                    <stop offset="100%" stopColor="#6EE7B7" />
                   </linearGradient>
+                  <filter id="corrGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
                 </defs>
-                <CartesianGrid stroke="oklch(1 0 0 / 6%)" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 10, fill: "oklch(0.72 0.02 270)" }} tickFormatter={(v) => `${(v / 1e6).toFixed(1)}M`} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "oklch(0.85 0.02 270)" }} width={90} tickLine={false} axisLine={false} />
-                <Tooltip cursor={{ fill: "oklch(1 0 0 / 4%)" }} contentStyle={TOOLTIP}
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.55)" }} tickFormatter={(v) => `${(v / 1e6).toFixed(1)}M`} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.85)" }} width={90} tickLine={false} axisLine={false} />
+                <Tooltip cursor={{ fill: "rgba(45,226,201,0.06)" }} contentStyle={TOOLTIP}
                   formatter={(v: number, _n, p) => [`${fmtBRL(v)} · ${p?.payload?.n} vendas`, "VGV"]} />
-                <Bar dataKey="vgv" fill="url(#corrBar)" radius={[0, 8, 8, 0]} animationDuration={900} />
+                <Bar dataKey="vgv" fill="url(#corrBar)" radius={[0, 8, 8, 0]} animationDuration={1100} style={{ filter: "url(#corrGlow)" }} />
+
               </BarChart>
             </ResponsiveContainer>
           </div>
