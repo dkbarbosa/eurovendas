@@ -93,16 +93,50 @@ function ComissoesPage() {
     });
   }, [allSales, dateFrom, dateTo, clientSearch]);
 
+  // Mapa de adiantamentos/pagamentos por venda
+  const paidBySale = useMemo(() => {
+    const m = new Map<
+      string,
+      {
+        adiantado: number;
+        finalPago: number;
+        items: Array<{ id: string; tipo: string; valor: number; data: string | null }>;
+      }
+    >();
+    for (const r of requests) {
+      if (r.status !== "pago") continue;
+      const cur = m.get(r.sale_id) ?? { adiantado: 0, finalPago: 0, items: [] };
+      const v = Number(r.valor_solicitado) || 0;
+      if (r.tipo === "adiantamento") cur.adiantado += v;
+      else if (r.tipo === "comissao_final") cur.finalPago += v;
+      cur.items.push({
+        id: r.id,
+        tipo: r.tipo,
+        valor: v,
+        data: (r.paid_at ?? r.decided_at ?? r.created_at) as string | null,
+      });
+      m.set(r.sale_id, cur);
+    }
+    return m;
+  }, [requests]);
+
   const kpis = useMemo(() => {
-    const total = sales.reduce((s, x) => s + (Number(x.comissao_liq_corretor) || 0), 0);
-    const pagas = sales.filter((s) => (s.status ?? "").toLowerCase().includes("pag")).reduce(
-      (s, x) => s + (Number(x.comissao_liq_corretor) || 0),
-      0,
-    );
-    const aReceber = total - pagas;
+    let total = 0;
+    let adiantado = 0;
+    let finalPago = 0;
+    for (const s of sales) {
+      total += Number(s.comissao_liq_corretor) || 0;
+      const p = paidBySale.get(s.id);
+      if (p) {
+        adiantado += p.adiantado;
+        finalPago += p.finalPago;
+      }
+    }
+    const pagas = adiantado + finalPago;
+    const aReceber = Math.max(0, total - pagas);
     const pendReq = requests.filter((r) => r.status === "pendente").length;
-    return { total, pagas, aReceber, pendReq, count: sales.length };
-  }, [sales, requests]);
+    return { total, pagas, aReceber, adiantado, finalPago, pendReq, count: sales.length };
+  }, [sales, requests, paidBySale]);
 
   const monthly = useMemo(() => {
     const map = new Map<string, { mes: string; vendas: number; comissao: number }>();
@@ -126,6 +160,7 @@ function ComissoesPage() {
     }
     return m;
   }, [requests]);
+
 
   const nfsBySale = useMemo(() => {
     const m = new Map<string, typeof nfs>();
