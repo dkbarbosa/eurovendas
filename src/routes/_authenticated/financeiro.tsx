@@ -305,7 +305,7 @@ function RequestNFTab() {
             )}
             {filtered.map((s) => (
               <tr key={s.id} className="border-t border-border">
-                <td className="p-3 whitespace-nowrap">{s.data ?? "—"}</td>
+                <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
                 <td className="p-3 font-medium">{s.comprador ?? "—"}</td>
                 <td className="p-3 text-muted-foreground">{s.empreendimento} / {s.unidade}</td>
                 <td className="p-3">
