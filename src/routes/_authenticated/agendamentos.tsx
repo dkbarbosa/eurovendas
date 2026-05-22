@@ -293,7 +293,7 @@ function AgendamentosPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                  <Tooltip cursor={{ fill: "oklch(1 0 0 / 6%)" }} contentStyle={{ background: "oklch(0.16 0.02 270)", border: "1px solid oklch(1 0 0 / 15%)", borderRadius: 10, color: "oklch(0.98 0.005 250)", fontSize: 12, fontWeight: 600, boxShadow: "0 12px 30px -10px oklch(0 0 0 / 0.6)" }} itemStyle={{ color: "oklch(0.98 0.005 250)" }} labelStyle={{ color: "oklch(0.85 0.02 270)", fontWeight: 700 }} />
                   <Line type="monotone" dataKey="total" stroke="#2DE2C9" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
@@ -305,7 +305,7 @@ function AgendamentosPage() {
                   <Pie data={origemPie} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3}>
                     {origemPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                  <Tooltip cursor={{ fill: "oklch(1 0 0 / 6%)" }} contentStyle={{ background: "oklch(0.16 0.02 270)", border: "1px solid oklch(1 0 0 / 15%)", borderRadius: 10, color: "oklch(0.98 0.005 250)", fontSize: 12, fontWeight: 600, boxShadow: "0 12px 30px -10px oklch(0 0 0 / 0.6)" }} itemStyle={{ color: "oklch(0.98 0.005 250)" }} labelStyle={{ color: "oklch(0.85 0.02 270)", fontWeight: 700 }} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -319,7 +319,7 @@ function AgendamentosPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={130} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                  <Tooltip cursor={{ fill: "oklch(1 0 0 / 6%)" }} contentStyle={{ background: "oklch(0.16 0.02 270)", border: "1px solid oklch(1 0 0 / 15%)", borderRadius: 10, color: "oklch(0.98 0.005 250)", fontSize: 12, fontWeight: 600, boxShadow: "0 12px 30px -10px oklch(0 0 0 / 0.6)" }} itemStyle={{ color: "oklch(0.98 0.005 250)" }} labelStyle={{ color: "oklch(0.85 0.02 270)", fontWeight: 700 }} />
                   <Bar dataKey="total" radius={[0, 6, 6, 0]}>
                     {porCorretor.map((d, i) => (
                       <Cell key={i} fill={d.origin === "house" ? "#2DE2C9" : d.origin === "parceiro" ? "#D6AF55" : "#9A7CFF"} />
@@ -336,7 +336,7 @@ function AgendamentosPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="dia" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                    <Tooltip cursor={{ fill: "oklch(1 0 0 / 6%)" }} contentStyle={{ background: "oklch(0.16 0.02 270)", border: "1px solid oklch(1 0 0 / 15%)", borderRadius: 10, color: "oklch(0.98 0.005 250)", fontSize: 12, fontWeight: 600, boxShadow: "0 12px 30px -10px oklch(0 0 0 / 0.6)" }} itemStyle={{ color: "oklch(0.98 0.005 250)" }} labelStyle={{ color: "oklch(0.85 0.02 270)", fontWeight: 700 }} />
                     <Bar dataKey="total" fill="#4D8DFF" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -347,7 +347,7 @@ function AgendamentosPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="hora" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                    <Tooltip cursor={{ fill: "oklch(1 0 0 / 6%)" }} contentStyle={{ background: "oklch(0.16 0.02 270)", border: "1px solid oklch(1 0 0 / 15%)", borderRadius: 10, color: "oklch(0.98 0.005 250)", fontSize: 12, fontWeight: 600, boxShadow: "0 12px 30px -10px oklch(0 0 0 / 0.6)" }} itemStyle={{ color: "oklch(0.98 0.005 250)" }} labelStyle={{ color: "oklch(0.85 0.02 270)", fontWeight: 700 }} />
                     <Bar dataKey="total" fill="#D6AF55" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
