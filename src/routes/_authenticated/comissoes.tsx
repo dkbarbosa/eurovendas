@@ -460,7 +460,7 @@ function ComissoesPage() {
                   const reqs = requestsBySale.get(s.id) ?? [];
                   const sNfs = nfsBySale.get(s.id) ?? [];
                   const hasPending = reqs.some((r) => r.status === "pendente");
-                  const nfSolicitada = sNfs.find((n) => n.status === "solicitada");
+                  const nfAberta = sNfs.find((n) => n.status === "solicitada" || n.status === "emitida");
                   const paid = paidBySale.get(s.id);
                   const comissaoLiq = Number(s.comissao_liq_corretor) || 0;
                   const adiantadoSale = paid?.adiantado ?? 0;
