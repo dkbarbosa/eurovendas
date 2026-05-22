@@ -83,6 +83,17 @@ function ComissoesPage() {
   const nfs = data?.nfs ?? [];
   const displayName = data?.corretorNome ?? null;
 
+  // Vendas com solicitação ativa (pendente ou aprovada) — sempre visíveis
+  // mesmo fora do período. Só somem quando a solicitação for negada ou
+  // quando todos os pagamentos forem concluídos.
+  const salesWithOpenRequest = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of requests) {
+      if (r.status === "pendente" || r.status === "aprovado") ids.add(r.sale_id);
+    }
+    return ids;
+  }, [requests]);
+
   // aplica filtros (período + cliente)
   const sales = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
@@ -90,13 +101,17 @@ function ComissoesPage() {
     return allSales.filter((s) => {
       if (seen.has(s.id)) return false;
       seen.add(s.id);
+      const hasOpen = salesWithOpenRequest.has(s.id);
       const d = (s.data ?? "").slice(0, 10);
-      if (dateFrom && d && d < dateFrom) return false;
-      if (dateTo && d && d > dateTo) return false;
+      // Período só filtra quando não há pedido em aberto.
+      if (!hasOpen) {
+        if (dateFrom && d && d < dateFrom) return false;
+        if (dateTo && d && d > dateTo) return false;
+      }
       if (q && !(s.comprador ?? "").toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [allSales, dateFrom, dateTo, clientSearch]);
+  }, [allSales, dateFrom, dateTo, clientSearch, salesWithOpenRequest]);
 
   // Mapa de adiantamentos/pagamentos por venda
   const paidBySale = useMemo(() => {
