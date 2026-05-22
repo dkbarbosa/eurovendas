@@ -112,7 +112,7 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
       corretor_user_id: actorUserId,
       sale_id: data.sale_id,
       tipo: data.tipo,
-      valor_sinal: data.valor_sinal,
+      valor_sinal: sinal,
       bonus_corretor: data.bonus_corretor,
       valor_solicitado: data.valor_solicitado,
       observacao_corretor: obs,
