@@ -487,6 +487,13 @@ function AdvancesTab() {
                             <div className={`font-semibold ${aReceber > 0 ? "text-primary" : "text-muted-foreground"}`}>{BRL(aReceber)}</div>
                           )}
                         </div>
+                        {(adiantadoTot + finalPago) > 0 && (
+                          <DistratoButton
+                            saleId={head.sale_id ?? ""}
+                            comprador={head.sale?.comprador}
+                            totalPago={adiantadoTot + finalPago}
+                          />
+                        )}
                       </div>
                     </div>
 
