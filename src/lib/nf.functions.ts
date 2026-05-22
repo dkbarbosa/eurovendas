@@ -66,10 +66,10 @@ export const listEligibleSalesForNF = createServerFn({ method: "GET" })
       (nfs ?? []).filter((n) => n.status === "solicitada" || n.status === "emitida" || n.status === "recebida").map((n) => n.sale_id),
     );
     const { data: maps } = await supabaseAdmin.from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
-    const corretorToUser = new Map((maps ?? []).map((m) => [m.corretor_nome, m.user_id]));
+    const mapList = (maps ?? []) as { user_id: string; corretor_nome: string }[];
     return (sales ?? [])
       .filter((s) => !activeSaleIds.has(s.id))
-      .map((s) => ({ ...s, mapped_user_id: s.corretor ? corretorToUser.get(s.corretor) ?? null : null }));
+      .map((s) => ({ ...s, mapped_user_id: resolveBrokerUserId(s.corretor, mapList) }));
   });
 
 // ---------- SOLICITAR NF (financeiro) ----------
