@@ -123,27 +123,33 @@ export const listAllRequests = createServerFn({ method: "POST" })
     const [{ data: sales }, { data: profs }, { data: paidReqs }] = await Promise.all([
       supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,comissao_liq_corretor,status").in("id", safeIds),
       supabaseAdmin.from("profiles").select("id,display_name,email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
-      // Todos pedidos PAGOS dessas vendas, para calcular adiantado/saldo independente do filtro.
+      // Todos pedidos PAGOS dessas vendas, para calcular adiantado/saldo + histórico.
       supabaseAdmin
         .from("commission_requests")
-        .select("sale_id,tipo,valor_solicitado,status")
+        .select("id,sale_id,tipo,valor_solicitado,status,paid_at,decided_at,created_at")
         .in("sale_id", safeIds)
         .eq("status", "pago"),
     ]);
     const sMap = new Map((sales ?? []).map((s) => [s.id, s]));
     const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
-    const paidBySale = new Map<string, { adiantado: number; final: number }>();
+    const paidBySale = new Map<string, { adiantado: number; final: number; items: Array<{ id: string; tipo: string; valor: number; data: string | null }> }>();
     for (const pr of paidReqs ?? []) {
-      const cur = paidBySale.get(pr.sale_id) ?? { adiantado: 0, final: 0 };
+      const cur = paidBySale.get(pr.sale_id) ?? { adiantado: 0, final: 0, items: [] };
       const v = Number(pr.valor_solicitado) || 0;
       if (pr.tipo === "adiantamento") cur.adiantado += v;
       else if (pr.tipo === "comissao_final") cur.final += v;
+      cur.items.push({
+        id: pr.id,
+        tipo: pr.tipo,
+        valor: v,
+        data: (pr.paid_at ?? pr.decided_at ?? pr.created_at) as string | null,
+      });
       paidBySale.set(pr.sale_id, cur);
     }
     return (reqs ?? []).map((r) => {
       const sale = sMap.get(r.sale_id) ?? null;
       const comissaoLiq = Number(sale?.comissao_liq_corretor) || 0;
-      const p = paidBySale.get(r.sale_id) ?? { adiantado: 0, final: 0 };
+      const p = paidBySale.get(r.sale_id) ?? { adiantado: 0, final: 0, items: [] };
       const aReceber = Math.max(0, comissaoLiq - p.adiantado - p.final);
       return {
         ...r,
@@ -153,8 +159,10 @@ export const listAllRequests = createServerFn({ method: "POST" })
         adiantado_pago: p.adiantado,
         final_pago: p.final,
         a_receber: aReceber,
+        historico: p.items.slice().sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "")),
       };
     });
+
   });
 
 // ---------- APROVAR / NEGAR (financeiro) ----------
