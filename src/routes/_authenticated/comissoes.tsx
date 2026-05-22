@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { listMyBrokerSales, listDistinctCorretores } from "@/lib/commissions.functions";
-import { createCommissionRequest, deleteCommissionRequest } from "@/lib/requests.functions";
+import { createCommissionRequest, deleteCommissionRequest, markRequestPaid } from "@/lib/requests.functions";
 import { markNFEmitted, deleteNFRequest } from "@/lib/nf.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,8 @@ function ComissoesPage() {
   const fnEmit = useServerFn(markNFEmitted);
   const fnDelReq = useServerFn(deleteCommissionRequest);
   const fnDelNF = useServerFn(deleteNFRequest);
+  const fnPaid = useServerFn(markRequestPaid);
+
 
   const [staffSelectedBroker, setStaffSelectedBroker] = useState<string | undefined>(undefined);
   const activeBrokerArg = isStaff ? staffSelectedBroker : undefined;
@@ -283,6 +285,12 @@ function ComissoesPage() {
     onSuccess: () => { toast.success("NF excluída."); qc.invalidateQueries({ queryKey: ["my-broker-sales"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const payMut = useMutation({
+    mutationFn: (id: string) => fnPaid({ data: { id } }),
+    onSuccess: () => { toast.success("Pagamento confirmado. Processo finalizado."); qc.invalidateQueries({ queryKey: ["my-broker-sales"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   return (
     <div className="space-y-8">
@@ -509,6 +517,22 @@ function ComissoesPage() {
                           {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1">
                               <RequestPill r={r} />
+                              {r.status === "aprovado" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 px-2 text-[11px]"
+                                  disabled={payMut.isPending}
+                                  onClick={() => {
+                                    if (confirm("Confirmar que o pagamento foi recebido? O processo será finalizado.")) {
+                                      payMut.mutate(r.id);
+                                    }
+                                  }}
+                                >
+                                  <Wallet className="w-3 h-3 mr-1" />Marcar pago
+                                </Button>
+                              )}
+
                               {r.status === "negado" && r.motivo_negacao && (
                                 <Popover>
                                   <PopoverTrigger asChild>
