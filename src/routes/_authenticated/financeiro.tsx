@@ -215,10 +215,17 @@ function AdvancesTab() {
                 </td>
 
                 <td className="p-3 text-right whitespace-nowrap">
-                  <span className={r.a_receber > 0 ? "text-primary font-semibold" : "text-emerald-400 font-medium"}>
-                    {BRL(r.a_receber)}
-                  </span>
+                  {r.comissao_liq > 0 && r.a_receber === 0 ? (
+                    <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                      <CheckCircle2 className="w-3.5 h-3.5" />Finalizado
+                    </span>
+                  ) : (
+                    <span className={r.a_receber > 0 ? "text-primary font-semibold" : "text-muted-foreground"}>
+                      {BRL(r.a_receber)}
+                    </span>
+                  )}
                 </td>
+
                 <td className="p-3 text-right font-semibold whitespace-nowrap">{BRL(r.valor_solicitado)}</td>
                 <td className="p-3"><StatusBadge status={r.status} /></td>
                 <td className="p-3 max-w-[220px]">
