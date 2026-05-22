@@ -56,11 +56,25 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
     }
 
     const { data: sale, error: saleErr } = await supabaseAdmin
-      .from("sales").select("id,corretor").eq("id", data.sale_id).maybeSingle();
+      .from("sales").select("id,corretor,comissao_liq_corretor").eq("id", data.sale_id).maybeSingle();
     if (saleErr) throw new Error(`Falha ao consultar venda: ${saleErr.message}`);
     if (!sale) throw new Error("Venda não encontrada no sistema.");
     if ((sale.corretor ?? "").trim().toLowerCase() !== nome.trim().toLowerCase())
       throw new Error(`Esta venda está vinculada a "${sale.corretor}", não a "${nome}".`);
+
+    // Trava de saldo: valor solicitado não pode passar do que ainda há a receber.
+    const comLiq = Number(sale.comissao_liq_corretor) || 0;
+    const { data: paidRows } = await supabaseAdmin
+      .from("commission_requests")
+      .select("valor_solicitado")
+      .eq("sale_id", data.sale_id)
+      .eq("status", "pago");
+    const jaPago = (paidRows ?? []).reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
+    const maxReceber = Math.max(0, comLiq - jaPago);
+    if (data.valor_solicitado > maxReceber + 0.001) {
+      const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      throw new Error(`Valor solicitado (${fmt(data.valor_solicitado)}) excede o saldo a receber (${fmt(maxReceber)}).`);
+    }
 
     const { data: pend } = await supabaseAdmin
       .from("commission_requests").select("id").eq("sale_id", data.sale_id).eq("status", "pendente").maybeSingle();
