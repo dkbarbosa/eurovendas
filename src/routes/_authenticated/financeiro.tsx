@@ -47,12 +47,14 @@ function FinanceiroPage() {
         <p className="text-sm text-muted-foreground mt-1">Aprovação de adiantamentos e gestão de notas fiscais.</p>
       </div>
 
-      <Tabs defaultValue="adiantamentos">
+      <Tabs defaultValue="dashboard">
         <TabsList>
+          <TabsTrigger value="dashboard"><LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />Dashboard</TabsTrigger>
           <TabsTrigger value="adiantamentos">Adiantamentos</TabsTrigger>
           <TabsTrigger value="solicitar-nf">Solicitar NF</TabsTrigger>
           <TabsTrigger value="nfs">Notas Fiscais</TabsTrigger>
         </TabsList>
+        <TabsContent value="dashboard" className="mt-4"><DashboardTab /></TabsContent>
         <TabsContent value="adiantamentos" className="mt-4"><AdvancesTab /></TabsContent>
         <TabsContent value="solicitar-nf" className="mt-4"><RequestNFTab /></TabsContent>
         <TabsContent value="nfs" className="mt-4"><NFTab /></TabsContent>
