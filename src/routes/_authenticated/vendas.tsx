@@ -320,7 +320,7 @@ function Vendas() {
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
           className="glass-card p-5 lg:col-span-12"
         >
-          <div className="text-sm font-medium mb-3">Evolução mensal de VGV</div>
+          <div className="text-sm font-medium mb-3">Evolução mensal — VGV e Sinal de negócio</div>
           <div className="h-[240px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={byMonth} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -329,12 +329,18 @@ function Vendas() {
                     <stop offset="0%" stopColor="oklch(0.82 0.16 185)" stopOpacity={0.6} />
                     <stop offset="100%" stopColor="oklch(0.82 0.16 185)" stopOpacity={0} />
                   </linearGradient>
+                  <linearGradient id="sinalArea" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="oklch(0.78 0.14 220)" stopOpacity={0.55} />
+                    <stop offset="100%" stopColor="oklch(0.78 0.14 220)" stopOpacity={0} />
+                  </linearGradient>
                 </defs>
                 <CartesianGrid stroke="oklch(1 0 0 / 6%)" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: "oklch(0.72 0.02 270)" }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: "oklch(0.72 0.02 270)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1e6).toFixed(1)}M`} />
-                <Tooltip contentStyle={TOOLTIP} formatter={(v: number) => [fmtBRL(v), "VGV"]} />
-                <Area type="monotone" dataKey="vgv" stroke="oklch(0.82 0.16 185)" strokeWidth={2.5} fill="url(#vendArea)" animationDuration={900} />
+                <Tooltip contentStyle={TOOLTIP} formatter={(v: number, n) => [fmtBRL(v), n === "vgv" ? "VGV" : "Sinal"]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Area type="monotone" dataKey="vgv" name="VGV" stroke="oklch(0.82 0.16 185)" strokeWidth={2.5} fill="url(#vendArea)" animationDuration={900} />
+                <Area type="monotone" dataKey="sinal" name="Sinal" stroke="oklch(0.78 0.14 220)" strokeWidth={2.5} fill="url(#sinalArea)" animationDuration={900} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
