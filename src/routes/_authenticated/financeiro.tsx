@@ -753,7 +753,7 @@ function NFTab() {
     }
   };
 
-  const [statusFilter, setStatusFilter] = useState<"solicitada" | "emitida" | "recebida" | "cancelada" | "todos">("emitida");
+  const [statusFilter, setStatusFilter] = useState<"solicitada" | "emitida" | "recebida" | "cancelada" | "todos">("todos");
   const { data = [], isLoading } = useQuery({ queryKey: ["all-nfs"], queryFn: () => fnList() });
   const filtered = statusFilter === "todos" ? data : data.filter((n) => n.status === statusFilter);
 
