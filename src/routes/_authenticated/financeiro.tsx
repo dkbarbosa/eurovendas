@@ -55,11 +55,13 @@ function FinanceiroPage() {
           <TabsTrigger value="adiantamentos">Adiantamentos</TabsTrigger>
           <TabsTrigger value="solicitar-nf">Solicitar NF</TabsTrigger>
           <TabsTrigger value="nfs">Notas Fiscais</TabsTrigger>
+          <TabsTrigger value="distratos"><Ban className="w-3.5 h-3.5 mr-1.5" />Distratos</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard" className="mt-4"><DashboardTab /></TabsContent>
         <TabsContent value="adiantamentos" className="mt-4"><AdvancesTab /></TabsContent>
         <TabsContent value="solicitar-nf" className="mt-4"><RequestNFTab /></TabsContent>
         <TabsContent value="nfs" className="mt-4"><NFTab /></TabsContent>
+        <TabsContent value="distratos" className="mt-4"><DistratosPanel /></TabsContent>
       </Tabs>
     </div>
   );
