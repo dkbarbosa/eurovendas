@@ -27,7 +27,7 @@ import { ChartCard } from "@/components/ChartCard";
 import { fmtBRL, fmtBRLCompact, fmtNum } from "@/lib/format";
 import {
   DollarSign, ShoppingBag, Trophy, Building2, Target, TrendingUp, TrendingDown,
-  Users, Award, Filter, CalendarDays, CircleDot,
+  Users, Award, Filter, CalendarDays, CircleDot, Sunrise,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
