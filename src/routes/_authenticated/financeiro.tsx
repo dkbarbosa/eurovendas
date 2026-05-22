@@ -243,6 +243,9 @@ function AdvancesTab() {
                       <Button size="sm" variant="outline" onClick={() => setDeny({ open: true, id: r.id, motivo: "" })}>
                         <XCircle className="w-3.5 h-3.5 mr-1" />Negar
                       </Button>
+                      <Button size="sm" variant="outline" onClick={() => setObs({ open: true, id: r.id, action: "pagar", text: "" })}>
+                        <Wallet className="w-3.5 h-3.5 mr-1" />Pago
+                      </Button>
                     </div>
                   )}
                   {r.status === "aprovado" && (
@@ -257,6 +260,7 @@ function AdvancesTab() {
                     </Button>
                   )}
                 </td>
+
               </tr>
             ))}
           </tbody>
