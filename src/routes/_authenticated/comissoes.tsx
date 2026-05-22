@@ -582,29 +582,15 @@ function ComissoesPage() {
                       </td>
                       <td className="p-3">
                         <div className="flex flex-col gap-1.5">
-                          {(() => {
-                            const canRequest = allSales.length >= 3;
-                            const reason = !canRequest
-                              ? `Disponível a partir da 3ª venda (você tem ${allSales.length}).`
-                              : hasPending
-                                ? "Já existe uma solicitação pendente para esta venda."
-                                : "";
-                            return (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={hasPending || !canRequest}
-                                title={reason}
-                                onClick={() => openReq(s)}
-                              >
-                                {hasPending
-                                  ? "Pendente"
-                                  : !canRequest
-                                    ? `Liberado na 3ª venda (${allSales.length}/3)`
-                                    : "Solicitar pagamento"}
-                              </Button>
-                            );
-                          })()}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={hasPending}
+                            title={hasPending ? "Já existe uma solicitação pendente para esta venda." : ""}
+                            onClick={() => openReq(s)}
+                          >
+                            {hasPending ? "Pendente" : "Solicitar pagamento"}
+                          </Button>
                           {nfSolicitada && (
                             <Button size="sm" onClick={() => openNF(nfSolicitada.id)}
                               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
