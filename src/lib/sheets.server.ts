@@ -22,8 +22,7 @@ export const SHEET_HEADERS = [
   "Com. Líq. Ger.",
   "Status",
   "Mês/Ano",
-  "Observações",
-  "Valor sinal de negócio",
+  "Sinal de negocio",
 ] as const;
 
 function parseNumber(raw: unknown): number | null {
