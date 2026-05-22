@@ -264,7 +264,7 @@ function Vendas() {
         </div>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-xs text-muted-foreground">
-            {filtered.length} de {sales.length} · VGV {fmtBRL(filtered.reduce((s, r) => s + (r.valor_venda ?? 0), 0))}
+            {filtered.length} de {sales.length} · VGV {fmtBRL(filtered.reduce((s, r) => s + (r.valor_venda ?? 0), 0))} · <span className="text-sky-400">Sinal {fmtBRL(totalSinal)}</span>
           </span>
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearAll} className="h-8 text-xs">Limpar</Button>
