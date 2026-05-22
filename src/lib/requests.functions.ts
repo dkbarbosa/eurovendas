@@ -282,16 +282,16 @@ export const markRequestPaid = createServerFn({ method: "POST" })
       if (isStaff) patch.observacao_financeiro = data.observacao;
       else patch.observacao_corretor = data.observacao;
     }
-    // Transição atômica aprovado -> pago. Apenas o primeiro (financeiro OU corretor)
+    // Transição atômica pendente|aprovado -> pago. Apenas o primeiro (financeiro OU corretor)
     // consegue marcar; o segundo recebe erro e nada é duplicado na planilha.
     const { data: upd, error } = await supabaseAdmin
       .from("commission_requests")
       .update(patch)
       .eq("id", data.id)
-      .eq("status", "aprovado")
+      .in("status", ["pendente", "aprovado"])
       .select("id, tipo, valor_solicitado, sale_id");
     if (error) throw new Error(error.message);
-    if (!upd?.length) throw new Error("Pedido já foi marcado como pago ou não está aprovado.");
+    if (!upd?.length) throw new Error("Pedido já foi marcado como pago.");
 
     // Após confirmação de pagamento de adiantamento, somar valor na planilha.
     let sheetWarning: string | undefined;
