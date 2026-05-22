@@ -557,9 +557,23 @@ function ComissoesPage() {
                               <Badge variant="outline" className={`text-[10px] ${aReceberSale > 0 ? "bg-primary/10 text-primary border-primary/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"}`}>A receber: {BRL(aReceberSale)}</Badge>
                             </div>
                           )}
-                          {reqs.map((r) => (
-                            <div key={r.id} className="flex items-center gap-1">
+                          {reqs.map((r) => {
+                            const nfPendente = r.tipo === "adiantamento" && r.status === "aprovado"
+                              ? sNfs.find((n) => n.status === "solicitada")
+                              : undefined;
+                            return (
+                            <div key={r.id} className="flex items-center gap-1 flex-wrap">
                               <RequestPill r={r} />
+                              {nfPendente && (
+                                <Button
+                                  size="sm"
+                                  className="h-6 px-2 text-[11px]"
+                                  onClick={() => openNF(nfPendente.id)}
+                                  style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+                                >
+                                  Enviar NF
+                                </Button>
+                              )}
                               {r.status !== "pago" && r.status !== "negado" && (
                                 <Button
                                   size="sm"
@@ -575,6 +589,7 @@ function ComissoesPage() {
                                   <Wallet className="w-3 h-3 mr-1" />Pago
                                 </Button>
                               )}
+
 
 
                               {r.status === "negado" && r.motivo_negacao && (
