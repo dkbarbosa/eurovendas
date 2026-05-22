@@ -1,0 +1,1 @@
+UPDATE public.config_kv SET value = to_jsonb('Equipe Maicon!A:U'::text), updated_at = now() WHERE key = 'sheets_range';
