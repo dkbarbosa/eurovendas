@@ -489,15 +489,13 @@ function NFTab() {
                 <td className="p-3">
                   {n.numero_nf ? <span className="font-mono">{n.numero_nf}</span> : <span className="text-muted-foreground">—</span>}
                   {n.arquivo_nf_url && (
-                    <a
-                      href={n.arquivo_nf_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      download
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(n.id)}
                       className="mt-1 inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                     >
                       <Download className="w-3 h-3" /> Baixar
-                    </a>
+                    </button>
                   )}
                 </td>
                 <td className="p-3"><NFStatusBadge status={n.status} /></td>
