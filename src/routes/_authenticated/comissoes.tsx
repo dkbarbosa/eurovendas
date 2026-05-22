@@ -84,7 +84,10 @@ function ComissoesPage() {
   // aplica filtros (período + cliente)
   const sales = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
+    const seen = new Set<string>();
     return allSales.filter((s) => {
+      if (seen.has(s.id)) return false;
+      seen.add(s.id);
       const d = (s.data ?? "").slice(0, 10);
       if (dateFrom && d && d < dateFrom) return false;
       if (dateTo && d && d > dateTo) return false;
