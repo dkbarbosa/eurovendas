@@ -538,6 +538,13 @@ function ComissoesPage() {
 
                       <td className="p-3">
                         <div className="space-y-1">
+                          {(reqs.length > 0 || sNfs.length > 0) && (
+                            <div className="flex flex-wrap gap-1 mb-1.5">
+                              <Badge variant="outline" className="text-[10px] bg-secondary/40">Liq: {BRL(comissaoLiq)}</Badge>
+                              <Badge variant="outline" className={`text-[10px] ${adiantadoSale > 0 ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-secondary/40"}`}>Adiant.: {BRL(adiantadoSale)}</Badge>
+                              <Badge variant="outline" className={`text-[10px] ${aReceberSale > 0 ? "bg-primary/10 text-primary border-primary/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"}`}>A receber: {BRL(aReceberSale)}</Badge>
+                            </div>
+                          )}
                           {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1">
                               <RequestPill r={r} />
