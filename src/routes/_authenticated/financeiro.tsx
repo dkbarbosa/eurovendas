@@ -528,6 +528,20 @@ function AdvancesTab() {
                               </td>
                               <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
                               <td className="px-3 py-2 max-w-[260px]">
+                                {(Number(r.valor_sinal) > 0 || Number(r.bonus_corretor) > 0) && (
+                                  <div className="flex flex-wrap gap-1.5 mb-1">
+                                    {Number(r.valor_sinal) > 0 && (
+                                      <Badge variant="outline" className="text-[10px] bg-sky-500/10 text-sky-400 border-sky-500/30">
+                                        Sinal: {BRL(r.valor_sinal)}
+                                      </Badge>
+                                    )}
+                                    {Number(r.bonus_corretor) > 0 && (
+                                      <Badge variant="outline" className="text-[10px] bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30">
+                                        Bônus: {BRL(r.bonus_corretor)}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
                                 {r.observacao_corretor && <div className="text-xs"><b>C:</b> {r.observacao_corretor}</div>}
                                 {r.observacao_financeiro && <div className="text-xs text-muted-foreground"><b>F:</b> {r.observacao_financeiro}</div>}
                                 {r.motivo_negacao && <div className="text-xs text-destructive"><b>Motivo:</b> {r.motivo_negacao}</div>}
