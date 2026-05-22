@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function loadUserContext(userId: string) {
+  async function loadUserContext() {
     try {
       const context = await getCurrentUserContext();
       setRoles(context.roles);
