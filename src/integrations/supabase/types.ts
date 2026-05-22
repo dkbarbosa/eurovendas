@@ -146,10 +146,12 @@ export type Database = {
       nf_requests: {
         Row: {
           arquivo_nf_url: string | null
+          arquivo_nf_url_2: string | null
           cancelada_at: string | null
           corretor_user_id: string
           created_at: string
           drive_file_id: string | null
+          drive_file_id_2: string | null
           emitida_at: string | null
           id: string
           numero_nf: string | null
@@ -164,10 +166,12 @@ export type Database = {
         }
         Insert: {
           arquivo_nf_url?: string | null
+          arquivo_nf_url_2?: string | null
           cancelada_at?: string | null
           corretor_user_id: string
           created_at?: string
           drive_file_id?: string | null
+          drive_file_id_2?: string | null
           emitida_at?: string | null
           id?: string
           numero_nf?: string | null
@@ -182,10 +186,12 @@ export type Database = {
         }
         Update: {
           arquivo_nf_url?: string | null
+          arquivo_nf_url_2?: string | null
           cancelada_at?: string | null
           corretor_user_id?: string
           created_at?: string
           drive_file_id?: string | null
+          drive_file_id_2?: string | null
           emitida_at?: string | null
           id?: string
           numero_nf?: string | null
