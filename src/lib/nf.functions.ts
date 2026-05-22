@@ -172,12 +172,13 @@ export const markNFEmitted = createServerFn({ method: "POST" })
     const { data: upd, error } = await supabaseAdmin
       .from("nf_requests")
       .update({
-        status: "emitida",
+        status: "recebida",
         numero_nf: data.numero_nf,
         observacao_corretor: data.observacao ?? null,
         arquivo_nf_url: uploaded.webViewLink,
         drive_file_id: uploaded.id,
         emitida_at: new Date().toISOString(),
+        recebida_at: new Date().toISOString(),
       })
       .eq("id", data.id)
       .eq("status", "solicitada")
