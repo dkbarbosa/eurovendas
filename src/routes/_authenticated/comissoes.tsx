@@ -221,7 +221,8 @@ function ComissoesPage() {
     observacao: "",
   });
   const openReq = (sale: (typeof sales)[number]) => {
-    setReqForm({ tipo: "adiantamento", valor_sinal: null, bonus_corretor: null, valor_solicitado: null, observacao: "" });
+    const sinalSheet = Number((sale as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || null;
+    setReqForm({ tipo: "adiantamento", valor_sinal: sinalSheet, bonus_corretor: null, valor_solicitado: null, observacao: "" });
     setReqDialog({ open: true, sale });
   };
   const createMut = useMutation({
