@@ -143,6 +143,72 @@ export type Database = {
         }
         Relationships: []
       }
+      distratos: {
+        Row: {
+          comprador: string | null
+          corretor_nome: string | null
+          corretor_user_id: string | null
+          created_at: string
+          created_by: string | null
+          devolvido_at: string | null
+          devolvido_por: string | null
+          empreendimento: string | null
+          id: string
+          motivo: string | null
+          observacao_financeiro: string | null
+          observacao_recebimento: string | null
+          sale_id: string
+          status: Database["public"]["Enums"]["distrato_status"]
+          unidade: string | null
+          updated_at: string
+          valor_adiantamento: number
+          valor_comissao_final: number
+          valor_devolver: number
+        }
+        Insert: {
+          comprador?: string | null
+          corretor_nome?: string | null
+          corretor_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          devolvido_at?: string | null
+          devolvido_por?: string | null
+          empreendimento?: string | null
+          id?: string
+          motivo?: string | null
+          observacao_financeiro?: string | null
+          observacao_recebimento?: string | null
+          sale_id: string
+          status?: Database["public"]["Enums"]["distrato_status"]
+          unidade?: string | null
+          updated_at?: string
+          valor_adiantamento?: number
+          valor_comissao_final?: number
+          valor_devolver?: number
+        }
+        Update: {
+          comprador?: string | null
+          corretor_nome?: string | null
+          corretor_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          devolvido_at?: string | null
+          devolvido_por?: string | null
+          empreendimento?: string | null
+          id?: string
+          motivo?: string | null
+          observacao_financeiro?: string | null
+          observacao_recebimento?: string | null
+          sale_id?: string
+          status?: Database["public"]["Enums"]["distrato_status"]
+          unidade?: string | null
+          updated_at?: string
+          valor_adiantamento?: number
+          valor_comissao_final?: number
+          valor_devolver?: number
+        }
+        Relationships: []
+      }
       nf_requests: {
         Row: {
           arquivo_nf_url: string | null
@@ -431,8 +497,9 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "diretor" | "gerente" | "corretor" | "financeiro"
+      distrato_status: "pendente_devolucao" | "devolvido" | "cancelado"
       nf_status: "solicitada" | "emitida" | "recebida" | "cancelada"
-      request_status: "pendente" | "aprovado" | "negado" | "pago"
+      request_status: "pendente" | "aprovado" | "negado" | "pago" | "distratado"
       request_type: "adiantamento" | "comissao_final"
     }
     CompositeTypes: {
@@ -562,8 +629,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "diretor", "gerente", "corretor", "financeiro"],
+      distrato_status: ["pendente_devolucao", "devolvido", "cancelado"],
       nf_status: ["solicitada", "emitida", "recebida", "cancelada"],
-      request_status: ["pendente", "aprovado", "negado", "pago"],
+      request_status: ["pendente", "aprovado", "negado", "pago", "distratado"],
       request_type: ["adiantamento", "comissao_final"],
     },
   },
