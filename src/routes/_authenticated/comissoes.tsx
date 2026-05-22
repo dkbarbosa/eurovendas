@@ -588,15 +588,21 @@ function ComissoesPage() {
                       </td>
                       <td className="p-3">
                         <div className="flex flex-col gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={hasPending}
-                            title={hasPending ? "Já existe uma solicitação pendente para esta venda." : ""}
-                            onClick={() => openReq(s)}
-                          >
-                            {hasPending ? "Pendente" : "Solicitar pagamento"}
-                          </Button>
+                          {comissaoLiq > 0 && aReceberSale === 0 ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold px-2 py-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" />Finalizado
+                            </span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={hasPending}
+                              title={hasPending ? "Já existe uma solicitação pendente para esta venda." : ""}
+                              onClick={() => openReq(s)}
+                            >
+                              {hasPending ? "Pendente" : "Solicitar pagamento"}
+                            </Button>
+                          )}
                           {nfSolicitada && (
                             <Button size="sm" onClick={() => openNF(nfSolicitada.id)}
                               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
