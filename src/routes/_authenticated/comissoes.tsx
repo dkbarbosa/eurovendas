@@ -556,22 +556,9 @@ function ComissoesPage() {
                             </div>
                           )}
                           {reqs.map((r) => {
-                            const nfPendente = r.tipo === "adiantamento" && r.status === "aprovado"
-                              ? sNfs.find((n) => n.status === "solicitada")
-                              : undefined;
                             return (
                             <div key={r.id} className="flex items-center gap-1 flex-wrap">
                               <RequestPill r={r} />
-                              {nfPendente && (
-                                <Button
-                                  size="sm"
-                                  className="h-6 px-2 text-[11px]"
-                                  onClick={() => openNF(nfPendente.id)}
-                                  style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
-                                >
-                                  Enviar NF
-                                </Button>
-                              )}
                               {r.status !== "pago" && r.status !== "negado" && (
                                 <Button
                                   size="sm"
