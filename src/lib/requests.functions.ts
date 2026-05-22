@@ -264,18 +264,33 @@ export const markRequestPaid = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => PaidSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await assertFinanceiro(context.userId);
+    // Financeiro/admin OU o próprio corretor dono do pedido podem confirmar pagamento.
+    const roles = await getRoles(context.userId);
+    const isStaff = roles.includes("financeiro") || roles.includes("admin");
+    if (!isStaff) {
+      const { data: own } = await supabaseAdmin
+        .from("commission_requests")
+        .select("corretor_user_id")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (!own || own.corretor_user_id !== context.userId)
+        throw new Error("Acesso negado.");
+    }
+    const patch: Record<string, unknown> = {
+      status: "pago",
+      paid_at: new Date().toISOString(),
+    };
+    if (data.observacao) {
+      patch[isStaff ? "observacao_financeiro" : "observacao_corretor"] = data.observacao;
+    }
     const { data: upd, error } = await supabaseAdmin
       .from("commission_requests")
-      .update({
-        status: "pago",
-        paid_at: new Date().toISOString(),
-        observacao_financeiro: data.observacao ?? undefined,
-      })
+      .update(patch)
       .eq("id", data.id)
       .eq("status", "aprovado")
       .select("id");
     if (error) throw new Error(error.message);
     if (!upd?.length) throw new Error("Pedido precisa estar aprovado para marcar como pago.");
     return { ok: true };
+
   });
