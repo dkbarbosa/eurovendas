@@ -811,6 +811,8 @@ function AgendamentosMiniCard() {
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(startOfDay.getTime() + 864e5);
+  const startOfTomorrow = new Date(endOfDay);
+  const endOfTomorrow = new Date(startOfTomorrow.getTime() + 864e5);
 
   const m = useMemo(() => {
     const inMonth = events
@@ -822,6 +824,7 @@ function AgendamentosMiniCard() {
       .filter((x: { d: Date | null }) => x.d && x.d >= monthStart && x.d < monthEnd);
 
     const hoje = inMonth.filter((x) => x.d! >= startOfDay && x.d! < endOfDay).length;
+    const amanha = inMonth.filter((x) => x.d! >= startOfTomorrow && x.d! < endOfTomorrow).length;
     const futuros = inMonth.filter((x) => x.d! >= now).length;
     const house = inMonth.filter((x) => x.origin === "house").length;
     const imob = inMonth.filter((x) => x.origin === "parceiro").length;
@@ -833,8 +836,9 @@ function AgendamentosMiniCard() {
     }
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const series = Array.from({ length: daysInMonth }, (_, i) => ({ d: i + 1, total: days.get(`${i + 1}`) ?? 0 }));
-    return { total: inMonth.length, hoje, futuros, house, imob, series };
-  }, [events, knownBrokers, monthStart, monthEnd, now, startOfDay, endOfDay]);
+    return { total: inMonth.length, hoje, amanha, futuros, house, imob, series };
+  }, [events, knownBrokers, monthStart, monthEnd, now, startOfDay, endOfDay, startOfTomorrow, endOfTomorrow]);
+
 
   return (
     <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5">
