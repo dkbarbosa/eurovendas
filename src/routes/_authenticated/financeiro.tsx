@@ -63,6 +63,279 @@ function FinanceiroPage() {
   );
 }
 
+// =========== DASHBOARD ===========
+function DashboardTab() {
+  const fnListReqs = useServerFn(listAllRequests);
+  const fnListNFs = useServerFn(listAllNFs);
+
+  const { data: reqs = [], isLoading: lr } = useQuery({
+    queryKey: ["all-requests", "todos"],
+    queryFn: () => fnListReqs({ data: undefined }),
+  });
+  const { data: nfs = [], isLoading: ln } = useQuery({
+    queryKey: ["all-nfs"],
+    queryFn: () => fnListNFs(),
+  });
+
+  const stats = useMemo(() => {
+    const sum = (arr: typeof reqs, pred: (r: typeof reqs[number]) => boolean) =>
+      arr.filter(pred).reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
+    const cnt = (arr: typeof reqs, pred: (r: typeof reqs[number]) => boolean) => arr.filter(pred).length;
+
+    const adiant = reqs.filter((r) => r.tipo === "adiantamento");
+    const comiss = reqs.filter((r) => r.tipo === "comissao_final");
+
+    return {
+      pendentesCount: cnt(reqs, (r) => r.status === "pendente"),
+      pendentesValor: sum(reqs, (r) => r.status === "pendente"),
+      aprovadosCount: cnt(reqs, (r) => r.status === "aprovado"),
+      aprovadosValor: sum(reqs, (r) => r.status === "aprovado"),
+      pagosCount: cnt(reqs, (r) => r.status === "pago"),
+      pagosValor: sum(reqs, (r) => r.status === "pago"),
+      negadosCount: cnt(reqs, (r) => r.status === "negado"),
+      negadosValor: sum(reqs, (r) => r.status === "negado"),
+
+      adiantTotal: sum(adiant, () => true),
+      adiantPagos: sum(adiant, (r) => r.status === "pago"),
+      comissTotal: sum(comiss, () => true),
+      comissPagos: sum(comiss, (r) => r.status === "pago"),
+
+      nfSolicitadas: nfs.filter((n) => n.status === "solicitada").length,
+      nfEmitidas: nfs.filter((n) => n.status === "emitida").length,
+      nfRecebidas: nfs.filter((n) => n.status === "recebida").length,
+      nfCanceladas: nfs.filter((n) => n.status === "cancelada").length,
+    };
+  }, [reqs, nfs]);
+
+  // Top 5 corretores por valor pago
+  const topCorretores = useMemo(() => {
+    const map = new Map<string, { nome: string; valor: number; pedidos: number }>();
+    for (const r of reqs) {
+      if (r.status !== "pago") continue;
+      const nome = r.corretor_profile?.display_name ?? r.corretor_profile?.email ?? "—";
+      const cur = map.get(nome) ?? { nome, valor: 0, pedidos: 0 };
+      cur.valor += Number(r.valor_solicitado) || 0;
+      cur.pedidos += 1;
+      map.set(nome, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.valor - a.valor).slice(0, 5);
+  }, [reqs]);
+
+  // Últimos negados
+  const ultNegados = useMemo(
+    () =>
+      reqs
+        .filter((r) => r.status === "negado")
+        .sort((a, b) => new Date(b.decided_at ?? b.created_at).getTime() - new Date(a.decided_at ?? a.created_at).getTime())
+        .slice(0, 5),
+    [reqs],
+  );
+
+  const isLoading = lr || ln;
+
+  if (isLoading) {
+    return (
+      <div className="p-12 text-center"><Loader2 className="w-5 h-5 animate-spin inline text-muted-foreground" /></div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* KPIs principais */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiTile
+          label="Pendentes"
+          value={BRL(stats.pendentesValor)}
+          sub={`${stats.pendentesCount} pedido${stats.pendentesCount === 1 ? "" : "s"} aguardando`}
+          icon={<Hourglass className="w-4 h-4" />}
+          gradient="linear-gradient(135deg, oklch(0.75 0.16 75), oklch(0.62 0.18 50))"
+          delay={0}
+        />
+        <KpiTile
+          label="Aprovados a pagar"
+          value={BRL(stats.aprovadosValor)}
+          sub={`${stats.aprovadosCount} aguardando pagamento`}
+          icon={<BadgeCheck className="w-4 h-4" />}
+          gradient="linear-gradient(135deg, oklch(0.7 0.16 160), oklch(0.55 0.18 165))"
+          delay={0.05}
+        />
+        <KpiTile
+          label="Pagos"
+          value={BRL(stats.pagosValor)}
+          sub={`${stats.pagosCount} pagamento${stats.pagosCount === 1 ? "" : "s"} efetuado${stats.pagosCount === 1 ? "" : "s"}`}
+          icon={<Wallet className="w-4 h-4" />}
+          gradient="var(--gradient-primary)"
+          delay={0.1}
+        />
+        <KpiTile
+          label="Negados"
+          value={BRL(stats.negadosValor)}
+          sub={`${stats.negadosCount} pedido${stats.negadosCount === 1 ? "" : "s"} recusado${stats.negadosCount === 1 ? "" : "s"}`}
+          icon={<XCircle className="w-4 h-4" />}
+          gradient="linear-gradient(135deg, oklch(0.65 0.22 25), oklch(0.5 0.2 20))"
+          delay={0.15}
+        />
+      </div>
+
+      {/* Adiantamentos vs Comissão Final */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <BreakdownCard
+          title="Adiantamentos"
+          icon={<TrendingUp className="w-4 h-4" />}
+          total={stats.adiantTotal}
+          pago={stats.adiantPagos}
+        />
+        <BreakdownCard
+          title="Comissão Final"
+          icon={<Wallet className="w-4 h-4" />}
+          total={stats.comissTotal}
+          pago={stats.comissPagos}
+        />
+      </div>
+
+      {/* NF cards */}
+      <div>
+        <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+          <FileText className="w-3.5 h-3.5" /> Notas Fiscais
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <NFTile label="Solicitadas" value={stats.nfSolicitadas} color="text-amber-400" />
+          <NFTile label="Emitidas" value={stats.nfEmitidas} color="text-sky-400" />
+          <NFTile label="Recebidas" value={stats.nfRecebidas} color="text-emerald-400" />
+          <NFTile label="Canceladas" value={stats.nfCanceladas} color="text-destructive" />
+        </div>
+      </div>
+
+      {/* Top corretores + últimos negados */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="glass-card p-5">
+          <div className="text-sm font-medium mb-1">Top 5 corretores · pagamentos</div>
+          <div className="text-xs text-muted-foreground mb-4">Por valor total pago</div>
+          {topCorretores.length === 0 && <div className="text-sm text-muted-foreground py-6 text-center">Sem dados.</div>}
+          <div className="space-y-2.5">
+            {topCorretores.map((c, i) => {
+              const max = topCorretores[0]?.valor || 1;
+              const pct = (c.valor / max) * 100;
+              return (
+                <div key={c.nome}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="truncate"><span className="text-muted-foreground mr-1.5">{i + 1}.</span>{c.nome}</span>
+                    <span className="font-semibold">{BRL(c.valor)}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-secondary/60 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.8, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                      className="h-full rounded-full"
+                      style={{ background: "var(--gradient-primary)" }}
+                    />
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{c.pedidos} pagamento{c.pedidos === 1 ? "" : "s"}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="glass-card p-5">
+          <div className="text-sm font-medium mb-1 flex items-center gap-1.5">
+            <AlertTriangle className="w-4 h-4 text-destructive" /> Últimos pedidos negados
+          </div>
+          <div className="text-xs text-muted-foreground mb-4">5 mais recentes</div>
+          {ultNegados.length === 0 && <div className="text-sm text-muted-foreground py-6 text-center">Nenhum pedido negado.</div>}
+          <div className="space-y-2">
+            {ultNegados.map((r) => (
+              <div key={r.id} className="rounded-lg border border-destructive/20 bg-destructive/5 p-2.5">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{r.sale?.comprador ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {r.corretor_profile?.display_name ?? "—"} · {new Date(r.decided_at ?? r.created_at).toLocaleDateString("pt-BR")}
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold whitespace-nowrap">{BRL(r.valor_solicitado)}</div>
+                </div>
+                {r.motivo_negacao && (
+                  <div className="text-xs text-destructive mt-1.5 line-clamp-2"><b>Motivo:</b> {r.motivo_negacao}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KpiTile({
+  label, value, sub, icon, gradient, delay = 0,
+}: { label: string; value: string; sub: string; icon: React.ReactNode; gradient: string; delay?: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] }}
+      className="glass-card p-4 relative overflow-hidden"
+    >
+      <div className="pointer-events-none absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-20 blur-2xl" style={{ background: gradient }} />
+      <div className="relative flex items-start justify-between gap-2 mb-2">
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+        <div className="w-7 h-7 rounded-md flex items-center justify-center text-primary-foreground shadow" style={{ background: gradient }}>
+          {icon}
+        </div>
+      </div>
+      <div className="relative font-display text-2xl font-semibold tracking-tight">{value}</div>
+      <div className="relative text-[11px] text-muted-foreground mt-1 truncate">{sub}</div>
+    </motion.div>
+  );
+}
+
+function NFTile({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="glass-card p-4">
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className={`font-display text-3xl font-semibold tracking-tight mt-1 ${color}`}>{value}</div>
+    </div>
+  );
+}
+
+function BreakdownCard({ title, icon, total, pago }: { title: string; icon: React.ReactNode; total: number; pago: number }) {
+  const pct = total > 0 ? (pago / total) * 100 : 0;
+  const restante = Math.max(0, total - pago);
+  return (
+    <div className="glass-card p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-medium flex items-center gap-1.5">{icon}{title}</div>
+        <div className="text-xs text-muted-foreground">{pct.toFixed(0)}% pago</div>
+      </div>
+      <div className="h-2 rounded-full bg-secondary/60 overflow-hidden mb-3">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          className="h-full rounded-full"
+          style={{ background: "var(--gradient-primary)" }}
+        />
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Solicitado</div>
+          <div className="font-semibold">{BRL(total)}</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Pago</div>
+          <div className="font-semibold text-emerald-400">{BRL(pago)}</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Em aberto</div>
+          <div className="font-semibold text-primary">{BRL(restante)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // =========== ADIANTAMENTOS ===========
 function AdvancesTab() {
   const qc = useQueryClient();
