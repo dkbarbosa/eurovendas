@@ -407,6 +407,22 @@ function NFTab() {
   const fnConfirm = useServerFn(confirmNFReceived);
   const fnCancel = useServerFn(cancelNF);
   const fnDel = useServerFn(deleteNFRequest);
+  const fnDownload = useServerFn(downloadNFFile);
+  const handleDownload = async (id: string) => {
+    try {
+      const res = await fnDownload({ data: { id } }) as { base64: string; contentType: string; filename: string };
+      const bin = atob(res.base64);
+      const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([buf], { type: res.contentType }));
+      const a = document.createElement("a");
+      a.href = url; a.download = res.filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   const [statusFilter, setStatusFilter] = useState<"solicitada" | "emitida" | "recebida" | "cancelada" | "todos">("emitida");
   const { data = [], isLoading } = useQuery({ queryKey: ["all-nfs"], queryFn: () => fnList() });
