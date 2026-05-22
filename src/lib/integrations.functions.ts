@@ -2,19 +2,77 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+export interface ConnectorPing {
+  ok: boolean;
+  latencyMs: number | null;
+  error?: string;
+}
+
 export interface ConnectorStatus {
-  sheets: boolean;
-  calendar: boolean;
-  lovable: boolean;
-  drive: boolean;
-  gemini: boolean;
-  supabase: boolean;
+  sheets: ConnectorPing;
+  calendar: ConnectorPing;
+  drive: ConnectorPing;
+  gemini: ConnectorPing;
+  supabase: ConnectorPing;
+  lovable: ConnectorPing;
+  checkedAt: string;
+}
+
+const VERIFY_URL = "https://connector-gateway.lovable.dev/api/v1/verify_credentials";
+
+async function pingGateway(connectionKey: string | undefined): Promise<ConnectorPing> {
+  const lovable = process.env.LOVABLE_API_KEY;
+  if (!lovable) return { ok: false, latencyMs: null, error: "LOVABLE_API_KEY ausente" };
+  if (!connectionKey) return { ok: false, latencyMs: null, error: "Conector não conectado" };
+  const started = Date.now();
+  try {
+    const res = await fetch(VERIFY_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovable}`,
+        "X-Connection-Api-Key": connectionKey,
+      },
+    });
+    const elapsed = Date.now() - started;
+    const body = (await res.json().catch(() => ({}))) as {
+      outcome?: string;
+      error?: string;
+    };
+    if (!res.ok) {
+      return { ok: false, latencyMs: elapsed, error: body.error ?? `HTTP ${res.status}` };
+    }
+    if (body.outcome === "verified" || body.outcome === "skipped") {
+      return { ok: true, latencyMs: elapsed };
+    }
+    return { ok: false, latencyMs: elapsed, error: body.error ?? body.outcome ?? "Falha" };
+  } catch (e) {
+    return {
+      ok: false,
+      latencyMs: Date.now() - started,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+async function pingSupabase(): Promise<ConnectorPing> {
+  const started = Date.now();
+  try {
+    const { error } = await supabaseAdmin.from("config_kv").select("key", { head: true, count: "exact" }).limit(1);
+    const elapsed = Date.now() - started;
+    if (error) return { ok: false, latencyMs: elapsed, error: error.message };
+    return { ok: true, latencyMs: elapsed };
+  } catch (e) {
+    return {
+      ok: false,
+      latencyMs: Date.now() - started,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
 }
 
 export const checkConnectorStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    // Apenas usuários autenticados podem consultar o status. Restringe a admins.
+  .handler(async ({ context }): Promise<ConnectorStatus> => {
     const { data: roleRow } = await supabaseAdmin
       .from("user_roles")
       .select("role")
@@ -23,19 +81,25 @@ export const checkConnectorStatus = createServerFn({ method: "GET" })
       .maybeSingle();
     if (!roleRow) throw new Error("Apenas administradores podem consultar conexões.");
 
-    const sheetsKey = process.env.GOOGLE_SHEETS_API_KEY;
-    const calendarKey = process.env.GOOGLE_CALENDAR_API_KEY;
-    const driveKey = process.env.GOOGLE_DRIVE_API_KEY;
-    const lovableKey = process.env.LOVABLE_API_KEY;
-    const supaUrl = process.env.SUPABASE_URL;
-    const supaService = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const lovable = process.env.LOVABLE_API_KEY;
+    const lovablePing: ConnectorPing = lovable
+      ? { ok: true, latencyMs: 0 }
+      : { ok: false, latencyMs: null, error: "LOVABLE_API_KEY ausente" };
+
+    const [sheets, calendar, drive, supabase] = await Promise.all([
+      pingGateway(process.env.GOOGLE_SHEETS_API_KEY),
+      pingGateway(process.env.GOOGLE_CALENDAR_API_KEY),
+      pingGateway(process.env.GOOGLE_DRIVE_API_KEY),
+      pingSupabase(),
+    ]);
 
     return {
-      sheets: !!sheetsKey && sheetsKey.length > 0,
-      calendar: !!calendarKey && calendarKey.length > 0,
-      lovable: !!lovableKey && lovableKey.length > 0,
-      drive: !!driveKey && driveKey.length > 0,
-      gemini: !!lovableKey && lovableKey.length > 0,
-      supabase: !!supaUrl && !!supaService,
-    } as ConnectorStatus;
+      sheets,
+      calendar,
+      drive,
+      gemini: lovablePing,
+      lovable: lovablePing,
+      supabase,
+      checkedAt: new Date().toISOString(),
+    };
   });
