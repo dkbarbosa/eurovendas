@@ -14,6 +14,45 @@ async function assertFinanceiro(userId: string) {
     throw new Error("Acesso negado: apenas Financeiro.");
 }
 
+// Normaliza para casamento tolerante: minúsculas, sem acentos, espaços colapsados
+function normName(s: string | null | undefined): string {
+  return (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function firstToken(s: string): string {
+  return normName(s).split(" ")[0] ?? "";
+}
+
+// Resolve corretor da planilha → user_id usando mapeamentos salvos.
+// 1) match exato normalizado  2) fallback: primeiro nome único
+function resolveBrokerUserId(
+  corretor: string | null | undefined,
+  maps: { user_id: string; corretor_nome: string }[],
+): string | null {
+  if (!corretor) return null;
+  const target = normName(corretor);
+  if (!target) return null;
+  const exact = maps.find((m) => normName(m.corretor_nome) === target);
+  if (exact) return exact.user_id;
+  // contém / é contido
+  const partial = maps.filter((m) => {
+    const n = normName(m.corretor_nome);
+    return n.includes(target) || target.includes(n);
+  });
+  if (partial.length === 1) return partial[0].user_id;
+  // primeiro nome
+  const first = firstToken(corretor);
+  if (first) {
+    const byFirst = maps.filter((m) => firstToken(m.corretor_nome) === first);
+    if (byFirst.length === 1) return byFirst[0].user_id;
+  }
+  return null;
+}
+
 // ---------- VENDAS ELEGÍVEIS PARA NF (financeiro) ----------
 export const listEligibleSalesForNF = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
