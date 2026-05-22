@@ -88,12 +88,14 @@ export const listAllNFs = createServerFn({ method: "GET" })
     }));
   });
 
-// ---------- CORRETOR EMITE NF ----------
+// ---------- CORRETOR EMITE NF (faz upload para o Google Drive) ----------
 const MarkEmittedSchema = z.object({
   id: z.string().uuid(),
   numero_nf: z.string().trim().min(1, "Número da NF é obrigatório").max(80),
   observacao: z.string().trim().max(2000).optional(),
-  arquivo_url: z.string().url().max(500).optional(),
+  file_base64: z.string().min(10).max(20_000_000), // ~15 MB após decode
+  file_name: z.string().trim().min(1).max(255),
+  file_mime: z.string().trim().min(1).max(120),
 });
 
 export const markNFEmitted = createServerFn({ method: "POST" })
@@ -103,24 +105,78 @@ export const markNFEmitted = createServerFn({ method: "POST" })
     const roles = await getRoles(context.userId);
     const isAdmin = roles.includes("admin");
 
-    let q = supabaseAdmin
+    // Verifica posse do pedido antes de fazer upload (evita upload órfão).
+    const ownerCheck = supabaseAdmin
+      .from("nf_requests")
+      .select("id,corretor_user_id,status,drive_file_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    const { data: nfRow } = await ownerCheck;
+    if (!nfRow) throw new Error("NF não encontrada.");
+    if (nfRow.status !== "solicitada") throw new Error("NF não está mais aguardando emissão.");
+    if (!isAdmin && nfRow.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
+
+    // Decode base64 → bytes
+    const clean = data.file_base64.replace(/^data:[^;]+;base64,/, "");
+    const bin = atob(clean);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+
+    const safeName = `${data.id}-${data.file_name.replace(/[^\w.\-]+/g, "_")}`;
+    const uploaded = await uploadFileToDriveFolder({
+      buffer: buf,
+      filename: safeName,
+      mimeType: data.file_mime,
+    });
+
+    const { data: upd, error } = await supabaseAdmin
       .from("nf_requests")
       .update({
         status: "emitida",
         numero_nf: data.numero_nf,
         observacao_corretor: data.observacao ?? null,
-        arquivo_nf_url: data.arquivo_url ?? null,
+        arquivo_nf_url: uploaded.webViewLink,
+        drive_file_id: uploaded.id,
         emitida_at: new Date().toISOString(),
       })
       .eq("id", data.id)
-      .eq("status", "solicitada");
-    if (!isAdmin) q = q.eq("corretor_user_id", context.userId);
-
-    const { data: upd, error } = await q.select("id");
-    if (error) throw new Error(error.message);
-    if (!upd?.length) throw new Error("NF não encontrada ou já foi emitida.");
+      .eq("status", "solicitada")
+      .select("id");
+    if (error) {
+      // rollback do upload caso o update falhe
+      try { await deleteDriveFile(uploaded.id); } catch { /* noop */ }
+      throw new Error(error.message);
+    }
+    if (!upd?.length) {
+      try { await deleteDriveFile(uploaded.id); } catch { /* noop */ }
+      throw new Error("NF não encontrada ou já foi emitida.");
+    }
     return { ok: true };
   });
+
+// ---------- BAIXAR NF DO DRIVE (financeiro/admin/dono) ----------
+export const downloadNFFile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    const isStaff = roles.includes("financeiro") || roles.includes("admin");
+    const { data: nf } = await supabaseAdmin
+      .from("nf_requests")
+      .select("drive_file_id,corretor_user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!nf?.drive_file_id) throw new Error("Arquivo da NF não encontrado.");
+    if (!isStaff && nf.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
+
+    const file = await downloadDriveFile(nf.drive_file_id);
+    // Retorna base64 (a frontend converte para Blob e dispara o download)
+    let bin = "";
+    for (let i = 0; i < file.buffer.length; i++) bin += String.fromCharCode(file.buffer[i]);
+    const base64 = btoa(bin);
+    return { base64, contentType: file.contentType, filename: file.filename };
+  });
+
 
 // ---------- FINANCEIRO CONFIRMA RECEBIMENTO ----------
 const ConfirmReceivedSchema = z.object({
