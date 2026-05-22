@@ -797,32 +797,57 @@ function ComissoesPage() {
               <Label>Número da NF *</Label>
               <Input value={nfForm.numero_nf} onChange={(e) => setNfForm({ ...nfForm, numero_nf: e.target.value })} maxLength={80} />
             </div>
-            <div className="space-y-1.5">
-              <Label>Anexo da NF *</Label>
-              <Input
-                type="file"
-                accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
-                onChange={(e) => setNfFile(e.target.files?.[0] ?? null)}
-              />
-              {nfFile && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {nfFile.name} · {(nfFile.size / 1024).toFixed(0)} KB
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label>Anexo adicional (opcional)</Label>
-              <Input
-                type="file"
-                accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
-                onChange={(e) => setNfFile2(e.target.files?.[0] ?? null)}
-              />
-              {nfFile2 && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {nfFile2.name} · {(nfFile2.size / 1024).toFixed(0)} KB
-                </p>
-              )}
-              <p className="text-[11px] text-muted-foreground">Os arquivos serão arquivados em uma pasta com o nome do cliente, unidade e empreendimento.</p>
+            <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Anexos da NF (até 2 arquivos)</Label>
+                <span className="text-[11px] text-muted-foreground">{(nfFile ? 1 : 0) + (nfFile2 ? 1 : 0)}/2</span>
+              </div>
+
+              <div className="space-y-1.5 rounded-md border border-border/40 bg-background/60 p-2.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Arquivo 1 *</Label>
+                  {nfFile && (
+                    <button type="button" className="text-[11px] text-destructive hover:underline" onClick={() => setNfFile(null)}>
+                      Remover
+                    </button>
+                  )}
+                </div>
+                <Input
+                  type="file"
+                  accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
+                  onChange={(e) => setNfFile(e.target.files?.[0] ?? null)}
+                />
+                {nfFile && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    {nfFile.name} · {(nfFile.size / 1024).toFixed(0)} KB
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5 rounded-md border border-border/40 bg-background/60 p-2.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Arquivo 2 (opcional)</Label>
+                  {nfFile2 && (
+                    <button type="button" className="text-[11px] text-destructive hover:underline" onClick={() => setNfFile2(null)}>
+                      Remover
+                    </button>
+                  )}
+                </div>
+                <Input
+                  type="file"
+                  accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
+                  onChange={(e) => setNfFile2(e.target.files?.[0] ?? null)}
+                />
+                {nfFile2 && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    {nfFile2.name} · {(nfFile2.size / 1024).toFixed(0)} KB
+                  </p>
+                )}
+              </div>
+
+              <p className="text-[11px] text-muted-foreground">
+                Formatos: PDF, XML ou imagem (máx. 15 MB cada). Os arquivos serão arquivados em uma pasta com o nome do cliente, unidade e empreendimento.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>Observações</Label>
