@@ -857,11 +857,13 @@ function AgendamentosMiniCard() {
       {isLoading ? (
         <div className="text-xs text-muted-foreground">Carregando…</div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-center">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 items-center">
           <Stat label="Total no mês" value={fmtNum(m.total)} />
           <Stat label="Hoje" value={fmtNum(m.hoje)} />
+          <Stat label="Amanhã" value={fmtNum(m.amanha)} icon={<Sunrise className="w-3.5 h-3.5" />} />
           <Stat label="Futuros" value={fmtNum(m.futuros)} />
           <Stat label="House / Imob" value={`${fmtNum(m.house)} / ${fmtNum(m.imob)}`} />
+
           <div className="h-16 md:col-span-1 col-span-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={m.series} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
