@@ -30,9 +30,15 @@ export const Route = createFileRoute("/_authenticated/admin/integracao")({
   component: IntegPage,
 });
 
-function StatusBadge({ connected }: { connected: boolean }) {
+type Ping = { ok: boolean; latencyMs: number | null; error?: string } | undefined;
+
+function StatusBadge({ ping }: { ping: Ping }) {
+  const connected = !!ping?.ok;
+  const label = connected
+    ? `Conectado${ping?.latencyMs != null ? ` · ${ping.latencyMs}ms` : ""}`
+    : ping?.error ?? "Desconectado";
   return (
-    <div className="flex items-center gap-2 mt-2">
+    <div className="flex items-center gap-2 mt-2" title={ping?.error}>
       <span
         className={`relative inline-flex h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400" : "bg-destructive"}`}
       >
@@ -40,8 +46,8 @@ function StatusBadge({ connected }: { connected: boolean }) {
           <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
         )}
       </span>
-      <span className={`text-xs font-medium ${connected ? "text-emerald-400" : "text-destructive"}`}>
-        {connected ? "Conectado" : "Desconectado"}
+      <span className={`text-xs font-medium truncate max-w-[180px] ${connected ? "text-emerald-400" : "text-destructive"}`}>
+        {label}
       </span>
     </div>
   );
