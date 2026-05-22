@@ -105,20 +105,28 @@ function Vendas() {
   }, [filtered]);
 
   const byMonth = useMemo(() => {
-    const m = new Map<string, number>();
+    const m = new Map<string, { vgv: number; sinal: number }>();
     for (const r of filtered) {
       if (!r.data) continue;
       const d = new Date(r.data);
       const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      m.set(k, (m.get(k) ?? 0) + (r.valor_venda ?? 0));
+      const cur = m.get(k) ?? { vgv: 0, sinal: 0 };
+      cur.vgv += r.valor_venda ?? 0;
+      cur.sinal += (r as { valor_sinal_negocio?: number | null }).valor_sinal_negocio ?? 0;
+      m.set(k, cur);
     }
     return Array.from(m.entries())
       .sort()
       .map(([k, v]) => {
         const [y, mo] = k.split("-");
-        return { label: `${mo}/${y.slice(2)}`, vgv: Math.round(v) };
+        return { label: `${mo}/${y.slice(2)}`, vgv: Math.round(v.vgv), sinal: Math.round(v.sinal) };
       });
   }, [filtered]);
+
+  const totalSinal = useMemo(
+    () => filtered.reduce((s, r) => s + ((r as { valor_sinal_negocio?: number | null }).valor_sinal_negocio ?? 0), 0),
+    [filtered],
+  );
 
   const byStatus = useMemo(() => {
     const m = new Map<string, number>();
