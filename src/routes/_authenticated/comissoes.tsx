@@ -517,6 +517,22 @@ function ComissoesPage() {
                           {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1">
                               <RequestPill r={r} />
+                              {r.status === "aprovado" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 px-2 text-[11px]"
+                                  disabled={payMut.isPending}
+                                  onClick={() => {
+                                    if (confirm("Confirmar que o pagamento foi recebido? O processo será finalizado.")) {
+                                      payMut.mutate(r.id);
+                                    }
+                                  }}
+                                >
+                                  <Wallet className="w-3 h-3 mr-1" />Marcar pago
+                                </Button>
+                              )}
+
                               {r.status === "negado" && r.motivo_negacao && (
                                 <Popover>
                                   <PopoverTrigger asChild>
