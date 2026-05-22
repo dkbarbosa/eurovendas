@@ -155,8 +155,8 @@ export const listAllRequests = createServerFn({ method: "POST" })
     const { data: reqs, error } = await q;
     if (error) throw new Error(error.message);
 
-    const saleIds = [...new Set((reqs ?? []).map((r) => r.sale_id))];
-    const userIds = [...new Set((reqs ?? []).map((r) => r.corretor_user_id))];
+    const saleIds = [...new Set((reqs ?? []).map((r) => r.sale_id).filter((v): v is string => !!v))];
+    const userIds = [...new Set((reqs ?? []).map((r) => r.corretor_user_id).filter((v): v is string => !!v))];
     const safeIds = saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"];
     const [{ data: sales }, { data: profs }, { data: paidReqs }, { data: nfRows }] = await Promise.all([
       supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,comissao_liq_corretor,status,valor_sinal_negocio").in("id", safeIds),
@@ -203,7 +203,7 @@ export const listAllRequests = createServerFn({ method: "POST" })
       return {
         ...r,
         sale,
-        corretor_profile: pMap.get(r.corretor_user_id) ?? null,
+        corretor_profile: r.corretor_user_id ? pMap.get(r.corretor_user_id) ?? null : null,
         comissao_liq: comissaoLiq,
         adiantado_pago: p.adiantado,
         final_pago: p.final,
