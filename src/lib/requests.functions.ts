@@ -361,11 +361,14 @@ export const markRequestPaid = createServerFn({ method: "POST" })
     }
     // Transição atômica pendente|aprovado -> pago. Apenas o primeiro (financeiro OU corretor)
     // consegue marcar; o segundo recebe erro e nada é duplicado na planilha.
+    // Brokers can only confirm receipt of payments already APPROVED by financeiro.
+    // Staff (financeiro/admin) can transition from pendente or aprovado.
+    const allowedStatuses = isStaff ? ["pendente", "aprovado"] : ["aprovado"];
     const { data: upd, error } = await supabaseAdmin
       .from("commission_requests")
       .update(patch)
       .eq("id", data.id)
-      .in("status", ["pendente", "aprovado"])
+      .in("status", allowedStatuses)
       .select("id, tipo, valor_solicitado, sale_id");
     if (error) throw new Error(error.message);
     if (!upd?.length) throw new Error("Pedido já foi marcado como pago.");
