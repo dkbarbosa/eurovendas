@@ -285,6 +285,12 @@ function ComissoesPage() {
     onSuccess: () => { toast.success("NF excluída."); qc.invalidateQueries({ queryKey: ["my-broker-sales"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const payMut = useMutation({
+    mutationFn: (id: string) => fnPaid({ data: { id } }),
+    onSuccess: () => { toast.success("Pagamento confirmado. Processo finalizado."); qc.invalidateQueries({ queryKey: ["my-broker-sales"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   return (
     <div className="space-y-8">
