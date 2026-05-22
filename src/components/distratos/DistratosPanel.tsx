@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listDistratos, markDistratoDevolvido, cancelDistrato } from "@/lib/distratos.functions";
+import { listDistratos, markDistratoDevolvido, cancelDistrato, createDistrato, listSalesForDistrato } from "@/lib/distratos.functions";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Ban, CheckCircle2, Trash2, Search, AlertTriangle } from "lucide-react";
+import { Loader2, Ban, CheckCircle2, Trash2, Search, AlertTriangle, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -94,6 +94,14 @@ export function DistratosPanel() {
 
   return (
     <div className="space-y-4">
+      {/* Header + ação */}
+      {isStaff && (
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="text-xs text-muted-foreground">Gestão de distratos — selecione qualquer venda para registrar.</div>
+          <NewDistratoDialog onCreated={() => qc.invalidateQueries({ queryKey: ["distratos"] })} />
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiTile label="Distratos" value={String(totals.qtdTotal)} sub="No recorte atual" />
@@ -254,5 +262,234 @@ function KpiTile({ label, value, sub, highlight, success }: { label: string; val
       <div className={`font-display text-2xl font-semibold tracking-tight mt-1 ${highlight ? "text-destructive" : success ? "text-emerald-400" : ""}`}>{value}</div>
       <div className="text-[11px] text-muted-foreground mt-1">{sub}</div>
     </motion.div>
+  );
+}
+
+// ============== NOVO DISTRATO (financeiro) ==============
+type SaleRow = {
+  id: string;
+  data: string | null;
+  comprador: string | null;
+  empreendimento: string | null;
+  unidade: string | null;
+  valor_venda: number | null;
+  corretor: string | null;
+  status: string | null;
+  valor_adiantamento_pago: number;
+  valor_comissao_final_pago: number;
+  total_pago: number;
+  ja_distratada: boolean;
+};
+
+function NewDistratoDialog({ onCreated }: { onCreated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<SaleRow | null>(null);
+  const [valor, setValor] = useState<string>("");
+  const [motivo, setMotivo] = useState("");
+  const [obs, setObs] = useState("");
+
+  const fnList = useServerFn(listSalesForDistrato);
+  const fnCreate = useServerFn(createDistrato);
+
+  const { data: sales = [], isLoading } = useQuery({
+    queryKey: ["sales-for-distrato"],
+    queryFn: () => fnList(),
+    enabled: open,
+  });
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const rows = sales as SaleRow[];
+    if (!q) return rows.slice(0, 200);
+    return rows
+      .filter((s) =>
+        [s.comprador, s.empreendimento, s.unidade, s.corretor, s.status]
+          .some((v) => v?.toLowerCase().includes(q)),
+      )
+      .slice(0, 200);
+  }, [sales, search]);
+
+  const mut = useMutation({
+    mutationFn: (v: { sale_id: string; valor_devolver: number; motivo: string; observacao_financeiro?: string }) =>
+      fnCreate({ data: v }),
+    onSuccess: () => {
+      toast.success("Distrato registrado.");
+      onCreated();
+      reset();
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reset = () => {
+    setSelected(null);
+    setValor("");
+    setMotivo("");
+    setObs("");
+    setSearch("");
+  };
+
+  const valorNum = Number(valor.replace(",", "."));
+  const canSubmit = !!selected && !selected.ja_distratada && motivo.trim().length >= 3 && valorNum >= 0 && !Number.isNaN(valorNum);
+
+  return (
+    <>
+      <Button variant="destructive" size="sm" onClick={() => setOpen(true)}>
+        <Plus className="w-3.5 h-3.5 mr-1" /> Novo distrato
+      </Button>
+
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Registrar distrato</DialogTitle>
+            <DialogDescription>
+              Selecione qualquer venda. O financeiro define o valor a ser devolvido à Euro.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!selected && (
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por cliente, empreendimento, corretor, status…"
+                  className="pl-9"
+                  autoFocus
+                />
+              </div>
+              <div className="max-h-[420px] overflow-auto rounded-lg border border-border/40">
+                {isLoading && <div className="p-6 text-center"><Loader2 className="w-4 h-4 animate-spin inline" /></div>}
+                {!isLoading && filtered.length === 0 && (
+                  <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma venda encontrada.</div>
+                )}
+                {!isLoading && filtered.length > 0 && (
+                  <table className="w-full text-sm">
+                    <thead className="text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary/30 sticky top-0">
+                      <tr>
+                        <th className="text-left px-3 py-2">Data</th>
+                        <th className="text-left px-3 py-2">Cliente</th>
+                        <th className="text-left px-3 py-2">Empreend./Un.</th>
+                        <th className="text-left px-3 py-2">Corretor</th>
+                        <th className="text-left px-3 py-2">Status</th>
+                        <th className="text-right px-3 py-2">Pago</th>
+                        <th className="px-3 py-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((s) => (
+                        <tr key={s.id} className="border-t border-border/40">
+                          <td className="px-3 py-2 text-xs whitespace-nowrap">
+                            {s.data ? new Date(s.data).toLocaleDateString("pt-BR") : "—"}
+                          </td>
+                          <td className="px-3 py-2 font-medium">{s.comprador ?? "—"}</td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground">{s.empreendimento ?? "—"} / {s.unidade ?? "—"}</td>
+                          <td className="px-3 py-2 text-xs">{s.corretor ?? "—"}</td>
+                          <td className="px-3 py-2 text-xs">
+                            <Badge variant="outline" className="text-[10px]">{s.status ?? "—"}</Badge>
+                          </td>
+                          <td className="px-3 py-2 text-right text-xs whitespace-nowrap">{BRL(s.total_pago)}</td>
+                          <td className="px-3 py-2 text-right">
+                            {s.ja_distratada ? (
+                              <Badge variant="outline" className="text-[10px] text-destructive border-destructive/40">Já distratada</Badge>
+                            ) : (
+                              <Button size="sm" variant="outline" className="h-7 text-xs"
+                                onClick={() => {
+                                  setSelected(s);
+                                  setValor(String(s.total_pago.toFixed(2)));
+                                }}>
+                                Selecionar
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+
+          {selected && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</div>
+                    <div className="font-medium">{selected.comprador ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {selected.empreendimento ?? "—"} / {selected.unidade ?? "—"} · Corretor: {selected.corretor ?? "—"}
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => { setSelected(null); setValor(""); }}>
+                    Trocar venda
+                  </Button>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs pt-2 border-t border-destructive/20">
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground">Adiantamento pago</div>
+                    <div className="font-semibold">{BRL(selected.valor_adiantamento_pago)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground">Comissão final paga</div>
+                    <div className="font-semibold">{BRL(selected.valor_comissao_final_pago)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground">Total já pago</div>
+                    <div className="font-semibold text-destructive">{BRL(selected.total_pago)}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Valor a devolver à Euro *</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={valor}
+                  onChange={(e) => setValor(e.target.value)}
+                  placeholder="0,00"
+                  className="text-lg font-semibold"
+                />
+                <div className="text-[11px] text-muted-foreground">
+                  Sugestão: total já pago ({BRL(selected.total_pago)}). Você pode ajustar.
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Motivo do distrato *</Label>
+                <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3} maxLength={2000} placeholder="Descreva o motivo do distrato" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Observação (opcional)</Label>
+                <Textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2} maxLength={2000} />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setOpen(false); reset(); }}>Cancelar</Button>
+            {selected && (
+              <Button
+                variant="destructive"
+                disabled={!canSubmit || mut.isPending}
+                onClick={() => mut.mutate({
+                  sale_id: selected.id,
+                  valor_devolver: valorNum,
+                  motivo,
+                  observacao_financeiro: obs || undefined,
+                })}
+              >
+                {mut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar distrato"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
