@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const CALENDAR_ID =
   "839c08efcb01ccc668216d2172545dca8526f0bd349d62328beeba02792ac495@group.calendar.google.com";
