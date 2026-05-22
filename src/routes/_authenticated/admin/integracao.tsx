@@ -94,15 +94,34 @@ function IntegPage() {
   });
 
   const syncMut = useMutation({
-    mutationFn: () => sync({}),
-    onSuccess: (r: { ok: boolean; rows: number; error?: string }) => {
+    mutationFn: async () => {
+      // Refresh status of ALL connectors first, then run the sheets sync.
+      const [statusRes, syncRes] = await Promise.all([
+        checkStatus({}).catch((e) => ({ __err: e })),
+        sync({}).catch((e) => ({ __err: e })),
+      ]);
+      return { statusRes, syncRes } as {
+        statusRes: { __err?: unknown } | Awaited<ReturnType<typeof checkStatus>>;
+        syncRes: { __err?: unknown } | { ok: boolean; rows: number; error?: string };
+      };
+    },
+    onSuccess: ({ syncRes }) => {
+      qc.invalidateQueries({ queryKey: ["connector-status"] });
+      qc.invalidateQueries({ queryKey: ["sync-log"] });
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["sales-all"] });
+
+      if ("__err" in syncRes && syncRes.__err) {
+        const e = syncRes.__err;
+        toast.error(e instanceof Error ? e.message : String(e));
+        return;
+      }
+      const r = syncRes as { ok: boolean; rows: number; error?: string };
       if (!r.ok) {
         toast.error(r.error ?? "Falha ao sincronizar");
         return;
       }
-      toast.success(`Sincronizado: ${r.rows} vendas.`);
-      qc.invalidateQueries({ queryKey: ["sales"] });
-      qc.invalidateQueries({ queryKey: ["sync-log"] });
+      toast.success(`Conexões atualizadas · ${r.rows} vendas sincronizadas.`);
     },
     onError: async (e: unknown) =>
       toast.error(e instanceof Response ? await e.text() : e instanceof Error ? e.message : String(e)),
