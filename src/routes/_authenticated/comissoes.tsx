@@ -633,16 +633,23 @@ function ComissoesPage() {
                               <CheckCircle2 className="w-3.5 h-3.5" />Finalizado
                             </span>
                           ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={hasPending}
-                              title={hasPending ? "Já existe uma solicitação pendente para esta venda." : ""}
-                              onClick={() => openReq(s)}
-                            >
-                              {hasPending ? "Pendente" : "Solicitar pagamento"}
-                            </Button>
+                            (() => {
+                              const stUp = (s.status ?? "").trim().toUpperCase();
+                              const isReservado = stUp === "RESERVADO";
+                              return (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={hasPending || isReservado}
+                                  title={isReservado ? "Venda reservada não permite solicitação." : (hasPending ? "Já existe uma solicitação pendente para esta venda." : "")}
+                                  onClick={() => openReq(s)}
+                                >
+                                  {isReservado ? "Reservado" : hasPending ? "Pendente" : "Solicitar pagamento"}
+                                </Button>
+                              );
+                            })()
                           )}
+
                           {nfAberta && aReceberSale > 0 && (
                             <Button size="sm" onClick={() => openNF(nfAberta.id)}
                               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
