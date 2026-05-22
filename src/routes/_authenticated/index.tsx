@@ -102,10 +102,19 @@ function Dashboard() {
   }, [allSales]);
 
   const statuses = useMemo(() => {
-    const set = new Set<string>();
-    SHEET_STATUS_OPTIONS.forEach((s) => set.add(s));
-    allSales.forEach((s) => s.status && set.add(s.status));
-    return Array.from(set);
+    // Mantém a ordem da planilha e deduplica case-insensitive
+    const seen = new Set<string>();
+    const out: string[] = [];
+    const push = (s: string) => {
+      const k = s.toUpperCase();
+      if (!seen.has(k)) {
+        seen.add(k);
+        out.push(s);
+      }
+    };
+    SHEET_STATUS_OPTIONS.forEach(push);
+    allSales.forEach((s) => s.status && push(s.status));
+    return out;
   }, [allSales]);
 
   const now = new Date();
