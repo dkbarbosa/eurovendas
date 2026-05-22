@@ -276,16 +276,23 @@ export const markRequestPaid = createServerFn({ method: "POST" })
       if (!own || own.corretor_user_id !== context.userId)
         throw new Error("Acesso negado.");
     }
-    const patch: Record<string, unknown> = {
+    const patch: {
+      status: "pago";
+      paid_at: string;
+      observacao_financeiro?: string;
+      observacao_corretor?: string;
+    } = {
       status: "pago",
       paid_at: new Date().toISOString(),
     };
     if (data.observacao) {
-      patch[isStaff ? "observacao_financeiro" : "observacao_corretor"] = data.observacao;
+      if (isStaff) patch.observacao_financeiro = data.observacao;
+      else patch.observacao_corretor = data.observacao;
     }
     const { data: upd, error } = await supabaseAdmin
       .from("commission_requests")
       .update(patch)
+
       .eq("id", data.id)
       .eq("status", "aprovado")
       .select("id");
