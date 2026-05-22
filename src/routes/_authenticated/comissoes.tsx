@@ -506,7 +506,7 @@ function ComissoesPage() {
                       <td className="p-3 text-right whitespace-nowrap">
                         {comissaoLiq > 0 && aReceberSale === 0 ? (
                           <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
-                            <CheckCircle2 className="w-3.5 h-3.5" />Finalizado
+                            <CheckCircle2 className="w-3.5 h-3.5" />100% pago
                           </span>
                         ) : (
                           <span className={aReceberSale > 0 ? "text-primary font-semibold" : "text-muted-foreground"}>
