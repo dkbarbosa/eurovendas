@@ -249,25 +249,35 @@ function ComissoesPage() {
   const [nfDialog, setNfDialog] = useState<{ open: boolean; nfId: string | null }>({ open: false, nfId: null });
   const [nfForm, setNfForm] = useState({ numero_nf: "", observacao: "" });
   const [nfFile, setNfFile] = useState<File | null>(null);
+  const [nfFile2, setNfFile2] = useState<File | null>(null);
   const [uploadingNF, setUploadingNF] = useState(false);
   const openNF = (nfId: string) => {
     setNfForm({ numero_nf: "", observacao: "" });
     setNfFile(null);
+    setNfFile2(null);
     setNfDialog({ open: true, nfId });
   };
+  const readFileB64 = (f: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.onerror = () => reject(reader.error ?? new Error("Falha ao ler arquivo."));
+    reader.readAsDataURL(f);
+  });
   const emitMut = useMutation({
     mutationFn: async () => {
       if (!nfFile) throw new Error("Anexe o arquivo da NF (PDF, PNG ou JPEG).");
       if (nfFile.size > 15 * 1024 * 1024) throw new Error("Arquivo muito grande (máx. 15 MB).");
+      if (nfFile2 && nfFile2.size > 15 * 1024 * 1024) throw new Error("2º arquivo muito grande (máx. 15 MB).");
       setUploadingNF(true);
       try {
-        // Lê como base64 e envia para o servidor — o servidor faz upload no Google Drive.
-        const base64: string = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-          reader.onerror = () => reject(reader.error ?? new Error("Falha ao ler arquivo."));
-          reader.readAsDataURL(nfFile);
-        });
+        const base64 = await readFileB64(nfFile);
+        const file2 = nfFile2
+          ? {
+              file_base64: await readFileB64(nfFile2),
+              file_name: nfFile2.name,
+              file_mime: nfFile2.type || "application/octet-stream",
+            }
+          : undefined;
         return fnEmit({
           data: {
             id: nfDialog.nfId!,
@@ -276,6 +286,7 @@ function ComissoesPage() {
             file_name: nfFile.name,
             file_mime: nfFile.type || "application/octet-stream",
             observacao: nfForm.observacao || undefined,
+            file2,
           },
         });
       } finally {
@@ -661,12 +672,20 @@ function ComissoesPage() {
           {(() => {
             const sale = reqDialog.sale;
             const comLiq = Number(sale?.comissao_liq_corretor) || 0;
+            const valorVenda = Number(sale?.valor_venda) || 0;
             const paidS = sale ? paidBySale.get(sale.id) : undefined;
             const jaAdiantado = paidS?.adiantado ?? 0;
             const jaFinal = paidS?.finalPago ?? 0;
             const maxReceber = Math.max(0, comLiq - jaAdiantado - jaFinal);
             const valor = reqForm.valor_solicitado ?? 0;
+            const sinal = reqForm.valor_sinal ?? 0;
             const excedeu = valor > maxReceber;
+            // Regras automáticas
+            const minSinalComissao = valorVenda * 0.06;
+            const maxAdiant = Math.floor(sinal / 3000) * 1000;
+            const ruleAdiantOk = reqForm.tipo !== "adiantamento" || (sinal > 3000 && valor <= maxAdiant);
+            const ruleComissaoOk = reqForm.tipo !== "comissao_final" || valorVenda === 0 || sinal >= minSinalComissao;
+            const ruleViolated = !ruleAdiantOk || !ruleComissaoOk;
             return (
               <>
                 <div className="space-y-3">
@@ -674,6 +693,11 @@ function ComissoesPage() {
                     <div><div className="text-muted-foreground">Comissão Liq.</div><div className="font-semibold">{BRL(comLiq)}</div></div>
                     <div><div className="text-muted-foreground">Já adiantado</div><div className={`font-semibold ${jaAdiantado > 0 ? "text-amber-400" : ""}`}>{BRL(jaAdiantado)}</div></div>
                     <div><div className="text-muted-foreground">Máx. a solicitar</div><div className="font-semibold text-primary">{BRL(maxReceber)}</div></div>
+                  </div>
+                  <div className="rounded-lg border border-border/60 bg-secondary/20 p-3 text-xs space-y-1">
+                    <div className="font-semibold text-foreground">Regras automáticas</div>
+                    <div className="text-muted-foreground">• Adiantamento: cada <b>R$ 1.000</b> exige no mínimo <b>R$ 3.000</b> de sinal (sinal &gt; R$ 3.000).</div>
+                    <div className="text-muted-foreground">• Comissão final: liberada apenas com sinal ≥ <b>6%</b> do valor da venda{valorVenda > 0 ? <> (mín. <b>{BRL(minSinalComissao)}</b>)</> : null}.</div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
@@ -695,10 +719,19 @@ function ComissoesPage() {
                       {!excedeu && valor > 0 && (
                         <p className="text-xs text-muted-foreground">Restante após este pedido: {BRL(maxReceber - valor)}</p>
                       )}
+                      {reqForm.tipo === "adiantamento" && sinal > 3000 && valor > maxAdiant && (
+                        <p className="text-xs text-destructive">Adiantamento máximo permitido: {BRL(maxAdiant)} (R$ 1.000 a cada R$ 3.000 de sinal).</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label>Sinal recebido (R$)</Label>
                       <CurrencyInput value={reqForm.valor_sinal} onValueChange={(v) => setReqForm({ ...reqForm, valor_sinal: v })} />
+                      {reqForm.tipo === "adiantamento" && sinal > 0 && sinal <= 3000 && (
+                        <p className="text-xs text-destructive">Sinal precisa ser maior que R$ 3.000 para liberar adiantamento.</p>
+                      )}
+                      {reqForm.tipo === "comissao_final" && valorVenda > 0 && sinal > 0 && sinal < minSinalComissao && (
+                        <p className="text-xs text-destructive">Sinal abaixo de 6% do valor da venda (mín. {BRL(minSinalComissao)}).</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label>Bônus corretor (R$)</Label>
@@ -712,7 +745,7 @@ function ComissoesPage() {
                 </div>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setReqDialog({ open: false, sale: null })}>Cancelar</Button>
-                  <Button disabled={createMut.isPending || !reqForm.valor_solicitado || excedeu} onClick={() => createMut.mutate()}
+                  <Button disabled={createMut.isPending || !reqForm.valor_solicitado || excedeu || ruleViolated} onClick={() => createMut.mutate()}
                     style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
                     {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar pedido"}
                   </Button>
@@ -747,6 +780,20 @@ function ComissoesPage() {
                   {nfFile.name} · {(nfFile.size / 1024).toFixed(0)} KB
                 </p>
               )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Anexo adicional (opcional)</Label>
+              <Input
+                type="file"
+                accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
+                onChange={(e) => setNfFile2(e.target.files?.[0] ?? null)}
+              />
+              {nfFile2 && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {nfFile2.name} · {(nfFile2.size / 1024).toFixed(0)} KB
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground">Os arquivos serão arquivados em uma pasta com o nome do cliente, unidade e empreendimento.</p>
             </div>
             <div className="space-y-1.5">
               <Label>Observações</Label>

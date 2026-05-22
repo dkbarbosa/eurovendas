@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { uploadFileToDriveFolder, downloadDriveFile, deleteDriveFile } from "./drive.server";
+import { uploadFileToDriveFolder, downloadDriveFile, deleteDriveFile, getOrCreateDriveFolder } from "./drive.server";
 
 async function getRoles(userId: string) {
   const { data } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId);
@@ -129,14 +129,38 @@ export const listAllNFs = createServerFn({ method: "GET" })
   });
 
 // ---------- CORRETOR EMITE NF (faz upload para o Google Drive) ----------
+const FileSchema = z.object({
+  file_base64: z.string().min(10).max(20_000_000),
+  file_name: z.string().trim().min(1).max(255),
+  file_mime: z.string().trim().min(1).max(120),
+});
 const MarkEmittedSchema = z.object({
   id: z.string().uuid(),
   numero_nf: z.string().trim().min(1, "Número da NF é obrigatório").max(80),
   observacao: z.string().trim().max(2000).optional(),
-  file_base64: z.string().min(10).max(20_000_000), // ~15 MB após decode
+  file_base64: z.string().min(10).max(20_000_000),
   file_name: z.string().trim().min(1).max(255),
   file_mime: z.string().trim().min(1).max(120),
+  file2: FileSchema.optional(),
 });
+
+function sanitizeFolderName(parts: Array<string | null | undefined>): string {
+  return parts
+    .map((p) => (p ?? "").toString().trim())
+    .filter(Boolean)
+    .join(" - ")
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, 200) || "Venda";
+}
+
+function b64ToBytes(s: string): Uint8Array {
+  const clean = s.replace(/^data:[^;]+;base64,/, "");
+  const bin = atob(clean);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf;
+}
 
 export const markNFEmitted = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -145,10 +169,9 @@ export const markNFEmitted = createServerFn({ method: "POST" })
     const roles = await getRoles(context.userId);
     const isAdmin = roles.includes("admin");
 
-    // Verifica posse do pedido antes de fazer upload (evita upload órfão).
     const ownerCheck = supabaseAdmin
       .from("nf_requests")
-      .select("id,corretor_user_id,status,drive_file_id")
+      .select("id,corretor_user_id,status,drive_file_id,sale_id")
       .eq("id", data.id)
       .maybeSingle();
     const { data: nfRow } = await ownerCheck;
@@ -156,18 +179,36 @@ export const markNFEmitted = createServerFn({ method: "POST" })
     if (nfRow.status !== "solicitada") throw new Error("NF não está mais aguardando emissão.");
     if (!isAdmin && nfRow.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
 
-    // Decode base64 → bytes
-    const clean = data.file_base64.replace(/^data:[^;]+;base64,/, "");
-    const bin = atob(clean);
-    const buf = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    // Resolver/criar subpasta no Drive identificando a venda.
+    let folderId: string | undefined;
+    if (nfRow.sale_id) {
+      const { data: sale } = await supabaseAdmin
+        .from("sales").select("comprador,unidade,empreendimento")
+        .eq("id", nfRow.sale_id).maybeSingle();
+      const folderName = sanitizeFolderName([sale?.comprador, sale?.unidade, sale?.empreendimento]);
+      try {
+        folderId = await getOrCreateDriveFolder(folderName);
+      } catch (e) {
+        console.error("getOrCreateDriveFolder:", e);
+      }
+    }
 
-    const safeName = `${data.id}-${data.file_name.replace(/[^\w.\-]+/g, "_")}`;
-    const uploaded = await uploadFileToDriveFolder({
-      buffer: buf,
-      filename: safeName,
-      mimeType: data.file_mime,
-    });
+    const buf1 = b64ToBytes(data.file_base64);
+    const safeName1 = `${data.id}-${data.file_name.replace(/[^\w.\-]+/g, "_")}`;
+    const uploaded = await uploadFileToDriveFolder({ buffer: buf1, filename: safeName1, mimeType: data.file_mime, folderId });
+
+    let uploaded2: { id: string; webViewLink: string } | null = null;
+    if (data.file2) {
+      try {
+        const buf2 = b64ToBytes(data.file2.file_base64);
+        const safeName2 = `${data.id}-2-${data.file2.file_name.replace(/[^\w.\-]+/g, "_")}`;
+        uploaded2 = await uploadFileToDriveFolder({ buffer: buf2, filename: safeName2, mimeType: data.file2.file_mime, folderId });
+      } catch (e) {
+        // rollback do primeiro upload se o segundo falhar
+        try { await deleteDriveFile(uploaded.id); } catch { /* noop */ }
+        throw e;
+      }
+    }
 
     const { data: upd, error } = await supabaseAdmin
       .from("nf_requests")
@@ -177,6 +218,8 @@ export const markNFEmitted = createServerFn({ method: "POST" })
         observacao_corretor: data.observacao ?? null,
         arquivo_nf_url: uploaded.webViewLink,
         drive_file_id: uploaded.id,
+        arquivo_nf_url_2: uploaded2?.webViewLink ?? null,
+        drive_file_id_2: uploaded2?.id ?? null,
         emitida_at: new Date().toISOString(),
         recebida_at: new Date().toISOString(),
       })
@@ -184,12 +227,13 @@ export const markNFEmitted = createServerFn({ method: "POST" })
       .eq("status", "solicitada")
       .select("id");
     if (error) {
-      // rollback do upload caso o update falhe
       try { await deleteDriveFile(uploaded.id); } catch { /* noop */ }
+      if (uploaded2) { try { await deleteDriveFile(uploaded2.id); } catch { /* noop */ } }
       throw new Error(error.message);
     }
     if (!upd?.length) {
       try { await deleteDriveFile(uploaded.id); } catch { /* noop */ }
+      if (uploaded2) { try { await deleteDriveFile(uploaded2.id); } catch { /* noop */ } }
       throw new Error("NF não encontrada ou já foi emitida.");
     }
     return { ok: true };

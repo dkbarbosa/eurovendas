@@ -16,6 +16,27 @@ function authHeaders() {
   return { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": dk };
 }
 
+export async function getOrCreateDriveFolder(name: string, parentId: string = NF_DRIVE_FOLDER_ID): Promise<string> {
+  const safe = name.replace(/['\\]/g, " ").trim() || "sem-nome";
+  const q = encodeURIComponent(
+    `'${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false and name = '${safe}'`,
+  );
+  const findRes = await fetch(`${API_BASE}/files?q=${q}&fields=files(id,name)&pageSize=1`, { headers: authHeaders() });
+  const found = (await findRes.json()) as { files?: Array<{ id: string }>; error?: { message?: string } };
+  if (findRes.ok && found.files && found.files.length > 0) return found.files[0].id;
+
+  const createRes = await fetch(`${API_BASE}/files?fields=id`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ name: safe, mimeType: "application/vnd.google-apps.folder", parents: [parentId] }),
+  });
+  const created = (await createRes.json()) as { id?: string; error?: { message?: string } };
+  if (!createRes.ok || !created.id) {
+    throw new Error(`Drive criar pasta falhou [${createRes.status}]: ${created?.error?.message ?? ""}`);
+  }
+  return created.id;
+}
+
 export async function uploadFileToDriveFolder(opts: {
   buffer: Uint8Array;
   filename: string;
