@@ -26,7 +26,7 @@ import { ChartCard } from "@/components/ChartCard";
 import { fmtNum } from "@/lib/format";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, Clock, TrendingUp, Filter, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import { CalendarDays, Users, Clock, TrendingUp, Filter, Loader2, AlertCircle, ExternalLink, Sunrise } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/agendamentos")({ component: AgendamentosPage });
 
