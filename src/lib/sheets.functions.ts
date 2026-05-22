@@ -98,32 +98,27 @@ export const syncFromSheets = createServerFn({ method: "POST" })
         pctGerente: Number(cfg.pct_gerente_default ?? 0.007),
       });
 
-      // Upsert por row_hash (preserva IDs de vendas referenciadas por solicitações).
+      // Upsert por row_hash em chunks para evitar payload gigante e timeouts.
       const now = new Date().toISOString();
-      if (rows.length > 0) {
+      const CHUNK = 500;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const slice = rows.slice(i, i + CHUNK).map((row) => ({ ...row, updated_at: now }));
         const { error: upErr } = await supabaseAdmin
           .from("sales")
-          .upsert(
-            rows.map((row) => ({ ...row, updated_at: now })),
-            { onConflict: "row_hash" },
-          );
+          .upsert(slice, { onConflict: "row_hash" });
         if (upErr) throw upErr;
       }
 
-      // Remove vendas que sumiram da planilha, exceto as referenciadas por solicitações (FK RESTRICT).
+      // Remove vendas que sumiram da planilha, exceto as referenciadas por solicitações.
       const incomingHashes = new Set(rows.map((r) => r.row_hash));
       const { data: existing } = await supabaseAdmin.from("sales").select("id,row_hash");
       const stale = (existing ?? []).filter((s) => !incomingHashes.has(s.row_hash as string));
       if (stale.length > 0) {
         const staleIds = stale.map((s) => s.id as string);
-        const { data: refsCR } = await supabaseAdmin
-          .from("commission_requests")
-          .select("sale_id")
-          .in("sale_id", staleIds);
-        const { data: refsNF } = await supabaseAdmin
-          .from("nf_requests")
-          .select("sale_id")
-          .in("sale_id", staleIds);
+        const [{ data: refsCR }, { data: refsNF }] = await Promise.all([
+          supabaseAdmin.from("commission_requests").select("sale_id").in("sale_id", staleIds),
+          supabaseAdmin.from("nf_requests").select("sale_id").in("sale_id", staleIds),
+        ]);
         const referenced = new Set<string>([
           ...(refsCR ?? []).map((r) => r.sale_id as string),
           ...(refsNF ?? []).map((r) => r.sale_id as string),

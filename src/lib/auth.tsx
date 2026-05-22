@@ -32,13 +32,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [rolesLoading, setRolesLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (!mounted) return;
       setSession(s);
       // Ignora eventos que não mudam o usuário (refresh de token ao voltar para a aba)
       if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") return;
       if (s?.user) {
         setRolesLoading(true);
-        setTimeout(() => loadUserContext(s.user.id), 0);
+        // Defer para evitar deadlock dentro do callback de auth
+        setTimeout(() => mounted && loadUserContext(s.user.id), 0);
       } else {
         setRoles([]);
         setCorretorNome(null);
@@ -46,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
       setSession(data.session);
       if (data.session?.user) {
         setRolesLoading(true);
@@ -54,18 +58,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRolesLoading(false);
       }
       setLoading(false);
+    }).catch(() => {
+      if (mounted) setLoading(false);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   async function loadUserContext(userId: string) {
-    const [{ data: rData }, { data: mData }] = await Promise.all([
-      supabase.from("user_roles").select("role").eq("user_id", userId),
-      supabase.from("broker_mapping").select("corretor_nome,ativo").eq("user_id", userId).maybeSingle(),
-    ]);
-    setRoles((rData ?? []).map((r) => r.role as Role));
-    setCorretorNome(mData?.ativo ? mData.corretor_nome : null);
-    setRolesLoading(false);
+    try {
+      const [{ data: rData }, { data: mData }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", userId),
+        supabase.from("broker_mapping").select("corretor_nome,ativo").eq("user_id", userId).maybeSingle(),
+      ]);
+      setRoles((rData ?? []).map((r) => r.role as Role));
+      setCorretorNome(mData?.ativo ? mData.corretor_nome : null);
+    } catch (e) {
+      console.error("loadUserContext failed:", e);
+    } finally {
+      setRolesLoading(false);
+    }
   }
 
   const isAdmin = roles.includes("admin");
