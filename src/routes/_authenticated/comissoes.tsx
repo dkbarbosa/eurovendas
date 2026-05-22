@@ -83,13 +83,13 @@ function ComissoesPage() {
   const nfs = data?.nfs ?? [];
   const displayName = data?.corretorNome ?? null;
 
-  // Vendas com solicitação ativa (pendente ou aprovada) — sempre visíveis
-  // mesmo fora do período. Só somem quando a solicitação for negada ou
-  // quando todos os pagamentos forem concluídos.
+  // Vendas com qualquer solicitação não concluída (pendente, aprovada ou
+  // negada) permanecem sempre visíveis — independentemente do período.
+  // Só somem quando todos os pagamentos estiverem com status "pago".
   const salesWithOpenRequest = useMemo(() => {
     const ids = new Set<string>();
     for (const r of requests) {
-      if (r.status === "pendente" || r.status === "aprovado") ids.add(r.sale_id);
+      if (r.status !== "pago") ids.add(r.sale_id);
     }
     return ids;
   }, [requests]);
