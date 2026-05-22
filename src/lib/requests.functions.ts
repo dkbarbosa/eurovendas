@@ -67,15 +67,15 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
     const sinal = Number(data.valor_sinal) || 0;
 
     // Regras de negócio (automáticas):
-    //  - Adiantamento: cada R$1.000 exige no mínimo R$3.000 de sinal (sinal > 3k para liberar).
+    //  - Adiantamento: cada R$1.000 exige no mínimo R$2.999,99 de sinal.
     //  - Comissão final: só pode ser solicitada se o sinal ≥ 6% do valor da venda.
     if (data.tipo === "adiantamento") {
-      if (sinal <= 3000) {
-        throw new Error(`Adiantamento liberado apenas com sinal acima de ${fmt(3000)} (sinal informado: ${fmt(sinal)}).`);
+      if (sinal < 2999.99) {
+        throw new Error(`Adiantamento liberado apenas com sinal a partir de ${fmt(2999.99)} (sinal informado: ${fmt(sinal)}).`);
       }
-      const maxAdiant = Math.floor(sinal / 3000) * 1000;
+      const maxAdiant = Math.floor(sinal / 2999.99) * 1000;
       if (data.valor_solicitado > maxAdiant + 0.001) {
-        throw new Error(`Valor de adiantamento máximo permitido: ${fmt(maxAdiant)} (regra: R$1.000 a cada R$3.000 de sinal).`);
+        throw new Error(`Valor de adiantamento máximo permitido: ${fmt(maxAdiant)} (regra: R$1.000 a cada R$2.999,99 de sinal).`);
       }
     }
     if (data.tipo === "comissao_final") {

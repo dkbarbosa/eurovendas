@@ -682,8 +682,8 @@ function ComissoesPage() {
             const excedeu = valor > maxReceber;
             // Regras automáticas
             const minSinalComissao = valorVenda * 0.06;
-            const maxAdiant = Math.floor(sinal / 3000) * 1000;
-            const ruleAdiantOk = reqForm.tipo !== "adiantamento" || (sinal > 3000 && valor <= maxAdiant);
+            const maxAdiant = Math.floor(sinal / 2999.99) * 1000;
+            const ruleAdiantOk = reqForm.tipo !== "adiantamento" || (sinal >= 2999.99 && valor <= maxAdiant);
             const ruleComissaoOk = reqForm.tipo !== "comissao_final" || valorVenda === 0 || sinal >= minSinalComissao;
             const ruleViolated = !ruleAdiantOk || !ruleComissaoOk;
             return (
@@ -696,7 +696,7 @@ function ComissoesPage() {
                   </div>
                   <div className="rounded-lg border border-border/60 bg-secondary/20 p-3 text-xs space-y-1">
                     <div className="font-semibold text-foreground">Regras automáticas</div>
-                    <div className="text-muted-foreground">• Adiantamento: cada <b>R$ 1.000</b> exige no mínimo <b>R$ 3.000</b> de sinal (sinal &gt; R$ 3.000).</div>
+                    <div className="text-muted-foreground">• Adiantamento: cada <b>R$ 1.000</b> exige no mínimo <b>R$ 2.999,99</b> de sinal.</div>
                     <div className="text-muted-foreground">• Comissão final: liberada apenas com sinal ≥ <b>6%</b> do valor da venda{valorVenda > 0 ? <> (mín. <b>{BRL(minSinalComissao)}</b>)</> : null}.</div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -719,15 +719,15 @@ function ComissoesPage() {
                       {!excedeu && valor > 0 && (
                         <p className="text-xs text-muted-foreground">Restante após este pedido: {BRL(maxReceber - valor)}</p>
                       )}
-                      {reqForm.tipo === "adiantamento" && sinal > 3000 && valor > maxAdiant && (
-                        <p className="text-xs text-destructive">Adiantamento máximo permitido: {BRL(maxAdiant)} (R$ 1.000 a cada R$ 3.000 de sinal).</p>
+                      {reqForm.tipo === "adiantamento" && sinal >= 2999.99 && valor > maxAdiant && (
+                        <p className="text-xs text-destructive">Adiantamento máximo permitido: {BRL(maxAdiant)} (R$ 1.000 a cada R$ 2.999,99 de sinal).</p>
                       )}
                     </div>
                     <div className="space-y-1.5">
                       <Label>Sinal recebido (R$)</Label>
                       <CurrencyInput value={reqForm.valor_sinal} onValueChange={(v) => setReqForm({ ...reqForm, valor_sinal: v })} />
-                      {reqForm.tipo === "adiantamento" && sinal > 0 && sinal <= 3000 && (
-                        <p className="text-xs text-destructive">Sinal precisa ser maior que R$ 3.000 para liberar adiantamento.</p>
+                      {reqForm.tipo === "adiantamento" && sinal > 0 && sinal < 2999.99 && (
+                        <p className="text-xs text-destructive">Sinal precisa ser ≥ R$ 2.999,99 para liberar adiantamento.</p>
                       )}
                       {reqForm.tipo === "comissao_final" && valorVenda > 0 && sinal > 0 && sinal < minSinalComissao && (
                         <p className="text-xs text-destructive">Sinal abaixo de 6% do valor da venda (mín. {BRL(minSinalComissao)}).</p>
