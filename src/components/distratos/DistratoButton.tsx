@@ -30,7 +30,7 @@ export function DistratoButton({
   const [obs, setObs] = useState("");
 
   const mut = useMutation({
-    mutationFn: (v: { sale_id: string; motivo: string; observacao_financeiro?: string }) => fn({ data: v }),
+    mutationFn: (v: { sale_id: string; valor_devolver: number; motivo: string; observacao_financeiro?: string }) => fn({ data: v }),
     onSuccess: () => {
       toast.success("Distrato registrado.");
       qc.invalidateQueries({ queryKey: ["all-requests"] });
