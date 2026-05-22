@@ -86,9 +86,10 @@ export const requestNF = createServerFn({ method: "POST" })
     const { data: sale } = await supabaseAdmin.from("sales").select("corretor").eq("id", data.sale_id).maybeSingle();
     if (!sale) throw new Error("Venda não encontrada.");
     if (!sale.corretor) throw new Error("Venda sem corretor definido na planilha.");
-    const { data: map } = await supabaseAdmin
-      .from("broker_mapping").select("user_id").eq("corretor_nome", sale.corretor).eq("ativo", true).maybeSingle();
-    if (!map) throw new Error(`O corretor "${sale.corretor}" não está vinculado a nenhum usuário. Vincule em Admin → Usuários.`);
+    const { data: maps } = await supabaseAdmin
+      .from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
+    const userId = resolveBrokerUserId(sale.corretor, (maps ?? []) as { user_id: string; corretor_nome: string }[]);
+    if (!userId) throw new Error(`O corretor "${sale.corretor}" não está vinculado a nenhum usuário. Vincule em Admin → Usuários.`);
     // verifica NF ativa
     const { data: active } = await supabaseAdmin
       .from("nf_requests").select("id").eq("sale_id", data.sale_id).in("status", ["solicitada", "emitida"]).maybeSingle();
