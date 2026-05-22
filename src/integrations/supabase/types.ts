@@ -49,7 +49,7 @@ export type Database = {
       commission_requests: {
         Row: {
           bonus_corretor: number
-          corretor_user_id: string
+          corretor_user_id: string | null
           created_at: string
           decided_at: string | null
           decided_by: string | null
@@ -67,7 +67,7 @@ export type Database = {
         }
         Insert: {
           bonus_corretor?: number
-          corretor_user_id: string
+          corretor_user_id?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -85,7 +85,7 @@ export type Database = {
         }
         Update: {
           bonus_corretor?: number
-          corretor_user_id?: string
+          corretor_user_id?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -148,7 +148,7 @@ export type Database = {
           arquivo_nf_url: string | null
           arquivo_nf_url_2: string | null
           cancelada_at: string | null
-          corretor_user_id: string
+          corretor_user_id: string | null
           created_at: string
           drive_file_id: string | null
           drive_file_id_2: string | null
@@ -160,7 +160,7 @@ export type Database = {
           observacao_recebimento: string | null
           recebida_at: string | null
           sale_id: string
-          solicitado_por: string
+          solicitado_por: string | null
           status: Database["public"]["Enums"]["nf_status"]
           updated_at: string
         }
@@ -168,7 +168,7 @@ export type Database = {
           arquivo_nf_url?: string | null
           arquivo_nf_url_2?: string | null
           cancelada_at?: string | null
-          corretor_user_id: string
+          corretor_user_id?: string | null
           created_at?: string
           drive_file_id?: string | null
           drive_file_id_2?: string | null
@@ -180,7 +180,7 @@ export type Database = {
           observacao_recebimento?: string | null
           recebida_at?: string | null
           sale_id: string
-          solicitado_por: string
+          solicitado_por?: string | null
           status?: Database["public"]["Enums"]["nf_status"]
           updated_at?: string
         }
@@ -188,7 +188,7 @@ export type Database = {
           arquivo_nf_url?: string | null
           arquivo_nf_url_2?: string | null
           cancelada_at?: string | null
-          corretor_user_id?: string
+          corretor_user_id?: string | null
           created_at?: string
           drive_file_id?: string | null
           drive_file_id_2?: string | null
@@ -200,7 +200,7 @@ export type Database = {
           observacao_recebimento?: string | null
           recebida_at?: string | null
           sale_id?: string
-          solicitado_por?: string
+          solicitado_por?: string | null
           status?: Database["public"]["Enums"]["nf_status"]
           updated_at?: string
         }
