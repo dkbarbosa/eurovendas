@@ -56,7 +56,7 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
     }
 
     const { data: sale, error: saleErr } = await supabaseAdmin
-      .from("sales").select("id,corretor,comissao_liq_corretor,valor_venda").eq("id", data.sale_id).maybeSingle();
+      .from("sales").select("id,corretor,comissao_liq_corretor,valor_venda,valor_sinal_negocio").eq("id", data.sale_id).maybeSingle();
     if (saleErr) throw new Error(`Falha ao consultar venda: ${saleErr.message}`);
     if (!sale) throw new Error("Venda não encontrada no sistema.");
     if ((sale.corretor ?? "").trim().toLowerCase() !== nome.trim().toLowerCase())
@@ -64,7 +64,9 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
 
     const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     const valorVenda = Number(sale.valor_venda) || 0;
-    const sinal = Number(data.valor_sinal) || 0;
+    // Sinal autoritativo vem da planilha quando preenchido; cai para o informado no pedido apenas se ausente.
+    const sinalSheet = Number((sale as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
+    const sinal = sinalSheet > 0 ? sinalSheet : (Number(data.valor_sinal) || 0);
 
     // Regras de negócio (automáticas):
     //  - Adiantamento: cada R$1.000 exige no mínimo R$2.999,99 de sinal.
