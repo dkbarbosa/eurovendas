@@ -294,6 +294,25 @@ export const markRequestPaid = createServerFn({ method: "POST" })
       if (isStaff) patch.observacao_financeiro = data.observacao;
       else patch.observacao_corretor = data.observacao;
     }
+    // Antes de marcar como pago: exigir que a NF da venda (se houver) esteja recebida.
+    const { data: reqRow } = await supabaseAdmin
+      .from("commission_requests").select("sale_id,status").eq("id", data.id).maybeSingle();
+    if (!reqRow) throw new Error("Pedido não encontrado.");
+    if (reqRow.sale_id) {
+      const { data: nfActive } = await supabaseAdmin
+        .from("nf_requests")
+        .select("status")
+        .eq("sale_id", reqRow.sale_id)
+        .in("status", ["solicitada", "emitida"])
+        .maybeSingle();
+      if (nfActive) {
+        throw new Error(
+          nfActive.status === "emitida"
+            ? "Aguardando confirmação de recebimento da NF para liberar o pagamento."
+            : "Pagamento só pode ser efetuado após o recebimento da NF do corretor.",
+        );
+      }
+    }
     // Transição atômica pendente|aprovado -> pago. Apenas o primeiro (financeiro OU corretor)
     // consegue marcar; o segundo recebe erro e nada é duplicado na planilha.
     const { data: upd, error } = await supabaseAdmin
