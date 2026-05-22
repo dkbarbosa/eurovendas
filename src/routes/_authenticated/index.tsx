@@ -883,11 +883,14 @@ function AgendamentosMiniCard() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+        {icon}{label}
+      </div>
       <div className="font-display text-2xl font-semibold tracking-tight mt-1">{value}</div>
     </div>
   );
 }
+
