@@ -622,8 +622,8 @@ function ComissoesPage() {
                               {hasPending ? "Pendente" : "Solicitar pagamento"}
                             </Button>
                           )}
-                          {nfSolicitada && (
-                            <Button size="sm" onClick={() => openNF(nfSolicitada.id)}
+                          {nfAberta && aReceberSale > 0 && (
+                            <Button size="sm" onClick={() => openNF(nfAberta.id)}
                               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
                               Enviar NF
                             </Button>
