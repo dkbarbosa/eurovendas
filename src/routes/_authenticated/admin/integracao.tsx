@@ -158,7 +158,7 @@ function IntegPage() {
           </div>
           <div>
             <div className="text-sm font-medium">Google Sheets</div>
-            <StatusBadge connected={!!status?.sheets} />
+            <StatusBadge ping={status?.sheets} />
           </div>
         </motion.div>
 
@@ -173,7 +173,7 @@ function IntegPage() {
           </div>
           <div>
             <div className="text-sm font-medium">Google Calendar</div>
-            <StatusBadge connected={!!status?.calendar} />
+            <StatusBadge ping={status?.calendar} />
           </div>
         </motion.div>
 
@@ -188,7 +188,7 @@ function IntegPage() {
           </div>
           <div>
             <div className="text-sm font-medium">Google Drive</div>
-            <StatusBadge connected={!!status?.drive} />
+            <StatusBadge ping={status?.drive} />
           </div>
         </motion.div>
 
@@ -203,7 +203,7 @@ function IntegPage() {
           </div>
           <div>
             <div className="text-sm font-medium">Gemini (Lovable AI)</div>
-            <StatusBadge connected={!!status?.gemini} />
+            <StatusBadge ping={status?.gemini} />
           </div>
         </motion.div>
 
@@ -218,7 +218,7 @@ function IntegPage() {
           </div>
           <div>
             <div className="text-sm font-medium">Lovable Cloud</div>
-            <StatusBadge connected={!!status?.supabase} />
+            <StatusBadge ping={status?.supabase} />
           </div>
         </motion.div>
       </div>
