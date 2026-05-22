@@ -46,7 +46,6 @@ function Page() {
         .limit(5000);
       return data ?? [];
     },
-    refetchInterval: 60_000,
   });
 
   const corretoresList = useMemo(

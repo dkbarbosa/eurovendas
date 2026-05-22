@@ -54,7 +54,6 @@ function IntegPage() {
   const { data: status } = useQuery({
     queryKey: ["connector-status"],
     queryFn: async () => checkStatus({}),
-    refetchInterval: 30_000,
   });
 
   const { data: cfg } = useQuery({
@@ -78,7 +77,6 @@ function IntegPage() {
         .limit(10);
       return data ?? [];
     },
-    refetchInterval: 5000,
   });
 
   const saveMut = useMutation({
