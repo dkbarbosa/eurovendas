@@ -52,7 +52,8 @@ interface Sale {
 
 const COLORS = ["#2DE2C9", "#D6AF55", "#4D8DFF", "#FF5C8A", "#9A7CFF", "#6EE7B7", "#F97316", "#38BDF8"];
 
-const SHEET_STATUS_OPTIONS = ["RESERVADO", "VENDIDO", "Liberado", "Pago", "Distrato"];
+// Ordem oficial dos status conforme a planilha
+const SHEET_STATUS_OPTIONS = ["RESERVADO", "ASSINADO", "CAIXA", "PAGO", "DISTRATO"];
 
 const STATUS_COLORS: Record<string, string> = {
   "Em aberto": "#D6AF55",
