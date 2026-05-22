@@ -56,11 +56,34 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
     }
 
     const { data: sale, error: saleErr } = await supabaseAdmin
-      .from("sales").select("id,corretor,comissao_liq_corretor").eq("id", data.sale_id).maybeSingle();
+      .from("sales").select("id,corretor,comissao_liq_corretor,valor_venda").eq("id", data.sale_id).maybeSingle();
     if (saleErr) throw new Error(`Falha ao consultar venda: ${saleErr.message}`);
     if (!sale) throw new Error("Venda não encontrada no sistema.");
     if ((sale.corretor ?? "").trim().toLowerCase() !== nome.trim().toLowerCase())
       throw new Error(`Esta venda está vinculada a "${sale.corretor}", não a "${nome}".`);
+
+    const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const valorVenda = Number(sale.valor_venda) || 0;
+    const sinal = Number(data.valor_sinal) || 0;
+
+    // Regras de negócio (automáticas):
+    //  - Adiantamento: cada R$1.000 exige no mínimo R$3.000 de sinal (sinal > 3k para liberar).
+    //  - Comissão final: só pode ser solicitada se o sinal ≥ 6% do valor da venda.
+    if (data.tipo === "adiantamento") {
+      if (sinal <= 3000) {
+        throw new Error(`Adiantamento liberado apenas com sinal acima de ${fmt(3000)} (sinal informado: ${fmt(sinal)}).`);
+      }
+      const maxAdiant = Math.floor(sinal / 3000) * 1000;
+      if (data.valor_solicitado > maxAdiant + 0.001) {
+        throw new Error(`Valor de adiantamento máximo permitido: ${fmt(maxAdiant)} (regra: R$1.000 a cada R$3.000 de sinal).`);
+      }
+    }
+    if (data.tipo === "comissao_final") {
+      const minSinal = valorVenda * 0.06;
+      if (valorVenda > 0 && sinal < minSinal - 0.001) {
+        throw new Error(`Comissão final liberada apenas com sinal ≥ 6% do valor da venda (mín. ${fmt(minSinal)}; informado: ${fmt(sinal)}).`);
+      }
+    }
 
     // Trava de saldo: valor solicitado não pode passar do que ainda há a receber.
     const comLiq = Number(sale.comissao_liq_corretor) || 0;
@@ -72,7 +95,6 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
     const jaPago = (paidRows ?? []).reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
     const maxReceber = Math.max(0, comLiq - jaPago);
     if (data.valor_solicitado > maxReceber + 0.001) {
-      const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       throw new Error(`Valor solicitado (${fmt(data.valor_solicitado)}) excede o saldo a receber (${fmt(maxReceber)}).`);
     }
 
