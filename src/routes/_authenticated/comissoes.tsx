@@ -238,27 +238,24 @@ function ComissoesPage() {
   };
   const emitMut = useMutation({
     mutationFn: async () => {
-      if (!nfFile) throw new Error("Anexe o arquivo da NF (PDF ou XML).");
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id;
-      if (!uid) throw new Error("Sessão expirada.");
+      if (!nfFile) throw new Error("Anexe o arquivo da NF (PDF, PNG ou JPEG).");
+      if (nfFile.size > 15 * 1024 * 1024) throw new Error("Arquivo muito grande (máx. 15 MB).");
       setUploadingNF(true);
       try {
-        const ext = nfFile.name.split(".").pop() || "bin";
-        const path = `${uid}/${nfDialog.nfId}-${Date.now()}.${ext}`;
-        const up = await supabase.storage.from("nf-files").upload(path, nfFile, {
-          contentType: nfFile.type || "application/octet-stream",
-          upsert: false,
+        // Lê como base64 e envia para o servidor — o servidor faz upload no Google Drive.
+        const base64: string = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+          reader.onerror = () => reject(reader.error ?? new Error("Falha ao ler arquivo."));
+          reader.readAsDataURL(nfFile);
         });
-        if (up.error) throw new Error(up.error.message);
-        const signed = await supabase.storage.from("nf-files").createSignedUrl(path, 60 * 60 * 24 * 365);
-        if (signed.error || !signed.data?.signedUrl) throw new Error(signed.error?.message || "Falha ao gerar URL.");
         return fnEmit({
           data: {
             id: nfDialog.nfId!,
             numero_nf: nfForm.numero_nf.trim(),
-            arquivo_url: signed.data.signedUrl,
+            file_base64: base64,
+            file_name: nfFile.name,
+            file_mime: nfFile.type || "application/octet-stream",
             observacao: nfForm.observacao || undefined,
           },
         });
@@ -266,6 +263,7 @@ function ComissoesPage() {
         setUploadingNF(false);
       }
     },
+
     onSuccess: () => {
       toast.success("NF enviada com sucesso.");
       setNfDialog({ open: false, nfId: null });
