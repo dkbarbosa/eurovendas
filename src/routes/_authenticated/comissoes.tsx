@@ -651,43 +651,68 @@ function ComissoesPage() {
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Tipo</Label>
-                <Select value={reqForm.tipo} onValueChange={(v) => setReqForm({ ...reqForm, tipo: v as typeof reqForm.tipo })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="adiantamento">Adiantamento</SelectItem>
-                    <SelectItem value="comissao_final">Comissão final</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Valor solicitado (R$)</Label>
-                <CurrencyInput value={reqForm.valor_solicitado} onValueChange={(v) => setReqForm({ ...reqForm, valor_solicitado: v })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Sinal recebido (R$)</Label>
-                <CurrencyInput value={reqForm.valor_sinal} onValueChange={(v) => setReqForm({ ...reqForm, valor_sinal: v })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Bônus corretor (R$)</Label>
-                <CurrencyInput value={reqForm.bonus_corretor} onValueChange={(v) => setReqForm({ ...reqForm, bonus_corretor: v })} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Observações</Label>
-              <Textarea value={reqForm.observacao} onChange={(e) => setReqForm({ ...reqForm, observacao: e.target.value })} rows={3} maxLength={2000} placeholder="Detalhes para o financeiro…" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setReqDialog({ open: false, sale: null })}>Cancelar</Button>
-            <Button disabled={createMut.isPending || !reqForm.valor_solicitado} onClick={() => createMut.mutate()}
-              style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
-              {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar pedido"}
-            </Button>
-          </DialogFooter>
+          {(() => {
+            const sale = reqDialog.sale;
+            const comLiq = Number(sale?.comissao_liq_corretor) || 0;
+            const paidS = sale ? paidBySale.get(sale.id) : undefined;
+            const jaAdiantado = paidS?.adiantado ?? 0;
+            const jaFinal = paidS?.finalPago ?? 0;
+            const maxReceber = Math.max(0, comLiq - jaAdiantado - jaFinal);
+            const valor = reqForm.valor_solicitado ?? 0;
+            const excedeu = valor > maxReceber;
+            return (
+              <>
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs grid grid-cols-3 gap-2">
+                    <div><div className="text-muted-foreground">Comissão Liq.</div><div className="font-semibold">{BRL(comLiq)}</div></div>
+                    <div><div className="text-muted-foreground">Já adiantado</div><div className={`font-semibold ${jaAdiantado > 0 ? "text-amber-400" : ""}`}>{BRL(jaAdiantado)}</div></div>
+                    <div><div className="text-muted-foreground">Máx. a solicitar</div><div className="font-semibold text-primary">{BRL(maxReceber)}</div></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Tipo</Label>
+                      <Select value={reqForm.tipo} onValueChange={(v) => setReqForm({ ...reqForm, tipo: v as typeof reqForm.tipo })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="adiantamento">Adiantamento</SelectItem>
+                          <SelectItem value="comissao_final">Comissão final</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Valor solicitado (R$)</Label>
+                      <CurrencyInput value={reqForm.valor_solicitado} onValueChange={(v) => setReqForm({ ...reqForm, valor_solicitado: v })} />
+                      {excedeu && (
+                        <p className="text-xs text-destructive">Valor excede o saldo a receber ({BRL(maxReceber)}).</p>
+                      )}
+                      {!excedeu && valor > 0 && (
+                        <p className="text-xs text-muted-foreground">Restante após este pedido: {BRL(maxReceber - valor)}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Sinal recebido (R$)</Label>
+                      <CurrencyInput value={reqForm.valor_sinal} onValueChange={(v) => setReqForm({ ...reqForm, valor_sinal: v })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Bônus corretor (R$)</Label>
+                      <CurrencyInput value={reqForm.bonus_corretor} onValueChange={(v) => setReqForm({ ...reqForm, bonus_corretor: v })} />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Observações</Label>
+                    <Textarea value={reqForm.observacao} onChange={(e) => setReqForm({ ...reqForm, observacao: e.target.value })} rows={3} maxLength={2000} placeholder="Detalhes para o financeiro…" />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setReqDialog({ open: false, sale: null })}>Cancelar</Button>
+                  <Button disabled={createMut.isPending || !reqForm.valor_solicitado || excedeu} onClick={() => createMut.mutate()}
+                    style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
+                    {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar pedido"}
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
