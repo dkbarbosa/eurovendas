@@ -14,6 +14,45 @@ async function assertFinanceiro(userId: string) {
     throw new Error("Acesso negado: apenas Financeiro.");
 }
 
+// Normaliza para casamento tolerante: minúsculas, sem acentos, espaços colapsados
+function normName(s: string | null | undefined): string {
+  return (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function firstToken(s: string): string {
+  return normName(s).split(" ")[0] ?? "";
+}
+
+// Resolve corretor da planilha → user_id usando mapeamentos salvos.
+// 1) match exato normalizado  2) fallback: primeiro nome único
+function resolveBrokerUserId(
+  corretor: string | null | undefined,
+  maps: { user_id: string; corretor_nome: string }[],
+): string | null {
+  if (!corretor) return null;
+  const target = normName(corretor);
+  if (!target) return null;
+  const exact = maps.find((m) => normName(m.corretor_nome) === target);
+  if (exact) return exact.user_id;
+  // contém / é contido
+  const partial = maps.filter((m) => {
+    const n = normName(m.corretor_nome);
+    return n.includes(target) || target.includes(n);
+  });
+  if (partial.length === 1) return partial[0].user_id;
+  // primeiro nome
+  const first = firstToken(corretor);
+  if (first) {
+    const byFirst = maps.filter((m) => firstToken(m.corretor_nome) === first);
+    if (byFirst.length === 1) return byFirst[0].user_id;
+  }
+  return null;
+}
+
 // ---------- VENDAS ELEGÍVEIS PARA NF (financeiro) ----------
 export const listEligibleSalesForNF = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -27,10 +66,10 @@ export const listEligibleSalesForNF = createServerFn({ method: "GET" })
       (nfs ?? []).filter((n) => n.status === "solicitada" || n.status === "emitida" || n.status === "recebida").map((n) => n.sale_id),
     );
     const { data: maps } = await supabaseAdmin.from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
-    const corretorToUser = new Map((maps ?? []).map((m) => [m.corretor_nome, m.user_id]));
+    const mapList = (maps ?? []) as { user_id: string; corretor_nome: string }[];
     return (sales ?? [])
       .filter((s) => !activeSaleIds.has(s.id))
-      .map((s) => ({ ...s, mapped_user_id: s.corretor ? corretorToUser.get(s.corretor) ?? null : null }));
+      .map((s) => ({ ...s, mapped_user_id: resolveBrokerUserId(s.corretor, mapList) }));
   });
 
 // ---------- SOLICITAR NF (financeiro) ----------
@@ -47,9 +86,10 @@ export const requestNF = createServerFn({ method: "POST" })
     const { data: sale } = await supabaseAdmin.from("sales").select("corretor").eq("id", data.sale_id).maybeSingle();
     if (!sale) throw new Error("Venda não encontrada.");
     if (!sale.corretor) throw new Error("Venda sem corretor definido na planilha.");
-    const { data: map } = await supabaseAdmin
-      .from("broker_mapping").select("user_id").eq("corretor_nome", sale.corretor).eq("ativo", true).maybeSingle();
-    if (!map) throw new Error(`O corretor "${sale.corretor}" não está vinculado a nenhum usuário. Vincule em Admin → Usuários.`);
+    const { data: maps } = await supabaseAdmin
+      .from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
+    const userId = resolveBrokerUserId(sale.corretor, (maps ?? []) as { user_id: string; corretor_nome: string }[]);
+    if (!userId) throw new Error(`O corretor "${sale.corretor}" não está vinculado a nenhum usuário. Vincule em Admin → Usuários.`);
     // verifica NF ativa
     const { data: active } = await supabaseAdmin
       .from("nf_requests").select("id").eq("sale_id", data.sale_id).in("status", ["solicitada", "emitida"]).maybeSingle();
@@ -57,7 +97,7 @@ export const requestNF = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin.from("nf_requests").insert({
       sale_id: data.sale_id,
-      corretor_user_id: map.user_id,
+      corretor_user_id: userId,
       solicitado_por: context.userId,
       status: "solicitada",
       observacao_financeiro: data.observacao ?? null,
