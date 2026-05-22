@@ -542,6 +542,27 @@ function AdvancesTab() {
                                       Bônus: {BRL(r.bonus_corretor)}
                                     </Badge>
                                   )}
+                                  {(() => {
+                                    const sinalR = Number(r.valor_sinal) || 0;
+                                    const vendaR = Number(r.sale?.valor_venda) || 0;
+                                    if (r.tipo === "adiantamento") {
+                                      const maxA = Math.floor(sinalR / 2999.99) * 1000;
+                                      const ok = sinalR >= 2999.99 && valor <= maxA;
+                                      return (
+                                        <Badge variant="outline" className={`text-[10px] ${ok ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-destructive/10 text-destructive border-destructive/30"}`}>
+                                          {ok ? `Regra adiant. OK (máx ${BRL(maxA)})` : `Fora da regra (máx ${BRL(maxA)}, sinal min R$ 2.999,99)`}
+                                        </Badge>
+                                      );
+                                    }
+                                    const minS = vendaR * 0.06;
+                                    const ok = vendaR === 0 || sinalR >= minS;
+                                    const pct = vendaR > 0 ? (sinalR / vendaR) * 100 : 0;
+                                    return (
+                                      <Badge variant="outline" className={`text-[10px] ${ok ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-destructive/10 text-destructive border-destructive/30"}`}>
+                                        {ok ? `Regra comissão OK (sinal ${pct.toFixed(1)}%)` : `Fora da regra (sinal ${pct.toFixed(1)}% < 6%)`}
+                                      </Badge>
+                                    );
+                                  })()}
                                 </div>
                                 {r.observacao_corretor && <div className="text-xs"><b>C:</b> {r.observacao_corretor}</div>}
                                 {r.observacao_financeiro && <div className="text-xs text-muted-foreground"><b>F:</b> {r.observacao_financeiro}</div>}
