@@ -83,16 +83,20 @@ function ComissoesPage() {
   const nfs = data?.nfs ?? [];
   const displayName = data?.corretorNome ?? null;
 
-  // Vendas com qualquer solicitação não concluída (pendente, aprovada ou
-  // negada) permanecem sempre visíveis — independentemente do período.
-  // Só somem quando todos os pagamentos estiverem com status "pago".
+  // Vendas com qualquer evento em aberto (pedido não pago OU NF
+  // solicitada/emitida/recebida) permanecem sempre visíveis —
+  // independentemente do período. Assim, quando o financeiro abrir uma
+  // solicitação de NF de uma venda antiga, ela reaparece automaticamente.
   const salesWithOpenRequest = useMemo(() => {
     const ids = new Set<string>();
     for (const r of requests) {
       if (r.status !== "pago") ids.add(r.sale_id);
     }
+    for (const n of nfs) {
+      if (n.status !== "cancelada") ids.add(n.sale_id);
+    }
     return ids;
-  }, [requests]);
+  }, [requests, nfs]);
 
   // aplica filtros (período + cliente)
   const sales = useMemo(() => {
