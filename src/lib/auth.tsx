@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (s?.user) {
         setRolesLoading(true);
         // Defer para evitar deadlock dentro do callback de auth
-        setTimeout(() => mounted && loadUserContext(s.user.id), 0);
+        setTimeout(() => mounted && loadUserContext(), 0);
       } else {
         setRoles([]);
         setCorretorNome(null);
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       if (data.session?.user) {
         setRolesLoading(true);
-        loadUserContext(data.session.user.id);
+        loadUserContext();
       } else {
         setRolesLoading(false);
       }
