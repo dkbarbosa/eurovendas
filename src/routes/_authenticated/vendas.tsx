@@ -105,20 +105,28 @@ function Vendas() {
   }, [filtered]);
 
   const byMonth = useMemo(() => {
-    const m = new Map<string, number>();
+    const m = new Map<string, { vgv: number; sinal: number }>();
     for (const r of filtered) {
       if (!r.data) continue;
       const d = new Date(r.data);
       const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      m.set(k, (m.get(k) ?? 0) + (r.valor_venda ?? 0));
+      const cur = m.get(k) ?? { vgv: 0, sinal: 0 };
+      cur.vgv += r.valor_venda ?? 0;
+      cur.sinal += (r as { valor_sinal_negocio?: number | null }).valor_sinal_negocio ?? 0;
+      m.set(k, cur);
     }
     return Array.from(m.entries())
       .sort()
       .map(([k, v]) => {
         const [y, mo] = k.split("-");
-        return { label: `${mo}/${y.slice(2)}`, vgv: Math.round(v) };
+        return { label: `${mo}/${y.slice(2)}`, vgv: Math.round(v.vgv), sinal: Math.round(v.sinal) };
       });
   }, [filtered]);
+
+  const totalSinal = useMemo(
+    () => filtered.reduce((s, r) => s + ((r as { valor_sinal_negocio?: number | null }).valor_sinal_negocio ?? 0), 0),
+    [filtered],
+  );
 
   const byStatus = useMemo(() => {
     const m = new Map<string, number>();
@@ -256,7 +264,7 @@ function Vendas() {
         </div>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-xs text-muted-foreground">
-            {filtered.length} de {sales.length} · VGV {fmtBRL(filtered.reduce((s, r) => s + (r.valor_venda ?? 0), 0))}
+            {filtered.length} de {sales.length} · VGV {fmtBRL(filtered.reduce((s, r) => s + (r.valor_venda ?? 0), 0))} · <span className="text-sky-400">Sinal {fmtBRL(totalSinal)}</span>
           </span>
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearAll} className="h-8 text-xs">Limpar</Button>
@@ -312,7 +320,7 @@ function Vendas() {
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
           className="glass-card p-5 lg:col-span-12"
         >
-          <div className="text-sm font-medium mb-3">Evolução mensal de VGV</div>
+          <div className="text-sm font-medium mb-3">Evolução mensal — VGV e Sinal de negócio</div>
           <div className="h-[240px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={byMonth} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -321,12 +329,18 @@ function Vendas() {
                     <stop offset="0%" stopColor="oklch(0.82 0.16 185)" stopOpacity={0.6} />
                     <stop offset="100%" stopColor="oklch(0.82 0.16 185)" stopOpacity={0} />
                   </linearGradient>
+                  <linearGradient id="sinalArea" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="oklch(0.78 0.14 220)" stopOpacity={0.55} />
+                    <stop offset="100%" stopColor="oklch(0.78 0.14 220)" stopOpacity={0} />
+                  </linearGradient>
                 </defs>
                 <CartesianGrid stroke="oklch(1 0 0 / 6%)" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: "oklch(0.72 0.02 270)" }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: "oklch(0.72 0.02 270)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1e6).toFixed(1)}M`} />
-                <Tooltip contentStyle={TOOLTIP} formatter={(v: number) => [fmtBRL(v), "VGV"]} />
-                <Area type="monotone" dataKey="vgv" stroke="oklch(0.82 0.16 185)" strokeWidth={2.5} fill="url(#vendArea)" animationDuration={900} />
+                <Tooltip contentStyle={TOOLTIP} formatter={(v: number, n) => [fmtBRL(v), n === "vgv" ? "VGV" : "Sinal"]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Area type="monotone" dataKey="vgv" name="VGV" stroke="oklch(0.82 0.16 185)" strokeWidth={2.5} fill="url(#vendArea)" animationDuration={900} />
+                <Area type="monotone" dataKey="sinal" name="Sinal" stroke="oklch(0.78 0.14 220)" strokeWidth={2.5} fill="url(#sinalArea)" animationDuration={900} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

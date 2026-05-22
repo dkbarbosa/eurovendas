@@ -61,7 +61,7 @@ export const syncFromSheets = createServerFn({ method: "POST" })
 
       const cfg = await readConfig();
       const spreadsheetIdRaw = (cfg.sheets_spreadsheet_id as string) || "";
-      const range = (cfg.sheets_range as string) || "Equipe Maicon!A:U";
+      const range = (cfg.sheets_range as string) || "Equipe Maicon!A:V";
       const spreadsheetId = extractSpreadsheetId(spreadsheetIdRaw);
       if (!spreadsheetId) {
         return { ok: false, rows: 0, error: "Configure a URL/ID do Google Sheets em Integração antes de sincronizar." };

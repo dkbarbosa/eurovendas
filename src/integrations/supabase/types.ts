@@ -305,6 +305,7 @@ export type Database = {
           status: string | null
           unidade: string | null
           updated_at: string
+          valor_sinal_negocio: number | null
           valor_venda: number | null
         }
         Insert: {
@@ -332,6 +333,7 @@ export type Database = {
           status?: string | null
           unidade?: string | null
           updated_at?: string
+          valor_sinal_negocio?: number | null
           valor_venda?: number | null
         }
         Update: {
@@ -359,6 +361,7 @@ export type Database = {
           status?: string | null
           unidade?: string | null
           updated_at?: string
+          valor_sinal_negocio?: number | null
           valor_venda?: number | null
         }
         Relationships: []
