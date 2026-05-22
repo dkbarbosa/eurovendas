@@ -453,7 +453,7 @@ function AdvancesTab() {
                       <div className="min-w-0">
                         <div className="font-semibold truncate">{head.sale?.comprador ?? "—"}</div>
                         <div className="text-xs text-muted-foreground truncate">
-                          {head.sale?.empreendimento} / {head.sale?.unidade} · Venda {BRL(head.sale?.valor_venda)}
+                          {head.sale?.empreendimento} / {head.sale?.unidade} · Venda {BRL(head.sale?.valor_venda)} · Sinal {BRL(Number(head.sale?.valor_sinal_negocio) || 0)}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
                           Corretor: <span className="text-foreground">{head.corretor_profile?.display_name ?? "—"}</span>
