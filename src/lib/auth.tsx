@@ -32,8 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [rolesLoading, setRolesLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
+      // Ignora eventos que não mudam o usuário (refresh de token ao voltar para a aba)
+      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") return;
       if (s?.user) {
         setRolesLoading(true);
         setTimeout(() => loadUserContext(s.user.id), 0);

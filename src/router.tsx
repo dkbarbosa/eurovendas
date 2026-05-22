@@ -12,7 +12,15 @@ function PendingComponent() {
 }
 
 export const getRouter = () => {
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        staleTime: 60_000,
+      },
+    },
+  });
 
   const router = createRouter({
     routeTree,
