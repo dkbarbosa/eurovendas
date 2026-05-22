@@ -88,6 +88,7 @@ export interface SaleRow {
   status: string | null;
   mes_ano: string | null;
   observacoes: string | null;
+  valor_sinal_negocio: number | null;
   row_hash: string;
 }
 
