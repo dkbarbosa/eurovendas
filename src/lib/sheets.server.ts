@@ -22,8 +22,7 @@ export const SHEET_HEADERS = [
   "Com. Líq. Ger.",
   "Status",
   "Mês/Ano",
-  "Observações",
-  "Valor sinal de negócio",
+  "Sinal de negocio",
 ] as const;
 
 function parseNumber(raw: unknown): number | null {
@@ -150,8 +149,8 @@ export function parseSheetRows(
       comissao_liq_gerente,
       status: parseText(row[18]),
       mes_ano: row[19] ? String(row[19]) : data ? data.slice(0, 7) : null,
-      observacoes: (row[20] as string) || null,
-      valor_sinal_negocio: parseNumber(row[21]),
+      observacoes: null,
+      valor_sinal_negocio: parseNumber(row[20]),
       row_hash: "",
     };
     sale.row_hash = hashRow([data, empreendimento, unidade, comprador, String(valor_venda), String(i)]);
