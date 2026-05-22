@@ -97,7 +97,7 @@ export const requestNF = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin.from("nf_requests").insert({
       sale_id: data.sale_id,
-      corretor_user_id: map.user_id,
+      corretor_user_id: userId,
       solicitado_por: context.userId,
       status: "solicitada",
       observacao_financeiro: data.observacao ?? null,
