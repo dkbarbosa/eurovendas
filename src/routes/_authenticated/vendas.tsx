@@ -43,7 +43,6 @@ function Vendas() {
       const { data } = await supabase.from("sales").select("*").order("data", { ascending: false }).limit(5000);
       return data ?? [];
     },
-    refetchInterval: 60_000,
   });
 
   const allStatuses = useMemo(() => {

@@ -81,7 +81,6 @@ function Dashboard() {
       if (error) throw error;
       return (data ?? []) as Sale[];
     },
-    refetchInterval: 60_000,
   });
 
   const { data: cfg } = useQuery({
