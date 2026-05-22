@@ -183,9 +183,9 @@ export const markNFEmitted = createServerFn({ method: "POST" })
     let folderId: string | undefined;
     if (nfRow.sale_id) {
       const { data: sale } = await supabaseAdmin
-        .from("sales").select("comprador,unidade,empreendimento")
+        .from("sales").select("corretor,empreendimento,unidade")
         .eq("id", nfRow.sale_id).maybeSingle();
-      const folderName = sanitizeFolderName([sale?.comprador, sale?.unidade, sale?.empreendimento]);
+      const folderName = sanitizeFolderName([sale?.corretor, sale?.empreendimento, sale?.unidade]);
       try {
         folderId = await getOrCreateDriveFolder(folderName);
       } catch (e) {
