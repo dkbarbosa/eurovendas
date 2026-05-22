@@ -121,7 +121,7 @@ function IntegPage() {
       </div>
 
       {/* Status dos conectores */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -149,6 +149,51 @@ function IntegPage() {
           <div>
             <div className="text-sm font-medium">Google Calendar</div>
             <StatusBadge connected={!!status?.calendar} />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="glass-card p-5 flex items-center gap-4"
+        >
+          <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+            <HardDrive className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-sm font-medium">Google Drive</div>
+            <StatusBadge connected={!!status?.drive} />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.25 }}
+          className="glass-card p-5 flex items-center gap-4"
+        >
+          <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-sm font-medium">Gemini (Lovable AI)</div>
+            <StatusBadge connected={!!status?.gemini} />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+          className="glass-card p-5 flex items-center gap-4"
+        >
+          <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+            <Database className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-sm font-medium">Lovable Cloud</div>
+            <StatusBadge connected={!!status?.supabase} />
           </div>
         </motion.div>
       </div>
