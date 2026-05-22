@@ -141,8 +141,9 @@ function AdvancesTab() {
               <th className="text-left p-3">Corretor</th>
               <th className="text-left p-3">Venda</th>
               <th className="text-left p-3">Tipo</th>
-              <th className="text-right p-3">Sinal</th>
-              <th className="text-right p-3">Bônus</th>
+              <th className="text-right p-3">Comissão Liq.</th>
+              <th className="text-right p-3">Adiantado</th>
+              <th className="text-right p-3">A Receber</th>
               <th className="text-right p-3">Solicitado</th>
               <th className="text-left p-3">Status</th>
               <th className="text-left p-3">Obs</th>
@@ -150,9 +151,9 @@ function AdvancesTab() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={10} className="p-6 text-center"><Loader2 className="w-4 h-4 animate-spin inline" /></td></tr>}
+            {isLoading && <tr><td colSpan={12} className="p-6 text-center"><Loader2 className="w-4 h-4 animate-spin inline" /></td></tr>}
             {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhum pedido.</td></tr>
+              <tr><td colSpan={12} className="p-6 text-center text-muted-foreground">Nenhum pedido.</td></tr>
             )}
             {filtered.map((r) => (
               <tr key={r.id} className="border-t border-border align-top">
@@ -164,11 +165,21 @@ function AdvancesTab() {
                 <td className="p-3">
                   <div className="font-medium">{r.sale?.comprador ?? "—"}</div>
                   <div className="text-xs text-muted-foreground">{r.sale?.empreendimento} / {r.sale?.unidade}</div>
+                  <div className="text-xs text-muted-foreground">Venda: {BRL(r.sale?.valor_venda)} · Sinal: {BRL(r.valor_sinal)} · Bônus: {BRL(r.bonus_corretor)}</div>
                 </td>
                 <td className="p-3"><Badge variant="outline" className="text-xs">{r.tipo === "adiantamento" ? "Adiant." : "Comiss."}</Badge></td>
-                <td className="p-3 text-right">{BRL(r.valor_sinal)}</td>
-                <td className="p-3 text-right">{BRL(r.bonus_corretor)}</td>
-                <td className="p-3 text-right font-semibold">{BRL(r.valor_solicitado)}</td>
+                <td className="p-3 text-right whitespace-nowrap font-medium">{BRL(r.comissao_liq)}</td>
+                <td className="p-3 text-right whitespace-nowrap">
+                  <span className={r.adiantado_pago > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}>
+                    {BRL(r.adiantado_pago)}
+                  </span>
+                </td>
+                <td className="p-3 text-right whitespace-nowrap">
+                  <span className={r.a_receber > 0 ? "text-primary font-semibold" : "text-emerald-400 font-medium"}>
+                    {BRL(r.a_receber)}
+                  </span>
+                </td>
+                <td className="p-3 text-right font-semibold whitespace-nowrap">{BRL(r.valor_solicitado)}</td>
                 <td className="p-3"><StatusBadge status={r.status} /></td>
                 <td className="p-3 max-w-[220px]">
                   {r.observacao_corretor && <div className="text-xs"><b>C:</b> {r.observacao_corretor}</div>}
