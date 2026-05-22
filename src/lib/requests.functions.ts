@@ -117,20 +117,44 @@ export const listAllRequests = createServerFn({ method: "POST" })
     const { data: reqs, error } = await q;
     if (error) throw new Error(error.message);
 
-    // Enriquece com sale + profile
     const saleIds = [...new Set((reqs ?? []).map((r) => r.sale_id))];
     const userIds = [...new Set((reqs ?? []).map((r) => r.corretor_user_id))];
-    const [{ data: sales }, { data: profs }] = await Promise.all([
-      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,comissao_liq_corretor,status").in("id", saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"]),
+    const safeIds = saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"];
+    const [{ data: sales }, { data: profs }, { data: paidReqs }] = await Promise.all([
+      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,comissao_liq_corretor,status").in("id", safeIds),
       supabaseAdmin.from("profiles").select("id,display_name,email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
+      // Todos pedidos PAGOS dessas vendas, para calcular adiantado/saldo independente do filtro.
+      supabaseAdmin
+        .from("commission_requests")
+        .select("sale_id,tipo,valor_solicitado,status")
+        .in("sale_id", safeIds)
+        .eq("status", "pago"),
     ]);
     const sMap = new Map((sales ?? []).map((s) => [s.id, s]));
     const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
-    return (reqs ?? []).map((r) => ({
-      ...r,
-      sale: sMap.get(r.sale_id) ?? null,
-      corretor_profile: pMap.get(r.corretor_user_id) ?? null,
-    }));
+    const paidBySale = new Map<string, { adiantado: number; final: number }>();
+    for (const pr of paidReqs ?? []) {
+      const cur = paidBySale.get(pr.sale_id) ?? { adiantado: 0, final: 0 };
+      const v = Number(pr.valor_solicitado) || 0;
+      if (pr.tipo === "adiantamento") cur.adiantado += v;
+      else if (pr.tipo === "comissao_final") cur.final += v;
+      paidBySale.set(pr.sale_id, cur);
+    }
+    return (reqs ?? []).map((r) => {
+      const sale = sMap.get(r.sale_id) ?? null;
+      const comissaoLiq = Number(sale?.comissao_liq_corretor) || 0;
+      const p = paidBySale.get(r.sale_id) ?? { adiantado: 0, final: 0 };
+      const aReceber = Math.max(0, comissaoLiq - p.adiantado - p.final);
+      return {
+        ...r,
+        sale,
+        corretor_profile: pMap.get(r.corretor_user_id) ?? null,
+        comissao_liq: comissaoLiq,
+        adiantado_pago: p.adiantado,
+        final_pago: p.final,
+        a_receber: aReceber,
+      };
+    });
   });
 
 // ---------- APROVAR / NEGAR (financeiro) ----------
