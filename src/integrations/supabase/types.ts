@@ -149,6 +149,7 @@ export type Database = {
           cancelada_at: string | null
           corretor_user_id: string
           created_at: string
+          drive_file_id: string | null
           emitida_at: string | null
           id: string
           numero_nf: string | null
@@ -166,6 +167,7 @@ export type Database = {
           cancelada_at?: string | null
           corretor_user_id: string
           created_at?: string
+          drive_file_id?: string | null
           emitida_at?: string | null
           id?: string
           numero_nf?: string | null
@@ -183,6 +185,7 @@ export type Database = {
           cancelada_at?: string | null
           corretor_user_id?: string
           created_at?: string
+          drive_file_id?: string | null
           emitida_at?: string | null
           id?: string
           numero_nf?: string | null
