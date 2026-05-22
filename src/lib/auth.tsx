@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserContext } from "@/lib/auth.functions";
 
 type Role = "admin" | "diretor" | "gerente" | "corretor" | "financeiro";
 
@@ -41,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (s?.user) {
         setRolesLoading(true);
         // Defer para evitar deadlock dentro do callback de auth
-        setTimeout(() => mounted && loadUserContext(s.user.id), 0);
+        setTimeout(() => mounted && loadUserContext(), 0);
       } else {
         setRoles([]);
         setCorretorNome(null);
@@ -53,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       if (data.session?.user) {
         setRolesLoading(true);
-        loadUserContext(data.session.user.id);
+        loadUserContext();
       } else {
         setRolesLoading(false);
       }
@@ -67,16 +68,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function loadUserContext(userId: string) {
+  async function loadUserContext() {
     try {
-      const [{ data: rData }, { data: mData }] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", userId),
-        supabase.from("broker_mapping").select("corretor_nome,ativo").eq("user_id", userId).maybeSingle(),
-      ]);
-      setRoles((rData ?? []).map((r) => r.role as Role));
-      setCorretorNome(mData?.ativo ? mData.corretor_nome : null);
+      const context = await getCurrentUserContext();
+      setRoles(context.roles);
+      setCorretorNome(context.corretorNome);
     } catch (e) {
       console.error("loadUserContext failed:", e);
+      setRoles([]);
+      setCorretorNome(null);
     } finally {
       setRolesLoading(false);
     }
