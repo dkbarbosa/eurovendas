@@ -782,6 +782,20 @@ function ComissoesPage() {
               )}
             </div>
             <div className="space-y-1.5">
+              <Label>Anexo adicional (opcional)</Label>
+              <Input
+                type="file"
+                accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
+                onChange={(e) => setNfFile2(e.target.files?.[0] ?? null)}
+              />
+              {nfFile2 && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {nfFile2.name} · {(nfFile2.size / 1024).toFixed(0)} KB
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground">Os arquivos serão arquivados em uma pasta com o nome do cliente, unidade e empreendimento.</p>
+            </div>
+            <div className="space-y-1.5">
               <Label>Observações</Label>
               <Textarea
                 value={nfForm.observacao}
