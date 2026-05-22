@@ -522,21 +522,22 @@ function ComissoesPage() {
                           {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1">
                               <RequestPill r={r} />
-                              {r.status === "aprovado" && (
+                              {r.status !== "pago" && r.status !== "negado" && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="h-6 px-2 text-[11px]"
                                   disabled={payMut.isPending}
                                   onClick={() => {
-                                    if (confirm("Confirmar que o pagamento foi recebido? O processo será finalizado.")) {
+                                    if (confirm("Confirmar que o pagamento foi recebido?")) {
                                       payMut.mutate(r.id);
                                     }
                                   }}
                                 >
-                                  <Wallet className="w-3 h-3 mr-1" />Marcar pago
+                                  <Wallet className="w-3 h-3 mr-1" />Pago
                                 </Button>
                               )}
+
 
                               {r.status === "negado" && r.motivo_negacao && (
                                 <Popover>
