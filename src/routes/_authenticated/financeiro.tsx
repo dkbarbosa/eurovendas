@@ -529,8 +529,6 @@ function AdvancesTab() {
                               <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
                               <td className="px-3 py-2 max-w-[260px]">
                                 <div className="flex flex-wrap gap-1 mb-1">
-                                  <Badge variant="outline" className="text-[10px] bg-secondary/40">Liq: {BRL(comissaoLiq)}</Badge>
-                                  <Badge variant="outline" className={`text-[10px] ${adiantadoTot > 0 ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-secondary/40"}`}>Adiant.: {BRL(adiantadoTot)}</Badge>
                                   <Badge variant="outline" className={`text-[10px] ${aReceber > 0 ? "bg-primary/10 text-primary border-primary/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"}`}>A receber: {BRL(aReceber)}</Badge>
                                   {Number(r.valor_sinal) > 0 && (
                                     <Badge variant="outline" className="text-[10px] bg-sky-500/10 text-sky-400 border-sky-500/30">
