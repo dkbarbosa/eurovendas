@@ -504,32 +504,40 @@ function ComissoesPage() {
                         </div>
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
-                        <span className={aReceberSale > 0 ? "text-primary font-semibold" : "text-emerald-400 font-medium"}>
-                          {BRL(aReceberSale)}
-                        </span>
+                        {comissaoLiq > 0 && aReceberSale === 0 ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                            <CheckCircle2 className="w-3.5 h-3.5" />Finalizado
+                          </span>
+                        ) : (
+                          <span className={aReceberSale > 0 ? "text-primary font-semibold" : "text-muted-foreground"}>
+                            {BRL(aReceberSale)}
+                          </span>
+                        )}
                       </td>
                       <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
+
 
                       <td className="p-3">
                         <div className="space-y-1">
                           {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1">
                               <RequestPill r={r} />
-                              {r.status === "aprovado" && (
+                              {r.status !== "pago" && r.status !== "negado" && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="h-6 px-2 text-[11px]"
                                   disabled={payMut.isPending}
                                   onClick={() => {
-                                    if (confirm("Confirmar que o pagamento foi recebido? O processo será finalizado.")) {
+                                    if (confirm("Confirmar que o pagamento foi recebido?")) {
                                       payMut.mutate(r.id);
                                     }
                                   }}
                                 >
-                                  <Wallet className="w-3 h-3 mr-1" />Marcar pago
+                                  <Wallet className="w-3 h-3 mr-1" />Pago
                                 </Button>
                               )}
+
 
                               {r.status === "negado" && r.motivo_negacao && (
                                 <Popover>
