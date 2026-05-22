@@ -621,7 +621,9 @@ function ComissoesPage() {
                                 </button>
                               )}
                             </div>
-                          ))}
+                            );
+                          })}
+
                           {sNfs.map((n) => (
                             <div key={n.id} className="flex items-center gap-1">
                               <NFPill n={n} />
