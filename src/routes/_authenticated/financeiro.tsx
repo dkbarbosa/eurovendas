@@ -14,8 +14,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlus2, Trash2, Download, LayoutDashboard, TrendingUp, AlertTriangle, FileText, Hourglass, BadgeCheck } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlus2, Trash2, Download, LayoutDashboard, TrendingUp, AlertTriangle, FileText, Hourglass, BadgeCheck, Ban } from "lucide-react";
 import { motion } from "framer-motion";
+import { DistratoButton } from "@/components/distratos/DistratoButton";
+import { DistratosPanel } from "@/components/distratos/DistratosPanel";
 
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
@@ -53,11 +55,13 @@ function FinanceiroPage() {
           <TabsTrigger value="adiantamentos">Adiantamentos</TabsTrigger>
           <TabsTrigger value="solicitar-nf">Solicitar NF</TabsTrigger>
           <TabsTrigger value="nfs">Notas Fiscais</TabsTrigger>
+          <TabsTrigger value="distratos"><Ban className="w-3.5 h-3.5 mr-1.5" />Distratos</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard" className="mt-4"><DashboardTab /></TabsContent>
         <TabsContent value="adiantamentos" className="mt-4"><AdvancesTab /></TabsContent>
         <TabsContent value="solicitar-nf" className="mt-4"><RequestNFTab /></TabsContent>
         <TabsContent value="nfs" className="mt-4"><NFTab /></TabsContent>
+        <TabsContent value="distratos" className="mt-4"><DistratosPanel /></TabsContent>
       </Tabs>
     </div>
   );
@@ -483,6 +487,13 @@ function AdvancesTab() {
                             <div className={`font-semibold ${aReceber > 0 ? "text-primary" : "text-muted-foreground"}`}>{BRL(aReceber)}</div>
                           )}
                         </div>
+                        {(adiantadoTot + finalPago) > 0 && (
+                          <DistratoButton
+                            saleId={head.sale_id ?? ""}
+                            comprador={head.sale?.comprador}
+                            totalPago={adiantadoTot + finalPago}
+                          />
+                        )}
                       </div>
                     </div>
 

@@ -17,6 +17,7 @@ import {
   Menu,
   Wallet,
   Receipt,
+  Ban,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -95,6 +96,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <NavLink to="/comissoes" label="Comissões" icon={Wallet}
               active={loc.pathname === "/comissoes"} onNavigate={() => setMobileOpen(false)} />
+            <NavLink to="/distratos" label="Distratos" icon={Ban}
+              active={loc.pathname === "/distratos"} onNavigate={() => setMobileOpen(false)} />
           </>
         )}
 
