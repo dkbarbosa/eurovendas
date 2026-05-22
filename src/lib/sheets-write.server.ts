@@ -49,7 +49,7 @@ export async function addAdvanceToSheet(sale: SaleKey, advance: number): Promise
     for (const r of cfgRows ?? []) cfg[r.key] = r.value;
 
     const spreadsheetId = extractSpreadsheetId((cfg.sheets_spreadsheet_id as string) || "");
-    const fullRange = (cfg.sheets_range as string) || "Equipe Maicon!A:U";
+    const fullRange = (cfg.sheets_range as string) || "Equipe Maicon!A:V";
     const tab = fullRange.split("!")[0];
     if (!spreadsheetId) return { ok: false, error: "Spreadsheet não configurada." };
 
