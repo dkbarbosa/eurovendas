@@ -27,7 +27,7 @@ import { ChartCard } from "@/components/ChartCard";
 import { fmtBRL, fmtBRLCompact, fmtNum } from "@/lib/format";
 import {
   DollarSign, ShoppingBag, Trophy, Building2, Target, TrendingUp, TrendingDown,
-  Users, Award, Filter, CalendarDays, CircleDot,
+  Users, Award, Filter, CalendarDays, CircleDot, Sunrise,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -811,6 +811,8 @@ function AgendamentosMiniCard() {
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(startOfDay.getTime() + 864e5);
+  const startOfTomorrow = new Date(endOfDay);
+  const endOfTomorrow = new Date(startOfTomorrow.getTime() + 864e5);
 
   const m = useMemo(() => {
     const inMonth = events
@@ -822,6 +824,7 @@ function AgendamentosMiniCard() {
       .filter((x: { d: Date | null }) => x.d && x.d >= monthStart && x.d < monthEnd);
 
     const hoje = inMonth.filter((x) => x.d! >= startOfDay && x.d! < endOfDay).length;
+    const amanha = inMonth.filter((x) => x.d! >= startOfTomorrow && x.d! < endOfTomorrow).length;
     const futuros = inMonth.filter((x) => x.d! >= now).length;
     const house = inMonth.filter((x) => x.origin === "house").length;
     const imob = inMonth.filter((x) => x.origin === "parceiro").length;
@@ -833,8 +836,9 @@ function AgendamentosMiniCard() {
     }
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const series = Array.from({ length: daysInMonth }, (_, i) => ({ d: i + 1, total: days.get(`${i + 1}`) ?? 0 }));
-    return { total: inMonth.length, hoje, futuros, house, imob, series };
-  }, [events, knownBrokers, monthStart, monthEnd, now, startOfDay, endOfDay]);
+    return { total: inMonth.length, hoje, amanha, futuros, house, imob, series };
+  }, [events, knownBrokers, monthStart, monthEnd, now, startOfDay, endOfDay, startOfTomorrow, endOfTomorrow]);
+
 
   return (
     <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5">
@@ -853,11 +857,13 @@ function AgendamentosMiniCard() {
       {isLoading ? (
         <div className="text-xs text-muted-foreground">Carregando…</div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-center">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 items-center">
           <Stat label="Total no mês" value={fmtNum(m.total)} />
           <Stat label="Hoje" value={fmtNum(m.hoje)} />
+          <Stat label="Amanhã" value={fmtNum(m.amanha)} icon={<Sunrise className="w-3.5 h-3.5" />} />
           <Stat label="Futuros" value={fmtNum(m.futuros)} />
           <Stat label="House / Imob" value={`${fmtNum(m.house)} / ${fmtNum(m.imob)}`} />
+
           <div className="h-16 md:col-span-1 col-span-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={m.series} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
@@ -877,11 +883,14 @@ function AgendamentosMiniCard() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+        {icon}{label}
+      </div>
       <div className="font-display text-2xl font-semibold tracking-tight mt-1">{value}</div>
     </div>
   );
 }
+

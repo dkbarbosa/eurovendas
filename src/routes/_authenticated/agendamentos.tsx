@@ -26,7 +26,7 @@ import { ChartCard } from "@/components/ChartCard";
 import { fmtNum } from "@/lib/format";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, Clock, TrendingUp, Filter, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import { CalendarDays, Users, Clock, TrendingUp, Filter, Loader2, AlertCircle, ExternalLink, Sunrise } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/agendamentos")({ component: AgendamentosPage });
 
@@ -118,15 +118,19 @@ function AgendamentosPage() {
   const startOfWeek = new Date(startOfDay);
   startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay());
   const endOfWeek = new Date(startOfWeek.getTime() + 7 * 864e5);
+  const startOfTomorrow = new Date(startOfDay.getTime() + 864e5);
+  const endOfTomorrow = new Date(startOfTomorrow.getTime() + 864e5);
 
   const totals = useMemo(() => {
     const hoje = filtered.filter((e) => e.startDate! >= startOfDay && e.startDate! < endOfDay).length;
+    const amanha = filtered.filter((e) => e.startDate! >= startOfTomorrow && e.startDate! < endOfTomorrow).length;
     const semana = filtered.filter((e) => e.startDate! >= startOfWeek && e.startDate! < endOfWeek).length;
     const futuros = filtered.filter((e) => e.startDate! >= now).length;
     const house = filtered.filter((e) => e.origin === "house").length;
     const imob = filtered.filter((e) => e.origin === "parceiro").length;
-    return { total: filtered.length, hoje, semana, futuros, house, imob };
-  }, [filtered, now, startOfDay, endOfDay, startOfWeek, endOfWeek]);
+    return { total: filtered.length, hoje, amanha, semana, futuros, house, imob };
+  }, [filtered, now, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfTomorrow, endOfTomorrow]);
+
 
   // ===== Charts =====
   const porCorretor = useMemo(() => {
@@ -270,7 +274,7 @@ function AgendamentosPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <KPICard icon={<CalendarDays className="w-5 h-5" />} label="Total no período" value={fmtNum(totals.total)} index={0} />
         <KPICard icon={<Clock className="w-5 h-5" />} label="Hoje" value={fmtNum(totals.hoje)} index={1} accent="azure" />
-        <KPICard icon={<CalendarDays className="w-5 h-5" />} label="Esta semana" value={fmtNum(totals.semana)} index={2} accent="gold" />
+        <KPICard icon={<Sunrise className="w-5 h-5" />} label="Amanhã" value={fmtNum(totals.amanha)} index={2} accent="gold" />
         <KPICard icon={<TrendingUp className="w-5 h-5" />} label="Futuros" value={fmtNum(totals.futuros)} index={3} />
         <KPICard icon={<Users className="w-5 h-5" />} label="House" value={fmtNum(totals.house)} index={4} accent="azure" />
         <KPICard icon={<Users className="w-5 h-5" />} label="Parceiros" value={fmtNum(totals.imob)} index={5} accent="gold" />
