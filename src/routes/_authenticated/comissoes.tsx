@@ -676,6 +676,7 @@ function ComissoesPage() {
             const sale = reqDialog.sale;
             const comLiq = Number(sale?.comissao_liq_corretor) || 0;
             const valorVenda = Number(sale?.valor_venda) || 0;
+            const statusUp = (sale?.status ?? "").trim().toUpperCase();
             const paidS = sale ? paidBySale.get(sale.id) : undefined;
             const jaAdiantado = paidS?.adiantado ?? 0;
             const jaFinal = paidS?.finalPago ?? 0;
@@ -686,9 +687,11 @@ function ComissoesPage() {
             // Regras automáticas
             const minSinalComissao = valorVenda * 0.06;
             const maxAdiant = Math.floor(sinal / 2999.99) * 1000;
-            const ruleAdiantOk = reqForm.tipo !== "adiantamento" || (sinal >= 2999.99 && valor <= maxAdiant);
-            const ruleComissaoOk = reqForm.tipo !== "comissao_final" || valorVenda === 0 || sinal >= minSinalComissao;
-            const ruleViolated = !ruleAdiantOk || !ruleComissaoOk;
+            const isCaixa = statusUp === "CAIXA";
+            const isReservado = statusUp === "RESERVADO";
+            const ruleAdiantOk = isCaixa || reqForm.tipo !== "adiantamento" || (sinal >= 2999.99 && valor <= maxAdiant);
+            const ruleComissaoOk = isCaixa || reqForm.tipo !== "comissao_final" || valorVenda === 0 || sinal >= minSinalComissao;
+            const ruleViolated = isReservado || !ruleAdiantOk || !ruleComissaoOk;
             return (
               <>
                 <div className="space-y-3">
@@ -698,10 +701,21 @@ function ComissoesPage() {
                     <div><div className="text-muted-foreground">Máx. a solicitar</div><div className="font-semibold text-primary">{BRL(maxReceber)}</div></div>
                   </div>
                   <div className="rounded-lg border border-border/60 bg-secondary/20 p-3 text-xs space-y-1">
-                    <div className="font-semibold text-foreground">Regras automáticas</div>
-                    <div className="text-muted-foreground">• Adiantamento: cada <b>R$ 1.000</b> exige no mínimo <b>R$ 2.999,99</b> de sinal.</div>
-                    <div className="text-muted-foreground">• Comissão final: liberada apenas com sinal ≥ <b>6%</b> do valor da venda{valorVenda > 0 ? <> (mín. <b>{BRL(minSinalComissao)}</b>)</> : null}.</div>
+                    <div className="font-semibold text-foreground">Regras por status da venda</div>
+                    {isReservado && (
+                      <div className="text-destructive">• <b>Reservado:</b> nenhuma solicitação permitida até a assinatura.</div>
+                    )}
+                    {isCaixa && (
+                      <div className="text-emerald-400">• <b>Caixa:</b> liberado solicitar a comissão integral, sem exigência de sinal.</div>
+                    )}
+                    {!isReservado && !isCaixa && (
+                      <>
+                        <div className="text-muted-foreground">• <b>Assinado:</b> adiantamento exige <b>R$ 2.999,99</b> de sinal a cada <b>R$ 1.000</b>.</div>
+                        <div className="text-muted-foreground">• Comissão final exige sinal ≥ <b>6%</b> da venda{valorVenda > 0 ? <> (mín. <b>{BRL(minSinalComissao)}</b>)</> : null}.</div>
+                      </>
+                    )}
                   </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label>Tipo</Label>
