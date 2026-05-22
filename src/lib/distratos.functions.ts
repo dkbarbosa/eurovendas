@@ -16,6 +16,7 @@ async function assertFinanceiro(userId: string) {
 // ---------- CRIAR DISTRATO ----------
 const CreateSchema = z.object({
   sale_id: z.string().uuid(),
+  valor_devolver: z.number().nonnegative().max(99999999),
   motivo: z.string().trim().min(3).max(2000),
   observacao_financeiro: z.string().trim().max(2000).optional(),
 });
@@ -44,7 +45,7 @@ export const createDistrato = createServerFn({ method: "POST" })
     if (saleErr) throw new Error(saleErr.message);
     if (!sale) throw new Error("Venda não encontrada.");
 
-    // Soma de pedidos PAGOS desta venda
+    // Soma de pedidos PAGOS desta venda (referência - não obrigatório)
     const { data: paidRows } = await supabaseAdmin
       .from("commission_requests")
       .select("id,tipo,valor_solicitado,corretor_user_id")
@@ -53,10 +54,8 @@ export const createDistrato = createServerFn({ method: "POST" })
     const items = paidRows ?? [];
     const valorAdiant = items.filter((r) => r.tipo === "adiantamento").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
     const valorFinal = items.filter((r) => r.tipo === "comissao_final").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
-    const total = valorAdiant + valorFinal;
-    if (total <= 0) throw new Error("Nenhum valor pago para esta venda. Distrato desnecessário.");
 
-    // Identifica corretor (do primeiro pedido pago)
+    // Identifica corretor (do primeiro pedido pago, senão por mapeamento)
     let corretorUserId: string | null = items.find((r) => r.corretor_user_id)?.corretor_user_id ?? null;
     if (!corretorUserId && sale.corretor) {
       const { data: map } = await supabaseAdmin
@@ -78,7 +77,7 @@ export const createDistrato = createServerFn({ method: "POST" })
         comprador: sale.comprador,
         empreendimento: sale.empreendimento,
         unidade: sale.unidade,
-        valor_devolver: total,
+        valor_devolver: data.valor_devolver,
         valor_adiantamento: valorAdiant,
         valor_comissao_final: valorFinal,
         motivo: data.motivo,
@@ -100,6 +99,46 @@ export const createDistrato = createServerFn({ method: "POST" })
     }
 
     return { ok: true, id: ins.id };
+  });
+
+// ---------- LISTAR VENDAS PARA DISTRATO (financeiro) ----------
+export const listSalesForDistrato = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertFinanceiro(context.userId);
+    const [{ data: sales }, { data: reqs }, { data: dists }] = await Promise.all([
+      supabaseAdmin
+        .from("sales")
+        .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,status")
+        .order("data", { ascending: false })
+        .limit(3000),
+      supabaseAdmin
+        .from("commission_requests")
+        .select("sale_id,tipo,valor_solicitado,status")
+        .eq("status", "pago"),
+      supabaseAdmin
+        .from("distratos")
+        .select("sale_id,status")
+        .neq("status", "cancelado"),
+    ]);
+    const distSet = new Set((dists ?? []).map((d) => d.sale_id));
+    const paidMap = new Map<string, { adiant: number; final: number }>();
+    for (const r of reqs ?? []) {
+      const cur = paidMap.get(r.sale_id) ?? { adiant: 0, final: 0 };
+      if (r.tipo === "adiantamento") cur.adiant += Number(r.valor_solicitado) || 0;
+      else if (r.tipo === "comissao_final") cur.final += Number(r.valor_solicitado) || 0;
+      paidMap.set(r.sale_id, cur);
+    }
+    return (sales ?? []).map((s) => {
+      const p = paidMap.get(s.id) ?? { adiant: 0, final: 0 };
+      return {
+        ...s,
+        valor_adiantamento_pago: p.adiant,
+        valor_comissao_final_pago: p.final,
+        total_pago: p.adiant + p.final,
+        ja_distratada: distSet.has(s.id),
+      };
+    });
   });
 
 // ---------- LISTAR DISTRATOS ----------
