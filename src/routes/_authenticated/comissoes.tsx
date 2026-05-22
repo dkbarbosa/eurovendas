@@ -504,11 +504,18 @@ function ComissoesPage() {
                         </div>
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
-                        <span className={aReceberSale > 0 ? "text-primary font-semibold" : "text-emerald-400 font-medium"}>
-                          {BRL(aReceberSale)}
-                        </span>
+                        {comissaoLiq > 0 && aReceberSale === 0 ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                            <CheckCircle2 className="w-3.5 h-3.5" />Finalizado
+                          </span>
+                        ) : (
+                          <span className={aReceberSale > 0 ? "text-primary font-semibold" : "text-muted-foreground"}>
+                            {BRL(aReceberSale)}
+                          </span>
+                        )}
                       </td>
                       <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
+
 
                       <td className="p-3">
                         <div className="space-y-1">
