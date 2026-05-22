@@ -727,24 +727,20 @@ function ComissoesPage() {
                       )}
                     </div>
                     <div className="space-y-1.5">
-                      <Label>
-                        Sinal recebido (R$)
-                        {Number((sale as { valor_sinal_negocio?: number | null })?.valor_sinal_negocio) > 0 && (
-                          <span className="ml-2 text-[10px] uppercase tracking-wider text-primary">vindo da planilha</span>
-                        )}
-                      </Label>
+                      <Label>Sinal recebido (R$)</Label>
                       <CurrencyInput
                         value={reqForm.valor_sinal}
                         onValueChange={(v) => setReqForm({ ...reqForm, valor_sinal: v })}
-                        disabled={Number((sale as { valor_sinal_negocio?: number | null })?.valor_sinal_negocio) > 0}
+                        disabled={Number((sale as { valor_sinal_negocio?: number | null })?.valor_sinal_negocio) > 0 || statusUp === "CAIXA"}
                       />
-                      {reqForm.tipo === "adiantamento" && sinal > 0 && sinal < 2999.99 && (
+                      {statusUp !== "CAIXA" && reqForm.tipo === "adiantamento" && sinal > 0 && sinal < 2999.99 && (
                         <p className="text-xs text-destructive">Sinal precisa ser ≥ R$ 2.999,99 para liberar adiantamento.</p>
                       )}
-                      {reqForm.tipo === "comissao_final" && valorVenda > 0 && sinal > 0 && sinal < minSinalComissao && (
+                      {statusUp !== "CAIXA" && reqForm.tipo === "comissao_final" && valorVenda > 0 && sinal > 0 && sinal < minSinalComissao && (
                         <p className="text-xs text-destructive">Sinal abaixo de 6% do valor da venda (mín. {BRL(minSinalComissao)}).</p>
                       )}
                     </div>
+
                     <div className="space-y-1.5">
                       <Label>Bônus corretor (R$)</Label>
                       <CurrencyInput value={reqForm.bonus_corretor} onValueChange={(v) => setReqForm({ ...reqForm, bonus_corretor: v })} />
