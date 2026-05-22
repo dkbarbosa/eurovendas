@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { listMyBrokerSales, listDistinctCorretores } from "@/lib/commissions.functions";
-import { createCommissionRequest, deleteCommissionRequest } from "@/lib/requests.functions";
+import { createCommissionRequest, deleteCommissionRequest, markRequestPaid } from "@/lib/requests.functions";
 import { markNFEmitted, deleteNFRequest } from "@/lib/nf.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
