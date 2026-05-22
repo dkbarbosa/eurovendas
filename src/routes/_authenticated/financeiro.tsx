@@ -134,7 +134,7 @@ function AdvancesTab() {
       </div>
 
       <div className="glass-card p-2 overflow-x-auto">
-        <table className="w-full text-sm min-w-[1000px]">
+        <table className="w-full text-sm min-w-[1280px]">
           <thead className="text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
               <th className="text-left p-3">Data</th>
