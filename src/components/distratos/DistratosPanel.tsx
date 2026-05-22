@@ -94,6 +94,14 @@ export function DistratosPanel() {
 
   return (
     <div className="space-y-4">
+      {/* Header + ação */}
+      {isStaff && (
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="text-xs text-muted-foreground">Gestão de distratos — selecione qualquer venda para registrar.</div>
+          <NewDistratoDialog onCreated={() => qc.invalidateQueries({ queryKey: ["distratos"] })} />
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiTile label="Distratos" value={String(totals.qtdTotal)} sub="No recorte atual" />
