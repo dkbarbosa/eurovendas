@@ -135,7 +135,7 @@ function Dashboard() {
       const d = new Date(s.data);
       if (year !== "all" && d.getUTCFullYear() !== Number(year)) return false;
       if (month !== "all" && d.getUTCMonth() + 1 !== Number(month)) return false;
-      if (activeStatuses.length > 0 && !activeStatuses.includes(s.status ?? "")) return false;
+      if (activeStatuses.length > 0 && !activeStatuses.map(x => x.toUpperCase()).includes((s.status ?? "").toUpperCase())) return false;
       if (teamFilter !== "all") {
         const house = isHouse(s.corretor);
         if (teamFilter === "house" && !house) return false;
