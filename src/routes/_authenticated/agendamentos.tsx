@@ -274,7 +274,7 @@ function AgendamentosPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <KPICard icon={<CalendarDays className="w-5 h-5" />} label="Total no período" value={fmtNum(totals.total)} index={0} />
         <KPICard icon={<Clock className="w-5 h-5" />} label="Hoje" value={fmtNum(totals.hoje)} index={1} accent="azure" />
-        <KPICard icon={<CalendarDays className="w-5 h-5" />} label="Esta semana" value={fmtNum(totals.semana)} index={2} accent="gold" />
+        <KPICard icon={<Sunrise className="w-5 h-5" />} label="Amanhã" value={fmtNum(totals.amanha)} index={2} accent="gold" />
         <KPICard icon={<TrendingUp className="w-5 h-5" />} label="Futuros" value={fmtNum(totals.futuros)} index={3} />
         <KPICard icon={<Users className="w-5 h-5" />} label="House" value={fmtNum(totals.house)} index={4} accent="azure" />
         <KPICard icon={<Users className="w-5 h-5" />} label="Parceiros" value={fmtNum(totals.imob)} index={5} accent="gold" />
