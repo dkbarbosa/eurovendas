@@ -547,11 +547,24 @@ function AdvancesTab() {
                                     </Button>
                                   </div>
                                 )}
-                                {r.status === "aprovado" && (
-                                  <Button size="sm" onClick={() => setObs({ open: true, id: r.id, action: "pagar", text: "" })}>
-                                    <Wallet className="w-3.5 h-3.5 mr-1" />Marcar pago
-                                  </Button>
-                                )}
+                                {r.status === "aprovado" && (() => {
+                                  const nfOk = r.nf_status === "recebida" || r.nf_status == null;
+                                  if (!nfOk) {
+                                    const label = r.nf_status === "emitida"
+                                      ? "Aguardando recebimento da NF"
+                                      : "Aguardando emissão da NF";
+                                    return (
+                                      <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-[10px]">
+                                        {label}
+                                      </Badge>
+                                    );
+                                  }
+                                  return (
+                                    <Button size="sm" onClick={() => setObs({ open: true, id: r.id, action: "pagar", text: "" })}>
+                                      <Wallet className="w-3.5 h-3.5 mr-1" />Marcar pago
+                                    </Button>
+                                  );
+                                })()}
                                 {isAdmin && (
                                   <Button size="sm" variant="ghost" className="text-destructive ml-1"
                                     onClick={() => { if (confirm("Excluir esta solicitação? (admin)")) delMut.mutate(r.id); }}>

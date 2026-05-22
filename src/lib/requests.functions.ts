@@ -120,7 +120,7 @@ export const listAllRequests = createServerFn({ method: "POST" })
     const saleIds = [...new Set((reqs ?? []).map((r) => r.sale_id))];
     const userIds = [...new Set((reqs ?? []).map((r) => r.corretor_user_id))];
     const safeIds = saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"];
-    const [{ data: sales }, { data: profs }, { data: paidReqs }] = await Promise.all([
+    const [{ data: sales }, { data: profs }, { data: paidReqs }, { data: nfRows }] = await Promise.all([
       supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,comissao_liq_corretor,status").in("id", safeIds),
       supabaseAdmin.from("profiles").select("id,display_name,email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
       // Todos pedidos PAGOS dessas vendas, para calcular adiantado/saldo + histórico.
@@ -129,9 +129,20 @@ export const listAllRequests = createServerFn({ method: "POST" })
         .select("id,sale_id,tipo,valor_solicitado,status,paid_at,decided_at,created_at")
         .in("sale_id", safeIds)
         .eq("status", "pago"),
+      supabaseAdmin
+        .from("nf_requests")
+        .select("sale_id,status,created_at")
+        .in("sale_id", safeIds)
+        .order("created_at", { ascending: false }),
     ]);
     const sMap = new Map((sales ?? []).map((s) => [s.id, s]));
     const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
+    // Para cada venda, status da NF "ativa" mais recente (ignora canceladas).
+    const nfBySale = new Map<string, string>();
+    for (const n of nfRows ?? []) {
+      if (n.status === "cancelada") continue;
+      if (!nfBySale.has(n.sale_id)) nfBySale.set(n.sale_id, n.status as string);
+    }
     const paidBySale = new Map<string, { adiantado: number; final: number; items: Array<{ id: string; tipo: string; valor: number; data: string | null }> }>();
     for (const pr of paidReqs ?? []) {
       const cur = paidBySale.get(pr.sale_id) ?? { adiantado: 0, final: 0, items: [] };
@@ -160,6 +171,7 @@ export const listAllRequests = createServerFn({ method: "POST" })
         final_pago: p.final,
         a_receber: aReceber,
         historico: p.items.slice().sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "")),
+        nf_status: nfBySale.get(r.sale_id) ?? null,
       };
     });
 
@@ -281,6 +293,25 @@ export const markRequestPaid = createServerFn({ method: "POST" })
     if (data.observacao) {
       if (isStaff) patch.observacao_financeiro = data.observacao;
       else patch.observacao_corretor = data.observacao;
+    }
+    // Antes de marcar como pago: exigir que a NF da venda (se houver) esteja recebida.
+    const { data: reqRow } = await supabaseAdmin
+      .from("commission_requests").select("sale_id,status").eq("id", data.id).maybeSingle();
+    if (!reqRow) throw new Error("Pedido não encontrado.");
+    if (reqRow.sale_id) {
+      const { data: nfActive } = await supabaseAdmin
+        .from("nf_requests")
+        .select("status")
+        .eq("sale_id", reqRow.sale_id)
+        .in("status", ["solicitada", "emitida"])
+        .maybeSingle();
+      if (nfActive) {
+        throw new Error(
+          nfActive.status === "emitida"
+            ? "Aguardando confirmação de recebimento da NF para liberar o pagamento."
+            : "Pagamento só pode ser efetuado após o recebimento da NF do corretor.",
+        );
+      }
     }
     // Transição atômica pendente|aprovado -> pago. Apenas o primeiro (financeiro OU corretor)
     // consegue marcar; o segundo recebe erro e nada é duplicado na planilha.
