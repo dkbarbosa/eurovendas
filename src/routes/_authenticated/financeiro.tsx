@@ -172,10 +172,48 @@ function AdvancesTab() {
                 <td className="p-3"><Badge variant="outline" className="text-xs">{r.tipo === "adiantamento" ? "Adiant." : "Comiss."}</Badge></td>
                 <td className="p-3 text-right whitespace-nowrap font-medium">{BRL(r.comissao_liq)}</td>
                 <td className="p-3 text-right whitespace-nowrap">
-                  <span className={r.adiantado_pago > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}>
-                    {BRL(r.adiantado_pago)}
-                  </span>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span className={r.adiantado_pago > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}>
+                      {BRL(r.adiantado_pago)}
+                    </span>
+                    {(r.historico?.length ?? 0) > 0 && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            title="Ver histórico de pagamentos"
+                            className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                          >
+                            <Clock className="w-3 h-3" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-80 p-3 space-y-2">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Histórico de pagamentos
+                          </div>
+                          <ul className="space-y-1.5 text-sm">
+                            {r.historico!.map((h) => (
+                              <li key={h.id} className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
+                                <div className="flex flex-col">
+                                  <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                                    {h.tipo === "adiantamento" ? "Adiantamento" : "Comissão final"}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">{fmtBR(h.data)}</span>
+                                </div>
+                                <span className="font-medium">{BRL(h.valor)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="pt-2 border-t border-border/60 text-xs space-y-0.5">
+                            <div className="flex justify-between"><span className="text-muted-foreground">Adiantado</span><span>{BRL(r.adiantado_pago)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Comissão final paga</span><span>{BRL(r.final_pago)}</span></div>
+                            <div className="flex justify-between font-semibold text-primary"><span>Saldo a receber</span><span>{BRL(r.a_receber)}</span></div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
                 </td>
+
                 <td className="p-3 text-right whitespace-nowrap">
                   <span className={r.a_receber > 0 ? "text-primary font-semibold" : "text-emerald-400 font-medium"}>
                     {BRL(r.a_receber)}
