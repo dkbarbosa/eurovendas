@@ -118,15 +118,19 @@ function AgendamentosPage() {
   const startOfWeek = new Date(startOfDay);
   startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay());
   const endOfWeek = new Date(startOfWeek.getTime() + 7 * 864e5);
+  const startOfTomorrow = new Date(startOfDay.getTime() + 864e5);
+  const endOfTomorrow = new Date(startOfTomorrow.getTime() + 864e5);
 
   const totals = useMemo(() => {
     const hoje = filtered.filter((e) => e.startDate! >= startOfDay && e.startDate! < endOfDay).length;
+    const amanha = filtered.filter((e) => e.startDate! >= startOfTomorrow && e.startDate! < endOfTomorrow).length;
     const semana = filtered.filter((e) => e.startDate! >= startOfWeek && e.startDate! < endOfWeek).length;
     const futuros = filtered.filter((e) => e.startDate! >= now).length;
     const house = filtered.filter((e) => e.origin === "house").length;
     const imob = filtered.filter((e) => e.origin === "parceiro").length;
-    return { total: filtered.length, hoje, semana, futuros, house, imob };
-  }, [filtered, now, startOfDay, endOfDay, startOfWeek, endOfWeek]);
+    return { total: filtered.length, hoje, amanha, semana, futuros, house, imob };
+  }, [filtered, now, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfTomorrow, endOfTomorrow]);
+
 
   // ===== Charts =====
   const porCorretor = useMemo(() => {
