@@ -78,9 +78,10 @@ function Page() {
         <div className="space-y-1.5">
           <Label>Papel</Label>
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
-            className="h-9 w-full rounded-md bg-input border border-border px-3 text-sm">
-            {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            className="h-9 w-full rounded-md bg-input border border-border px-3 text-sm text-foreground">
+            {ROLES.map((r) => <option key={r} value={r} className="bg-background text-foreground">{r}</option>)}
           </select>
+
         </div>
         <Button type="submit" disabled={inviteMut.isPending} style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
           {inviteMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><UserPlus className="w-4 h-4 mr-2" />Criar</>}
