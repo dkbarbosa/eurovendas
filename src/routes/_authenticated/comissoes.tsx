@@ -249,25 +249,35 @@ function ComissoesPage() {
   const [nfDialog, setNfDialog] = useState<{ open: boolean; nfId: string | null }>({ open: false, nfId: null });
   const [nfForm, setNfForm] = useState({ numero_nf: "", observacao: "" });
   const [nfFile, setNfFile] = useState<File | null>(null);
+  const [nfFile2, setNfFile2] = useState<File | null>(null);
   const [uploadingNF, setUploadingNF] = useState(false);
   const openNF = (nfId: string) => {
     setNfForm({ numero_nf: "", observacao: "" });
     setNfFile(null);
+    setNfFile2(null);
     setNfDialog({ open: true, nfId });
   };
+  const readFileB64 = (f: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.onerror = () => reject(reader.error ?? new Error("Falha ao ler arquivo."));
+    reader.readAsDataURL(f);
+  });
   const emitMut = useMutation({
     mutationFn: async () => {
       if (!nfFile) throw new Error("Anexe o arquivo da NF (PDF, PNG ou JPEG).");
       if (nfFile.size > 15 * 1024 * 1024) throw new Error("Arquivo muito grande (máx. 15 MB).");
+      if (nfFile2 && nfFile2.size > 15 * 1024 * 1024) throw new Error("2º arquivo muito grande (máx. 15 MB).");
       setUploadingNF(true);
       try {
-        // Lê como base64 e envia para o servidor — o servidor faz upload no Google Drive.
-        const base64: string = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-          reader.onerror = () => reject(reader.error ?? new Error("Falha ao ler arquivo."));
-          reader.readAsDataURL(nfFile);
-        });
+        const base64 = await readFileB64(nfFile);
+        const file2 = nfFile2
+          ? {
+              file_base64: await readFileB64(nfFile2),
+              file_name: nfFile2.name,
+              file_mime: nfFile2.type || "application/octet-stream",
+            }
+          : undefined;
         return fnEmit({
           data: {
             id: nfDialog.nfId!,
@@ -276,6 +286,7 @@ function ComissoesPage() {
             file_name: nfFile.name,
             file_mime: nfFile.type || "application/octet-stream",
             observacao: nfForm.observacao || undefined,
+            file2,
           },
         });
       } finally {
