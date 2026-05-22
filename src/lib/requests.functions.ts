@@ -59,6 +59,12 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
       .from("sales").select("id,corretor,comissao_liq_corretor,valor_venda,valor_sinal_negocio,status").eq("id", data.sale_id).maybeSingle();
     if (saleErr) throw new Error(`Falha ao consultar venda: ${saleErr.message}`);
     if (!sale) throw new Error("Venda não encontrada no sistema.");
+
+    // Bloqueia novos pedidos se houver distrato ativo
+    const { data: distratoAtivo } = await supabaseAdmin
+      .from("distratos").select("id").eq("sale_id", data.sale_id).neq("status", "cancelado").maybeSingle();
+    if (distratoAtivo) throw new Error("Esta venda foi distratada — não é possível solicitar novos valores.");
+
     if ((sale.corretor ?? "").trim().toLowerCase() !== nome.trim().toLowerCase())
       throw new Error(`Esta venda está vinculada a "${sale.corretor}", não a "${nome}".`);
 
