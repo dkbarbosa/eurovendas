@@ -23,6 +23,7 @@ import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
 import { Route as AuthenticatedAdminIntegracaoRouteImport } from './routes/_authenticated/admin/integracao'
+import { Route as ApiPublicHooksCleanupNfDriveRouteImport } from './routes/api/public/hooks/cleanup-nf-drive'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -97,6 +98,12 @@ const AuthenticatedAdminIntegracaoRoute =
     path: '/admin/integracao',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicHooksCleanupNfDriveRoute =
+  ApiPublicHooksCleanupNfDriveRouteImport.update({
+    id: '/api/public/hooks/cleanup-nf-drive',
+    path: '/api/public/hooks/cleanup-nf-drive',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/vendas': typeof AuthenticatedVendasRoute
   '/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/api/public/hooks/cleanup-nf-drive': typeof ApiPublicHooksCleanupNfDriveRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -127,6 +135,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/api/public/hooks/cleanup-nf-drive': typeof ApiPublicHooksCleanupNfDriveRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -144,6 +153,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/integracao': typeof AuthenticatedAdminIntegracaoRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/api/public/hooks/cleanup-nf-drive': typeof ApiPublicHooksCleanupNfDriveRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/vendas'
     | '/admin/integracao'
     | '/admin/usuarios'
+    | '/api/public/hooks/cleanup-nf-drive'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/integracao'
     | '/admin/usuarios'
+    | '/api/public/hooks/cleanup-nf-drive'
   id:
     | '__root__'
     | '/_authenticated'
@@ -192,11 +204,13 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/admin/integracao'
     | '/_authenticated/admin/usuarios'
+    | '/api/public/hooks/cleanup-nf-drive'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ApiPublicHooksCleanupNfDriveRoute: typeof ApiPublicHooksCleanupNfDriveRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -299,6 +313,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIntegracaoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/hooks/cleanup-nf-drive': {
+      id: '/api/public/hooks/cleanup-nf-drive'
+      path: '/api/public/hooks/cleanup-nf-drive'
+      fullPath: '/api/public/hooks/cleanup-nf-drive'
+      preLoaderRoute: typeof ApiPublicHooksCleanupNfDriveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -339,6 +360,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  ApiPublicHooksCleanupNfDriveRoute: ApiPublicHooksCleanupNfDriveRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

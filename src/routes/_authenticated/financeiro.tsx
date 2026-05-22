@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { listAllRequests, decideRequest, markRequestPaid, deleteCommissionRequest } from "@/lib/requests.functions";
-import { listAllNFs, listEligibleSalesForNF, requestNF, confirmNFReceived, cancelNF, deleteNFRequest } from "@/lib/nf.functions";
+import { listAllNFs, listEligibleSalesForNF, requestNF, confirmNFReceived, cancelNF, deleteNFRequest, downloadNFFile } from "@/lib/nf.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -407,6 +407,22 @@ function NFTab() {
   const fnConfirm = useServerFn(confirmNFReceived);
   const fnCancel = useServerFn(cancelNF);
   const fnDel = useServerFn(deleteNFRequest);
+  const fnDownload = useServerFn(downloadNFFile);
+  const handleDownload = async (id: string) => {
+    try {
+      const res = await fnDownload({ data: { id } }) as { base64: string; contentType: string; filename: string };
+      const bin = atob(res.base64);
+      const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([buf], { type: res.contentType }));
+      const a = document.createElement("a");
+      a.href = url; a.download = res.filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   const [statusFilter, setStatusFilter] = useState<"solicitada" | "emitida" | "recebida" | "cancelada" | "todos">("emitida");
   const { data = [], isLoading } = useQuery({ queryKey: ["all-nfs"], queryFn: () => fnList() });
@@ -473,15 +489,13 @@ function NFTab() {
                 <td className="p-3">
                   {n.numero_nf ? <span className="font-mono">{n.numero_nf}</span> : <span className="text-muted-foreground">—</span>}
                   {n.arquivo_nf_url && (
-                    <a
-                      href={n.arquivo_nf_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      download
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(n.id)}
                       className="mt-1 inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                     >
                       <Download className="w-3 h-3" /> Baixar
-                    </a>
+                    </button>
                   )}
                 </td>
                 <td className="p-3"><NFStatusBadge status={n.status} /></td>

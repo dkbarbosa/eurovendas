@@ -1,0 +1,1 @@
+ALTER TABLE public.nf_requests ADD COLUMN IF NOT EXISTS drive_file_id TEXT;
