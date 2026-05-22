@@ -47,8 +47,6 @@ export function useLiveSync() {
   useEffect(() => {
     if (!isAdmin || !session) return;
     run();
-    const id = setInterval(run, INTERVAL_MS);
-    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, session?.user?.id]);
 
