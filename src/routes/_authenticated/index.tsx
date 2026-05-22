@@ -52,7 +52,8 @@ interface Sale {
 
 const COLORS = ["#2DE2C9", "#D6AF55", "#4D8DFF", "#FF5C8A", "#9A7CFF", "#6EE7B7", "#F97316", "#38BDF8"];
 
-const SHEET_STATUS_OPTIONS = ["RESERVADO", "VENDIDO", "Liberado", "Pago", "Distrato"];
+// Ordem oficial dos status conforme a planilha
+const SHEET_STATUS_OPTIONS = ["RESERVADO", "ASSINADO", "CAIXA", "PAGO", "DISTRATO"];
 
 const STATUS_COLORS: Record<string, string> = {
   "Em aberto": "#D6AF55",
@@ -101,10 +102,19 @@ function Dashboard() {
   }, [allSales]);
 
   const statuses = useMemo(() => {
-    const set = new Set<string>();
-    SHEET_STATUS_OPTIONS.forEach((s) => set.add(s));
-    allSales.forEach((s) => s.status && set.add(s.status));
-    return Array.from(set);
+    // Mantém a ordem da planilha e deduplica case-insensitive
+    const seen = new Set<string>();
+    const out: string[] = [];
+    const push = (s: string) => {
+      const k = s.toUpperCase();
+      if (!seen.has(k)) {
+        seen.add(k);
+        out.push(s);
+      }
+    };
+    SHEET_STATUS_OPTIONS.forEach(push);
+    allSales.forEach((s) => s.status && push(s.status));
+    return out;
   }, [allSales]);
 
   const now = new Date();
@@ -125,7 +135,7 @@ function Dashboard() {
       const d = new Date(s.data);
       if (year !== "all" && d.getUTCFullYear() !== Number(year)) return false;
       if (month !== "all" && d.getUTCMonth() + 1 !== Number(month)) return false;
-      if (activeStatuses.length > 0 && !activeStatuses.includes(s.status ?? "")) return false;
+      if (activeStatuses.length > 0 && !activeStatuses.map(x => x.toUpperCase()).includes((s.status ?? "").toUpperCase())) return false;
       if (teamFilter !== "all") {
         const house = isHouse(s.corretor);
         if (teamFilter === "house" && !house) return false;
