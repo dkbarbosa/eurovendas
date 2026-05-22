@@ -113,8 +113,8 @@ export const listAllNFs = createServerFn({ method: "GET" })
     await assertFinanceiro(context.userId);
     const { data: nfs } = await supabaseAdmin
       .from("nf_requests").select("*").order("created_at", { ascending: false }).limit(2000);
-    const saleIds = [...new Set((nfs ?? []).map((n) => n.sale_id))];
-    const userIds = [...new Set((nfs ?? []).map((n) => n.corretor_user_id))];
+    const saleIds = [...new Set((nfs ?? []).map((n) => n.sale_id).filter((v): v is string => !!v))];
+    const userIds = [...new Set((nfs ?? []).map((n) => n.corretor_user_id).filter((v): v is string => !!v))];
     const [{ data: sales }, { data: profs }] = await Promise.all([
       supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor").in("id", saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"]),
       supabaseAdmin.from("profiles").select("id,display_name,email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
@@ -124,7 +124,7 @@ export const listAllNFs = createServerFn({ method: "GET" })
     return (nfs ?? []).map((n) => ({
       ...n,
       sale: sMap.get(n.sale_id) ?? null,
-      corretor_profile: pMap.get(n.corretor_user_id) ?? null,
+      corretor_profile: n.corretor_user_id ? pMap.get(n.corretor_user_id) ?? null : null,
     }));
   });
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { syncFromSheets } from "@/lib/sheets.functions";
@@ -17,13 +17,15 @@ export function useLiveSync() {
   const [lastError, setLastError] = useState<string | null>(null);
   const [rows, setRows] = useState<number | null>(null);
   const running = useRef(false);
+  const mounted = useRef(true);
 
-  async function run() {
+  const run = useCallback(async () => {
     if (running.current || !session?.access_token) return;
     running.current = true;
-    setState("syncing");
+    if (mounted.current) setState("syncing");
     try {
-      const r = (await sync({ headers: { Authorization: `Bearer ${session.access_token}` } })) as { ok: boolean; rows: number; error?: string };
+      const r = (await sync({})) as { ok: boolean; rows: number; error?: string };
+      if (!mounted.current) return;
       if (!r.ok) {
         setLastError(r.error ?? "Erro desconhecido");
         setState("error");
@@ -37,18 +39,34 @@ export function useLiveSync() {
       qc.invalidateQueries({ queryKey: ["sales-all"] });
       qc.invalidateQueries({ queryKey: ["sync-log"] });
     } catch (e) {
-      setLastError(e instanceof Response ? await e.text() : e instanceof Error ? e.message : String(e));
+      if (!mounted.current) return;
+      const msg = e instanceof Response ? await e.text() : e instanceof Error ? e.message : String(e);
+      setLastError(msg);
       setState("error");
     } finally {
       running.current = false;
     }
-  }
+  }, [sync, qc, session?.access_token]);
 
   useEffect(() => {
+    mounted.current = true;
     if (!isAdmin || !session) return;
     run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, session?.user?.id]);
+    const id = setInterval(() => {
+      // Não dispara em background quando aba está oculta — economiza requests.
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      run();
+    }, INTERVAL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") run();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      mounted.current = false;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [isAdmin, session, run]);
 
   return { state, lastAt, lastError, rows, refresh: run };
 }

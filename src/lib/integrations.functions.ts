@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export interface ConnectorStatus {
   sheets: boolean;
@@ -10,7 +12,17 @@ export interface ConnectorStatus {
 }
 
 export const checkConnectorStatus = createServerFn({ method: "GET" })
-  .handler(async () => {
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    // Apenas usuários autenticados podem consultar o status. Restringe a admins.
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!roleRow) throw new Error("Apenas administradores podem consultar conexões.");
+
     const sheetsKey = process.env.GOOGLE_SHEETS_API_KEY;
     const calendarKey = process.env.GOOGLE_CALENDAR_API_KEY;
     const driveKey = process.env.GOOGLE_DRIVE_API_KEY;
