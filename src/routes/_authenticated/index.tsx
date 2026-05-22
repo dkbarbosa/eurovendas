@@ -404,7 +404,7 @@ function Dashboard() {
           label="Comissão Bruta"
           value={m.com + m.comGerGeral}
           format={fmtBRLCompact}
-          hint="inclui 0,4% do gerente geral sobre VGV"
+          
           accent="teal"
           icon={<Award className="w-4 h-4" />}
           index={4}
