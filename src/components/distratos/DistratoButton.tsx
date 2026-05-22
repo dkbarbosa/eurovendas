@@ -87,7 +87,7 @@ export function DistratoButton({
             <Button
               variant="destructive"
               disabled={motivo.trim().length < 3 || mut.isPending}
-              onClick={() => mut.mutate({ sale_id: saleId, motivo, observacao_financeiro: obs || undefined })}
+              onClick={() => mut.mutate({ sale_id: saleId, valor_devolver: totalPago, motivo, observacao_financeiro: obs || undefined })}
             >
               {mut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar distrato"}
             </Button>
