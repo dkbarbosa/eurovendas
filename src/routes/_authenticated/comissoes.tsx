@@ -567,6 +567,7 @@ function ComissoesPage() {
                   const hasPending = reqs.some((r) => r.status === "pendente");
                   const nfAberta = sNfs.find((n) => n.status === "solicitada" || n.status === "emitida");
                   const paid = paidBySale.get(s.id);
+                  const distrato = distratoBySale.get(s.id);
                   const comissaoLiq = Number(s.comissao_liq_corretor) || 0;
                   const adiantadoSale = paid?.adiantado ?? 0;
                   const finalPagoSale = paid?.finalPago ?? 0;
@@ -576,9 +577,21 @@ function ComissoesPage() {
                     (b.data ?? "").localeCompare(a.data ?? ""),
                   );
                   return (
-                    <tr key={s.id} className="border-t border-border align-top">
+                    <tr key={s.id} className={`border-t border-border align-top ${distrato && distrato.status === "pendente_devolucao" ? "bg-destructive/5" : ""}`}>
                       <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
-                      <td className="p-3 font-medium">{s.comprador ?? "—"}</td>
+                      <td className="p-3 font-medium">
+                        <div>{s.comprador ?? "—"}</div>
+                        {distrato && (
+                          <Badge
+                            variant="outline"
+                            className={`mt-1 text-[10px] gap-1 ${distrato.status === "devolvido" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-destructive/10 text-destructive border-destructive/30"}`}
+                            title={distrato.motivo ?? undefined}
+                          >
+                            <Ban className="w-2.5 h-2.5" />
+                            {distrato.status === "devolvido" ? "Distrato devolvido" : `Distrato · devolver ${BRL(distrato.valor_devolver)}`}
+                          </Badge>
+                        )}
+                      </td>
                       <td className="p-3 text-muted-foreground">
                         <div>{s.empreendimento ?? "—"}</div>
                         <div className="text-xs">Unid: {s.unidade ?? "—"}</div>
