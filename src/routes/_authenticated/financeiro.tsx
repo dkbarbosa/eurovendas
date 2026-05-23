@@ -960,7 +960,9 @@ function NFStatusBadge({ status }: { status: string }) {
     solicitada: "bg-amber-500/10 text-amber-500 border-amber-500/30",
     emitida: "bg-sky-500/10 text-sky-500 border-sky-500/30",
     recebida: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
+    paga: "bg-primary/10 text-primary border-primary/30",
     cancelada: "bg-destructive/10 text-destructive border-destructive/30",
   };
-  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border capitalize ${map[status] ?? ""}`}><Receipt className="w-3 h-3" />{status}</span>;
+  const label = status === "paga" ? "finalizada" : status;
+  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border capitalize ${map[status] ?? ""}`}><Receipt className="w-3 h-3" />{label}</span>;
 }
