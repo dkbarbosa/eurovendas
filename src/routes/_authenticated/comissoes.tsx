@@ -330,7 +330,7 @@ function ComissoesPage() {
 
     onSuccess: () => {
       toast.success("NF enviada com sucesso.");
-      setNfDialog({ open: false, nfId: null });
+      setNfDialog({ open: false, nfId: null, sale: null });
       qc.invalidateQueries({ queryKey: ["my-broker-sales"] });
     },
     onError: (e: Error) => toast.error(e.message),
