@@ -420,15 +420,22 @@ function ComissoesPage() {
   const [nfFile2, setNfFile2] = useState<File | null>(null);
   const [uploadingNF, setUploadingNF] = useState(false);
   const openNF = (nfId: string, sale: typeof allSales[number]) => {
-    // Auto-preenche o valor da NF com a soma dos pedidos aprovados (aguardando pagamento) desta venda.
+    // Auto-preenche o valor da NF com a soma dos pedidos aprovados (aguardando pagamento)
+    // desta venda, JÁ ABATENDO os descontos de distrato aplicados pelo financeiro.
+    // O corretor não pode alterar este valor — o cálculo é fixado pelo financeiro.
     const aprovadoValor = requests
       .filter((r) => r.sale_id === sale.id && r.status === "aprovado")
-      .reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
+      .reduce((s, r) => {
+        const v = Number(r.valor_solicitado) || 0;
+        const desc = Number((r as { desconto_distrato?: number }).desconto_distrato) || 0;
+        return s + Math.max(0, v - desc);
+      }, 0);
     setNfForm({ numero_nf: "", observacao: "", valor_nf: aprovadoValor });
     setNfFile(null);
     setNfFile2(null);
     setNfDialog({ open: true, nfId, sale });
   };
+
 
   const readFileB64 = (f: File) => new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
