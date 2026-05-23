@@ -243,3 +243,24 @@ function NavLink({
     </Link>
   );
 }
+
+function SectionLabel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`flex items-center gap-2 px-3 mb-2 ${className}`}>
+      <span
+        className="h-px flex-1 opacity-60"
+        style={{ background: "linear-gradient(90deg, transparent, var(--sidebar-border, oklch(1 0 0 / 12%)) 35%, transparent)" }}
+      />
+      <span
+        className="text-[10px] font-semibold uppercase tracking-[0.18em] bg-clip-text text-transparent whitespace-nowrap"
+        style={{ backgroundImage: "var(--gradient-primary)" }}
+      >
+        {children}
+      </span>
+      <span
+        className="h-px flex-1 opacity-60"
+        style={{ background: "linear-gradient(90deg, transparent, var(--sidebar-border, oklch(1 0 0 / 12%)) 35%, transparent)" }}
+      />
+    </div>
+  );
+}
