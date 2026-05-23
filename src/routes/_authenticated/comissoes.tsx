@@ -539,10 +539,14 @@ function ComissoesPage() {
             <Kpi icon={<FileText className="w-4 h-4" />} label="Vendas / Pendentes" value={`${kpis.count} / ${kpis.pendReq}`} />
             <Kpi
               icon={<Timer className="w-4 h-4" />}
-              label="Tempo médio de pagamento"
-              value={kpis.tempoMedio == null ? "—" : `${kpis.tempoMedio.toFixed(1)} dias`}
+              label="Evolução mensal"
+              value={kpis.evolucaoPct == null ? "—" : `${kpis.evolucaoPct >= 0 ? "+" : ""}${kpis.evolucaoPct.toFixed(1)}%`}
               premium
-              hint={kpis.tempoMedio == null ? "Sem histórico ainda" : "Da solicitação até o crédito"}
+              hint={
+                kpis.evolucaoPct == null
+                  ? "Sem solicitações nos últimos meses"
+                  : `${BRL(kpis.curMonthValor)} este mês vs ${BRL(kpis.prevMonthValor)} no anterior`
+              }
             />
           </div>
 
