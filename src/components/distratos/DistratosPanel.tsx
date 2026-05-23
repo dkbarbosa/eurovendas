@@ -219,8 +219,21 @@ export function DistratosPanel() {
                         </Button>
                       )}
                       {isAdmin && r.status !== "cancelado" && (
-                        <Button size="sm" variant="ghost" className="h-7 text-destructive ml-1"
+                        <Button size="sm" variant="ghost" className="h-7 text-muted-foreground ml-1"
+                          title="Cancelar (mantém o registro)"
                           onClick={() => { if (confirm("Cancelar este distrato? Os pedidos voltarão para 'pago'.")) cancelMut.mutate(r.id); }}>
+                          <Ban className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      {(isAdmin || isFinanceiro) && (
+                        <Button size="sm" variant="ghost" className="h-7 text-destructive ml-1"
+                          title="Apagar distrato e reverter dados"
+                          disabled={deleteMut.isPending}
+                          onClick={() => {
+                            if (confirm("Apagar este distrato? A operação some e os valores são zerados (pedidos voltam a 'pago' e o status da venda volta a 'PAGO').")) {
+                              deleteMut.mutate(r.id);
+                            }
+                          }}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       )}
