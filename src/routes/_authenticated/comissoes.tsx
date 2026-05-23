@@ -418,13 +418,75 @@ function ComissoesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className={`grid grid-cols-2 gap-3 ${totalADevolver > 0 ? "md:grid-cols-6" : "md:grid-cols-5"}`}>
             <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.total)} />
             <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantado" value={BRL(kpis.adiantado)} />
             <Kpi icon={<CheckCircle2 className="w-4 h-4" />} label="Já Pago" value={BRL(kpis.pagas)} />
             <Kpi icon={<Clock className="w-4 h-4" />} label="A Receber" value={BRL(kpis.aReceber)} accent />
+            {totalADevolver > 0 && (
+              <Kpi icon={<Ban className="w-4 h-4" />} label="A Devolver (distrato)" value={BRL(totalADevolver)} danger />
+            )}
             <Kpi icon={<FileText className="w-4 h-4" />} label="Vendas / Pendentes" value={`${kpis.count} / ${kpis.pendReq}`} />
           </div>
+
+          {distratos.length > 0 && (
+            <div className="glass-card p-5 border border-destructive/30">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Ban className="w-4 h-4 text-destructive" />
+                  <h3 className="font-display text-lg">Distratos — Saldo de devolução</h3>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Pendente <span className="text-destructive font-semibold">{BRL(totalADevolver)}</span>
+                  {totalDevolvido > 0 && <> · Devolvido <span className="text-emerald-400 font-semibold">{BRL(totalDevolvido)}</span></>}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Vendas distratadas pelo financeiro. O saldo pendente será descontado de futuras comissões. Somente o financeiro pode marcar como devolvido.
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[760px]">
+                  <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="text-left p-2">Cliente</th>
+                      <th className="text-left p-2">Empreend. / Un.</th>
+                      <th className="text-left p-2">Motivo</th>
+                      <th className="text-right p-2">A Devolver</th>
+                      <th className="text-left p-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {distratos.map((d) => (
+                      <tr key={d.id} className="border-t border-border align-top">
+                        <td className="p-2 font-medium">{d.comprador ?? "—"}</td>
+                        <td className="p-2 text-muted-foreground">
+                          <div>{d.empreendimento ?? "—"}</div>
+                          <div className="text-xs">Unid: {d.unidade ?? "—"}</div>
+                        </td>
+                        <td className="p-2 text-xs text-muted-foreground max-w-[260px] truncate" title={d.motivo ?? ""}>
+                          {d.motivo ?? "—"}
+                        </td>
+                        <td className="p-2 text-right whitespace-nowrap font-semibold text-destructive">
+                          {BRL(d.valor_devolver)}
+                        </td>
+                        <td className="p-2">
+                          {d.status === "devolvido" ? (
+                            <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Devolvido</Badge>
+                          ) : d.status === "cancelado" ? (
+                            <Badge variant="outline" className="text-muted-foreground">Cancelado</Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+                              Pendente devolução
+                            </Badge>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
