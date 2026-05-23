@@ -114,28 +114,36 @@ export function AplicarDescontoButton({
             <div className="space-y-1.5">
               <Label>Pendência *</Label>
               <div className="max-h-48 overflow-auto rounded-lg border border-border/60 divide-y divide-border/40">
-                {pendencias.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => { setDistratoId(p.id); setValor(String(Math.min(p.saldo_restante, restanteRequest).toFixed(2))); }}
-                    className={`w-full text-left px-3 py-2 text-xs hover:bg-secondary/40 transition ${distratoId === p.id ? "bg-primary/10" : ""}`}
-                  >
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{p.comprador ?? "—"}</div>
-                        <div className="text-muted-foreground text-[10px] truncate">{p.empreendimento} / {p.unidade}</div>
+                {pendencias.map((p) => {
+                  const autoObs = `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setDistratoId(p.id);
+                        setValor(String(Math.min(p.saldo_restante, restanteRequest).toFixed(2)));
+                        if (!obs.trim()) setObs(autoObs);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs hover:bg-secondary/40 transition ${distratoId === p.id ? "bg-primary/10" : ""}`}
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{p.comprador ?? "—"}</div>
+                          <div className="text-muted-foreground text-[10px] truncate">{p.empreendimento} / {p.unidade}</div>
+                        </div>
+                        <div className="text-right whitespace-nowrap">
+                          <div className="font-semibold text-destructive">{BRL(p.saldo_restante)}</div>
+                          <Badge variant="outline" className="text-[9px]">saldo</Badge>
+                        </div>
                       </div>
-                      <div className="text-right whitespace-nowrap">
-                        <div className="font-semibold text-destructive">{BRL(p.saldo_restante)}</div>
-                        <Badge variant="outline" className="text-[9px]">saldo</Badge>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
+
 
           {selected && (
             <>
