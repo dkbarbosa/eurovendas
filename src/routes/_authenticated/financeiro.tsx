@@ -409,6 +409,7 @@ function AdvancesTab() {
     mutationFn: (v: { id: string; motivo?: string }) => fnRemoveBonus({ data: v }),
     onSuccess: () => { toast.success("Bônus removido. Cálculo atualizado."); qc.invalidateQueries({ queryKey: ["all-requests"] }); },
     onError: (e: Error) => toast.error(e.message),
+  });
   const fnApplyDesc = useServerFn(aplicarDescontoDistrato);
   const fnListPend = useServerFn(listPendenciasDistrato);
 
