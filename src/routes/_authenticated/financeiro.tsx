@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlus2, Trash2, Download, LayoutDashboard, TrendingUp, AlertTriangle, FileText, Hourglass, BadgeCheck, Ban } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlus2, Trash2, Download, LayoutDashboard, TrendingUp, AlertTriangle, FileText, Hourglass, BadgeCheck, Ban, Paperclip } from "lucide-react";
 import { motion } from "framer-motion";
 import { DistratoButton } from "@/components/distratos/DistratoButton";
 import { DistratosPanel } from "@/components/distratos/DistratosPanel";
@@ -587,6 +587,17 @@ function AdvancesTab() {
                                     <Badge variant="outline" className="text-[10px] bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30">
                                       Bônus: {BRL(r.bonus_corretor)}
                                     </Badge>
+                                  )}
+                                  {(r as { comprovante_sinal_url?: string | null }).comprovante_sinal_url && (
+                                    <a
+                                      href={(r as { comprovante_sinal_url?: string | null }).comprovante_sinal_url ?? "#"}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition"
+                                      title="Comprovante de sinal enviado pelo corretor"
+                                    >
+                                      <Paperclip className="w-3 h-3" /> Comprovante
+                                    </a>
                                   )}
                                 </div>
                                 {r.observacao_corretor && <div className="text-xs"><b>C:</b> {r.observacao_corretor}</div>}

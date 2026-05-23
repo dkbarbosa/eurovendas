@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning, Ban, Send, Timer } from "lucide-react";
+import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning, Ban, Send, Timer, Paperclip, X } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from "recharts";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -323,14 +323,26 @@ function ComissoesPage() {
     valor_solicitado: null,
     observacao: "",
   });
+  const [comprovanteSinal, setComprovanteSinal] = useState<File | null>(null);
   const openReq = (sale: (typeof sales)[number]) => {
     const sinalSheet = Number((sale as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || null;
     setReqForm({ tipo: "adiantamento", valor_sinal: sinalSheet, bonus_corretor: null, valor_solicitado: null, observacao: "" });
+    setComprovanteSinal(null);
     setReqDialog({ open: true, sale });
   };
   const createMut = useMutation({
-    mutationFn: () =>
-      fnCreate({
+    mutationFn: async () => {
+      let comprovante: { file_base64: string; file_name: string; file_mime: string } | undefined;
+      if (comprovanteSinal) {
+        if (comprovanteSinal.size > 15 * 1024 * 1024) throw new Error("Comprovante muito grande (máx. 15 MB).");
+        const base64 = await readFileB64(comprovanteSinal);
+        comprovante = {
+          file_base64: base64,
+          file_name: comprovanteSinal.name,
+          file_mime: comprovanteSinal.type || "application/octet-stream",
+        };
+      }
+      return fnCreate({
         data: {
           sale_id: reqDialog.sale!.id,
           tipo: reqForm.tipo,
@@ -339,11 +351,14 @@ function ComissoesPage() {
           valor_solicitado: reqForm.valor_solicitado ?? 0,
           observacao_corretor: reqForm.observacao || undefined,
           act_as_corretor: isStaff ? activeBrokerArg : undefined,
+          comprovante_sinal: comprovante,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success(isStaff ? "Pedido de teste criado." : "Solicitação enviada ao financeiro.");
       setReqDialog({ open: false, sale: null });
+      setComprovanteSinal(null);
       qc.invalidateQueries({ queryKey: ["my-broker-sales"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -973,6 +988,53 @@ function ComissoesPage() {
                         onValueChange={(v) => setReqForm({ ...reqForm, valor_sinal: v })}
                         disabled={Number((sale as { valor_sinal_negocio?: number | null })?.valor_sinal_negocio) > 0 || statusUp === "CAIXA"}
                       />
+                      {(() => {
+                        const sheetSinal = Number((sale as { valor_sinal_negocio?: number | null })?.valor_sinal_negocio) || 0;
+                        const needsComprovante = sheetSinal <= 0 && statusUp !== "CAIXA";
+                        if (!needsComprovante) return null;
+                        return (
+                          <div className="mt-1">
+                            <label
+                              htmlFor="comprovante-sinal"
+                              className={`inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md border cursor-pointer transition ${
+                                comprovanteSinal
+                                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                                  : "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15"
+                              }`}
+                              title="O sinal não consta na planilha — anexe o comprovante (obrigatório)"
+                            >
+                              <Paperclip className="w-3 h-3" />
+                              {comprovanteSinal ? (
+                                <span className="truncate max-w-[160px]">{comprovanteSinal.name}</span>
+                              ) : (
+                                <span>Anexar comprovante de sinal *</span>
+                              )}
+                            </label>
+                            {comprovanteSinal && (
+                              <button
+                                type="button"
+                                className="ml-1 inline-flex items-center text-[11px] text-muted-foreground hover:text-destructive"
+                                onClick={() => setComprovanteSinal(null)}
+                                title="Remover"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                            <input
+                              id="comprovante-sinal"
+                              type="file"
+                              className="hidden"
+                              accept="image/*,application/pdf"
+                              onChange={(e) => setComprovanteSinal(e.target.files?.[0] ?? null)}
+                            />
+                            {!comprovanteSinal && (
+                              <p className="mt-1 text-[10px] text-amber-300/80">
+                                Obrigatório: sem comprovante, a solicitação não é enviada.
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {statusUp !== "CAIXA" && reqForm.tipo === "adiantamento" && sinal > 0 && sinal < 2999.99 && (
                         <p className="text-xs text-destructive">Sinal precisa ser ≥ R$ 2.999,99 para liberar adiantamento.</p>
                       )}
@@ -993,10 +1055,21 @@ function ComissoesPage() {
                 </div>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setReqDialog({ open: false, sale: null })}>Cancelar</Button>
-                  <Button disabled={createMut.isPending || !reqForm.valor_solicitado || excedeu || ruleViolated} onClick={() => createMut.mutate()}
-                    style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
-                    {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar pedido"}
-                  </Button>
+                  {(() => {
+                    const sheetSinal = Number((sale as { valor_sinal_negocio?: number | null })?.valor_sinal_negocio) || 0;
+                    const needsComprovante = sheetSinal <= 0 && statusUp !== "CAIXA";
+                    const missingComprovante = needsComprovante && !comprovanteSinal;
+                    return (
+                      <Button
+                        disabled={createMut.isPending || !reqForm.valor_solicitado || excedeu || ruleViolated || missingComprovante}
+                        onClick={() => createMut.mutate()}
+                        style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+                        title={missingComprovante ? "Anexe o comprovante de sinal para enviar" : undefined}
+                      >
+                        {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar pedido"}
+                      </Button>
+                    );
+                  })()}
                 </DialogFooter>
               </>
             );

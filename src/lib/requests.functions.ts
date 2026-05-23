@@ -3,6 +3,19 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { addAdvanceToSheet } from "./sheets-write.server";
+import { uploadFileToDriveFolder, getOrCreateDriveFolder } from "./drive.server";
+
+function b64ToBytes(s: string): Uint8Array {
+  const clean = s.replace(/^data:[^;]+;base64,/, "");
+  const bin = atob(clean);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf;
+}
+function sanitizeFolderName(parts: Array<string | null | undefined>): string {
+  return parts.map((p) => (p ?? "").toString().trim()).filter(Boolean).join(" - ")
+    .replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").slice(0, 200) || "Venda";
+}
 
 async function getRoles(userId: string) {
   const { data } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId);
@@ -28,6 +41,11 @@ const CreateRequestSchema = z.object({
   valor_solicitado: z.number().min(0.01).max(10_000_000),
   observacao_corretor: z.string().trim().max(2000).optional(),
   act_as_corretor: z.string().trim().max(255).optional(),
+  comprovante_sinal: z.object({
+    file_base64: z.string().min(10).max(20_000_000),
+    file_name: z.string().trim().min(1).max(255),
+    file_mime: z.string().trim().min(1).max(120),
+  }).optional(),
 });
 
 export const createCommissionRequest = createServerFn({ method: "POST" })
@@ -122,6 +140,34 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
       ? `[TESTE — admin agindo como ${data.act_as_corretor}] ${data.observacao_corretor ?? ""}`.trim()
       : data.observacao_corretor ?? null;
 
+    // Comprovante de sinal: obrigatório quando a planilha não traz o valor preenchido
+    // (e não é venda em CAIXA — que dispensa exigência de sinal).
+    const sinalSheetMissing = sinalSheet <= 0 && statusUp !== "CAIXA";
+    if (sinalSheetMissing && !data.comprovante_sinal) {
+      throw new Error("Sinal não consta na planilha. Anexe o comprovante de sinal para enviar a solicitação.");
+    }
+
+    let comprovanteUrl: string | null = null;
+    let comprovanteDriveId: string | null = null;
+    if (data.comprovante_sinal) {
+      try {
+        const folderName = sanitizeFolderName([sale.corretor, "Comprovantes Sinal"]);
+        const folderId = await getOrCreateDriveFolder(folderName);
+        const buf = b64ToBytes(data.comprovante_sinal.file_base64);
+        const safeName = `${data.sale_id}-sinal-${Date.now()}-${data.comprovante_sinal.file_name.replace(/[^\w.\-]+/g, "_")}`;
+        const up = await uploadFileToDriveFolder({
+          buffer: buf,
+          filename: safeName,
+          mimeType: data.comprovante_sinal.file_mime,
+          folderId,
+        });
+        comprovanteUrl = up.webViewLink;
+        comprovanteDriveId = up.id;
+      } catch (e) {
+        throw new Error(`Falha ao enviar comprovante de sinal: ${(e as Error).message}`);
+      }
+    }
+
     const { error } = await supabaseAdmin.from("commission_requests").insert({
       corretor_user_id: actorUserId,
       sale_id: data.sale_id,
@@ -130,6 +176,8 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
       bonus_corretor: data.bonus_corretor,
       valor_solicitado: data.valor_solicitado,
       observacao_corretor: obs,
+      comprovante_sinal_url: comprovanteUrl,
+      comprovante_sinal_drive_id: comprovanteDriveId,
       status: "pendente",
     });
     if (error) throw new Error(error.message);
