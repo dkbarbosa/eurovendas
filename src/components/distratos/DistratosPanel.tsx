@@ -92,6 +92,16 @@ export function DistratosPanel() {
     onSuccess: () => { toast.success("Distrato cancelado."); qc.invalidateQueries({ queryKey: ["distratos"] }); qc.invalidateQueries({ queryKey: ["all-requests"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => fnDelete({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Distrato apagado. Dados revertidos.");
+      qc.invalidateQueries({ queryKey: ["distratos"] });
+      qc.invalidateQueries({ queryKey: ["all-requests"] });
+      qc.invalidateQueries({ queryKey: ["sales-for-distrato"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="space-y-4">
