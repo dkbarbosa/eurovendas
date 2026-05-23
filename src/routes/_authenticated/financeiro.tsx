@@ -75,10 +75,14 @@ function DashboardTab() {
   const { data: reqs = [], isLoading: lr } = useQuery({
     queryKey: ["all-requests", "todos"],
     queryFn: () => fnListReqs({ data: undefined }),
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
   });
   const { data: nfs = [], isLoading: ln } = useQuery({
     queryKey: ["all-nfs"],
     queryFn: () => fnListNFs(),
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
   });
 
   const stats = useMemo(() => {
