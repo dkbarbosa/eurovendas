@@ -68,13 +68,13 @@ export function DistratosPanel() {
   }, [rows]);
 
   const totals = useMemo(() => {
-    const sum = (pred: (r: typeof filtered[number]) => boolean) =>
-      filtered.filter(pred).reduce((s, r) => s + (Number(r.valor_devolver) || 0), 0);
+    const saldo = (r: typeof filtered[number]) =>
+      Math.max(0, Number(r.valor_devolver) - Number((r as { valor_devolvido?: number }).valor_devolvido ?? 0));
     return {
       qtdTotal: filtered.length,
-      totalDevolver: sum((r) => r.status === "pendente_devolucao"),
-      pendente: sum((r) => r.status === "pendente_devolucao"),
-      devolvido: sum((r) => r.status === "devolvido"),
+      totalDevolver: filtered.reduce((s, r) => s + (Number(r.valor_devolver) || 0), 0),
+      saldoRestante: filtered.reduce((s, r) => s + saldo(r), 0),
+      devolvido: filtered.reduce((s, r) => s + Number((r as { valor_devolvido?: number }).valor_devolvido ?? 0), 0),
     };
   }, [filtered]);
 
