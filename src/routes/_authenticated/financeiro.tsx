@@ -469,10 +469,34 @@ function AdvancesTab() {
                           <span className="text-foreground/95 font-medium">{head.sale?.unidade}</span>
                           <span className="text-muted-foreground"> · Venda </span>
                           <span className="text-foreground font-semibold">{BRL(head.sale?.valor_venda)}</span>
-                          <span className="text-muted-foreground"> · Sinal </span>
-                          <span className="text-sky-300 font-semibold">{BRL(Number(head.sale?.valor_sinal_negocio) || 0)}</span>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">
+                        {/* Bloco de identificação: status da venda + sinal de negócio */}
+                        <div className="mt-2 inline-flex flex-wrap items-stretch gap-0 rounded-lg border border-border/60 bg-background/40 overflow-hidden">
+                          {(() => {
+                            const raw = (head.sale?.status ?? "").trim();
+                            const up = raw.toUpperCase();
+                            const cfg: Record<string, { c: string; dot: string }> = {
+                              CAIXA: { c: "text-emerald-300", dot: "bg-emerald-400" },
+                              RESERVADO: { c: "text-amber-300", dot: "bg-amber-400" },
+                              DISTRATO: { c: "text-destructive", dot: "bg-destructive" },
+                            };
+                            const s = cfg[up] ?? { c: "text-foreground", dot: "bg-muted-foreground" };
+                            return (
+                              <div className="flex items-center gap-2 px-3 py-1.5 border-r border-border/60">
+                                <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Status venda</span>
+                                <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${s.c}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${s.dot} shadow-[0_0_8px_currentColor]`} />
+                                  {raw || "—"}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                          <div className="flex items-center gap-2 px-3 py-1.5">
+                            <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Sinal de negócio</span>
+                            <span className="text-xs font-semibold text-sky-300">{BRL(Number(head.sale?.valor_sinal_negocio) || 0)}</span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-2">
                           Corretor: <span className="text-foreground font-medium">{head.corretor_profile?.display_name ?? "—"}</span>
                           <span className="ml-1 text-muted-foreground/80">({head.corretor_profile?.email})</span>
                         </div>
