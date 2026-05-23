@@ -75,9 +75,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {isStaff && (
           <>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 mb-2">
-              Análise
-            </div>
+            <SectionLabel>Visão da Gestão</SectionLabel>
             {NAV.map((item) => (
               <NavLink
                 key={item.to}
@@ -91,9 +89,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {(isCorretor || isStaff) && (
           <>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 mt-6 mb-2">
-              Meu Painel
-            </div>
+            <SectionLabel className="mt-6">Painel Corretor</SectionLabel>
             <NavLink to="/comissoes" label="Comissões" icon={Wallet}
               active={loc.pathname === "/comissoes"} onNavigate={() => setMobileOpen(false)} />
             <NavLink to="/distratos" label="Distratos" icon={Ban}
@@ -103,19 +99,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {(isFinanceiro || isAdmin) && (
           <>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 mt-6 mb-2">
-              Financeiro
-            </div>
-            <NavLink to="/financeiro" label="Painel Financeiro" icon={Receipt}
+            <SectionLabel className="mt-6">Painel Financeiro</SectionLabel>
+            <NavLink to="/financeiro" label="Financeiro Euro" icon={Receipt}
               active={loc.pathname === "/financeiro"} onNavigate={() => setMobileOpen(false)} />
+            <NavLink to="/distratos" label="Distratos" icon={Ban}
+              active={loc.pathname === "/distratos"} onNavigate={() => setMobileOpen(false)} />
           </>
         )}
 
         {isAdmin && (
           <>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 mt-6 mb-2">
-              Administração
-            </div>
+            <SectionLabel className="mt-6">Administração</SectionLabel>
             {ADMIN_NAV.map((item) => (
               <NavLink
                 key={item.to}
