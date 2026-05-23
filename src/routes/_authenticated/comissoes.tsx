@@ -970,11 +970,11 @@ function ComissoesPage() {
   );
 }
 
-function Kpi({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent?: boolean }) {
+function Kpi({ icon, label, value, accent, danger }: { icon: React.ReactNode; label: string; value: string; accent?: boolean; danger?: boolean }) {
   return (
-    <div className="glass-card p-4">
+    <div className={`glass-card p-4 ${danger ? "border border-destructive/30" : ""}`}>
       <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">{icon}{label}</div>
-      <div className={`mt-2 font-display text-2xl font-semibold ${accent ? "text-primary" : ""}`}>{value}</div>
+      <div className={`mt-2 font-display text-2xl font-semibold ${danger ? "text-destructive" : accent ? "text-primary" : ""}`}>{value}</div>
     </div>
   );
 }
