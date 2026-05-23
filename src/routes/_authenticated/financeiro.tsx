@@ -809,7 +809,7 @@ function NFTab() {
   return (
     <>
       <div className="flex gap-1 bg-secondary/40 p-1 rounded-lg w-fit mb-4">
-        {(["solicitada", "emitida", "recebida", "cancelada", "todos"] as const).map((s) => (
+        {(["solicitada", "emitida", "recebida", "paga", "cancelada", "todos"] as const).map((s) => (
           <button key={s} onClick={() => setStatusFilter(s)}
             className={`px-3 py-1.5 text-xs rounded-md capitalize transition ${statusFilter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>
             {s}
