@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listDistratos, markDistratoDevolvido, cancelDistrato, createDistrato, listSalesForDistrato } from "@/lib/distratos.functions";
+import { listDistratos, markDistratoDevolvido, cancelDistrato, createDistrato, listSalesForDistrato, deleteDistrato } from "@/lib/distratos.functions";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
