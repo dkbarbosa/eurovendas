@@ -143,8 +143,36 @@ function ComissoesPage() {
       });
       m.set(r.sale_id, cur);
     }
-    return m;
   }, [requests]);
+
+  // ---- Distratos do corretor ----
+  const { data: distratosAll = [] } = useQuery({
+    queryKey: ["distratos-broker", displayName],
+    queryFn: () => fnDistratos({ data: {} }),
+    enabled: !!displayName,
+  });
+  const distratos = useMemo(() => {
+    if (!displayName) return [];
+    // Para staff impersonando um corretor, filtrar pelo nome; corretor já vê só os seus pelo RLS.
+    if (isStaff) {
+      const dn = displayName.trim().toLowerCase();
+      return distratosAll.filter((d) => (d.corretor_nome ?? "").trim().toLowerCase() === dn);
+    }
+    return distratosAll;
+  }, [distratosAll, displayName, isStaff]);
+  const distratoBySale = useMemo(() => {
+    const m = new Map<string, (typeof distratos)[number]>();
+    for (const d of distratos) if (d.status !== "cancelado") m.set(d.sale_id, d);
+    return m;
+  }, [distratos]);
+  const totalADevolver = useMemo(
+    () => distratos.filter((d) => d.status === "pendente_devolucao").reduce((s, d) => s + (Number(d.valor_devolver) || 0), 0),
+    [distratos],
+  );
+  const totalDevolvido = useMemo(
+    () => distratos.filter((d) => d.status === "devolvido").reduce((s, d) => s + (Number(d.valor_devolver) || 0), 0),
+    [distratos],
+  );
 
   const kpis = useMemo(() => {
     let total = 0;
