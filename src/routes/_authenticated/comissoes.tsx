@@ -244,25 +244,34 @@ function ComissoesPage() {
     const aReceber = Math.max(0, total - pagas);
     const pendReq = requests.filter((r) => r.status === "pendente").length;
 
-    // Valor solicitado em aberto (pendentes nas vendas do filtro)
+    // Valor solicitado em andamento (pendente OU aprovado aguardando pagamento)
     let valorSolicitado = 0;
+    let emAndamentoCount = 0;
     for (const r of requests) {
-      if (r.status !== "pendente") continue;
+      if (r.status !== "pendente" && r.status !== "aprovado") continue;
       if (!saleIds.has(r.sale_id)) continue;
       valorSolicitado += (Number(r.valor_solicitado) || 0) + (Number(r.bonus_corretor) || 0);
+      emAndamentoCount += 1;
     }
 
-    // Tempo médio de pagamento (dias entre solicitação e pagamento) – insight premium
-    let diasSoma = 0;
-    let diasCount = 0;
+    // Evolução mensal de solicitações: compara mês corrente x mês anterior
+    const now = new Date();
+    const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevKey = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+    let curMonthValor = 0, prevMonthValor = 0, curMonthCount = 0, prevMonthCount = 0;
     for (const r of requests) {
-      if (r.status !== "pago" || !r.paid_at || !r.created_at) continue;
-      const d = (new Date(r.paid_at).getTime() - new Date(r.created_at).getTime()) / 86400000;
-      if (isFinite(d) && d >= 0) { diasSoma += d; diasCount += 1; }
+      if (!r.created_at) continue;
+      const k = String(r.created_at).slice(0, 7);
+      const v = (Number(r.valor_solicitado) || 0) + (Number(r.bonus_corretor) || 0);
+      if (k === curKey) { curMonthValor += v; curMonthCount += 1; }
+      else if (k === prevKey) { prevMonthValor += v; prevMonthCount += 1; }
     }
-    const tempoMedio = diasCount > 0 ? diasSoma / diasCount : null;
+    const evolucaoPct = prevMonthValor > 0
+      ? ((curMonthValor - prevMonthValor) / prevMonthValor) * 100
+      : (curMonthValor > 0 ? 100 : null);
 
-    return { total, pagas, aReceber, adiantado, finalPago, pendReq, count: sales.length, valorSolicitado, tempoMedio };
+    return { total, pagas, aReceber, adiantado, finalPago, pendReq, count: sales.length, valorSolicitado, emAndamentoCount, curMonthValor, prevMonthValor, curMonthCount, prevMonthCount, evolucaoPct };
   }, [sales, requests, paidBySale]);
 
   const monthly = useMemo(() => {
