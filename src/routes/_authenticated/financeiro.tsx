@@ -847,15 +847,26 @@ function NFTab() {
                 </td>
                 <td className="p-3">
                   {n.numero_nf ? <span className="font-mono">{n.numero_nf}</span> : <span className="text-muted-foreground">—</span>}
-                  {n.arquivo_nf_url && (
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(n.id)}
-                      className="mt-1 inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                    >
-                      <Download className="w-3 h-3" /> Baixar
-                    </button>
-                  )}
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {n.arquivo_nf_url && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(n.id, "1")}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        <Download className="w-3 h-3" /> Nota fiscal
+                      </button>
+                    )}
+                    {n.arquivo_nf_url_2 && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(n.id, "2")}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        <Download className="w-3 h-3" /> Promissória
+                      </button>
+                    )}
+                  </div>
                 </td>
                 <td className="p-3"><NFStatusBadge status={n.status} /></td>
                 <td className="p-3 max-w-[220px]">
@@ -869,6 +880,13 @@ function NFTab() {
                       <Button size="sm" onClick={() => setConfirmDlg({ open: true, id: n.id, obs: "" })}
                         style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
                         <CheckCircle2 className="w-3.5 h-3.5 mr-1" />Confirmar
+                      </Button>
+                    )}
+                    {n.status === "recebida" && (
+                      <Button size="sm" disabled={payMut.isPending}
+                        onClick={() => { if (confirm("Marcar esta NF como paga? Isso finaliza o processo.")) payMut.mutate(n.id); }}
+                        style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
+                        <Wallet className="w-3.5 h-3.5 mr-1" />Paga
                       </Button>
                     )}
                     {(n.status === "solicitada" || n.status === "emitida") && (
