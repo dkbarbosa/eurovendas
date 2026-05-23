@@ -58,6 +58,7 @@ function ComissoesPage() {
   const fnDelReq = useServerFn(deleteCommissionRequest);
   const fnDelNF = useServerFn(deleteNFRequest);
   const fnPaid = useServerFn(markRequestPaid);
+  const fnDistratos = useServerFn(listDistratos);
 
 
   const [staffSelectedBroker, setStaffSelectedBroker] = useState<string | undefined>(undefined);
