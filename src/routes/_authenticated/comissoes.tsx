@@ -529,8 +529,8 @@ function ComissoesPage() {
 
           <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 ${totalADevolver > 0 ? "xl:grid-cols-8" : "xl:grid-cols-7"}`}>
             <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.total)} />
-            <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantado" value={BRL(kpis.adiantado)} />
-            <Kpi icon={<CheckCircle2 className="w-4 h-4" />} label="Já Pago" value={BRL(kpis.pagas)} />
+            <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantamentos" value={BRL(kpis.adiantado)} />
+            <Kpi icon={<CheckCircle2 className="w-4 h-4" />} label="Recebidos" value={BRL(kpis.pagas)} />
             <Kpi icon={<Clock className="w-4 h-4" />} label="A Receber" value={BRL(kpis.aReceber)} accent />
             <Kpi
               icon={<Send className="w-4 h-4" />}
