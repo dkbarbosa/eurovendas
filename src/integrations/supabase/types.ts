@@ -55,6 +55,7 @@ export type Database = {
           created_at: string
           decided_at: string | null
           decided_by: string | null
+          desconto_distrato: number
           id: string
           motivo_negacao: string | null
           observacao_corretor: string | null
@@ -75,6 +76,7 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          desconto_distrato?: number
           id?: string
           motivo_negacao?: string | null
           observacao_corretor?: string | null
@@ -95,6 +97,7 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          desconto_distrato?: number
           id?: string
           motivo_negacao?: string | null
           observacao_corretor?: string | null
@@ -149,6 +152,54 @@ export type Database = {
         }
         Relationships: []
       }
+      distrato_descontos: {
+        Row: {
+          aplicado_at: string
+          aplicado_por: string | null
+          commission_request_id: string
+          corretor_user_id: string | null
+          created_at: string
+          distrato_id: string
+          estornado_at: string | null
+          estornado_por: string | null
+          id: string
+          observacao: string | null
+          status: string
+          updated_at: string
+          valor_desconto: number
+        }
+        Insert: {
+          aplicado_at?: string
+          aplicado_por?: string | null
+          commission_request_id: string
+          corretor_user_id?: string | null
+          created_at?: string
+          distrato_id: string
+          estornado_at?: string | null
+          estornado_por?: string | null
+          id?: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          valor_desconto: number
+        }
+        Update: {
+          aplicado_at?: string
+          aplicado_por?: string | null
+          commission_request_id?: string
+          corretor_user_id?: string | null
+          created_at?: string
+          distrato_id?: string
+          estornado_at?: string | null
+          estornado_por?: string | null
+          id?: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          valor_desconto?: number
+        }
+        Relationships: []
+      }
       distratos: {
         Row: {
           comprador: string | null
@@ -170,6 +221,7 @@ export type Database = {
           valor_adiantamento: number
           valor_comissao_final: number
           valor_devolver: number
+          valor_devolvido: number
         }
         Insert: {
           comprador?: string | null
@@ -191,6 +243,7 @@ export type Database = {
           valor_adiantamento?: number
           valor_comissao_final?: number
           valor_devolver?: number
+          valor_devolvido?: number
         }
         Update: {
           comprador?: string | null
@@ -212,6 +265,7 @@ export type Database = {
           valor_adiantamento?: number
           valor_comissao_final?: number
           valor_devolver?: number
+          valor_devolvido?: number
         }
         Relationships: []
       }
@@ -519,7 +573,11 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "diretor" | "gerente" | "corretor" | "financeiro"
-      distrato_status: "pendente_devolucao" | "devolvido" | "cancelado"
+      distrato_status:
+        | "pendente_devolucao"
+        | "devolvido"
+        | "cancelado"
+        | "quitado_por_desconto"
       nf_status: "solicitada" | "emitida" | "recebida" | "cancelada" | "paga"
       request_status: "pendente" | "aprovado" | "negado" | "pago" | "distratado"
       request_type: "adiantamento" | "comissao_final"
@@ -651,7 +709,12 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "diretor", "gerente", "corretor", "financeiro"],
-      distrato_status: ["pendente_devolucao", "devolvido", "cancelado"],
+      distrato_status: [
+        "pendente_devolucao",
+        "devolvido",
+        "cancelado",
+        "quitado_por_desconto",
+      ],
       nf_status: ["solicitada", "emitida", "recebida", "cancelada", "paga"],
       request_status: ["pendente", "aprovado", "negado", "pago", "distratado"],
       request_type: ["adiantamento", "comissao_final"],
