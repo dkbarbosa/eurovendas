@@ -831,7 +831,8 @@ function ComissoesPage() {
 
                           {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1 flex-wrap">
-                              <RequestPill r={r} />
+                              <RequestPill r={r} descontos={descontosByRequest.get(r.id) ?? []} />
+
                               {r.status === "negado" && r.motivo_negacao && (
                                 <Popover>
                                   <PopoverTrigger asChild>
