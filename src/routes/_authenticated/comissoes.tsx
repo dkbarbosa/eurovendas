@@ -279,7 +279,7 @@ function ComissoesPage() {
   });
 
   // ---- Diálogo NF
-  const [nfDialog, setNfDialog] = useState<{ open: boolean; nfId: string | null; sale: SaleRow | null }>({ open: false, nfId: null, sale: null });
+  const [nfDialog, setNfDialog] = useState<{ open: boolean; nfId: string | null; sale: typeof allSales[number] | null }>({ open: false, nfId: null, sale: null });
   const [nfForm, setNfForm] = useState({ numero_nf: "", observacao: "", valor_nf: 0 });
   const [nfFile, setNfFile] = useState<File | null>(null);
   const [nfFile2, setNfFile2] = useState<File | null>(null);
