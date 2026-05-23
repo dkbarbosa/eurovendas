@@ -563,9 +563,17 @@ function AdvancesTab() {
                             <tr key={r.id} className="border-t border-border/40 align-top">
                               <td className="px-3 py-2 whitespace-nowrap text-xs">{new Date(r.created_at).toLocaleDateString("pt-BR")}</td>
                               <td className="px-3 py-2">
-                                <Badge variant="outline" className="text-[10px]">
-                                  {r.tipo === "adiantamento" ? "Adiant." : "Comiss."}
-                                </Badge>
+                                {r.tipo === "adiantamento" ? (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_currentColor]" />
+                                    Adiant.
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-300">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_currentColor]" />
+                                    Comiss.
+                                  </span>
+                                )}
                               </td>
                               <td className="px-3 py-2 text-right whitespace-nowrap font-semibold">{BRL(valor)}</td>
                               <td className="px-3 py-2 text-right whitespace-nowrap text-xs">
