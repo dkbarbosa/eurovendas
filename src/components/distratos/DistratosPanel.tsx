@@ -78,14 +78,14 @@ export function DistratosPanel() {
     };
   }, [filtered]);
 
-  const [markDlg, setMarkDlg] = useState<{ open: boolean; id: string | null; text: string }>({ open: false, id: null, text: "" });
+  const [markDlg, setMarkDlg] = useState<{ open: boolean; id: string | null; saldo: number; valor: string; text: string }>({ open: false, id: null, saldo: 0, valor: "", text: "" });
 
   const markMut = useMutation({
-    mutationFn: (v: { id: string; observacao_recebimento?: string }) => fnMark({ data: v }),
+    mutationFn: (v: { id: string; valor?: number; observacao_recebimento?: string }) => fnMark({ data: v }),
     onSuccess: () => {
-      toast.success("Devolução confirmada.");
+      toast.success("Devolução registrada.");
       qc.invalidateQueries({ queryKey: ["distratos"] });
-      setMarkDlg({ open: false, id: null, text: "" });
+      setMarkDlg({ open: false, id: null, saldo: 0, valor: "", text: "" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
