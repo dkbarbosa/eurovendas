@@ -380,7 +380,11 @@ function ComissoesPage() {
   const [nfFile2, setNfFile2] = useState<File | null>(null);
   const [uploadingNF, setUploadingNF] = useState(false);
   const openNF = (nfId: string, sale: typeof allSales[number]) => {
-    setNfForm({ numero_nf: "", observacao: "", valor_nf: 0 });
+    // Auto-preenche o valor da NF com a soma dos pedidos aprovados (aguardando pagamento) desta venda.
+    const aprovadoValor = requests
+      .filter((r) => r.sale_id === sale.id && r.status === "aprovado")
+      .reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
+    setNfForm({ numero_nf: "", observacao: "", valor_nf: aprovadoValor });
     setNfFile(null);
     setNfFile2(null);
     setNfDialog({ open: true, nfId, sale });
