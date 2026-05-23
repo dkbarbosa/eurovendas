@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning, Ban } from "lucide-react";
+import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning, Ban, Send, Timer } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from "recharts";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -231,6 +231,7 @@ function ComissoesPage() {
     let total = 0;
     let adiantado = 0;
     let finalPago = 0;
+    const saleIds = new Set(sales.map((s) => s.id));
     for (const s of sales) {
       total += Number(s.comissao_liq_corretor) || 0;
       const p = paidBySale.get(s.id);
@@ -242,7 +243,26 @@ function ComissoesPage() {
     const pagas = adiantado + finalPago;
     const aReceber = Math.max(0, total - pagas);
     const pendReq = requests.filter((r) => r.status === "pendente").length;
-    return { total, pagas, aReceber, adiantado, finalPago, pendReq, count: sales.length };
+
+    // Valor solicitado em aberto (pendentes nas vendas do filtro)
+    let valorSolicitado = 0;
+    for (const r of requests) {
+      if (r.status !== "pendente") continue;
+      if (!saleIds.has(r.sale_id)) continue;
+      valorSolicitado += (Number(r.valor_solicitado) || 0) + (Number(r.bonus_corretor) || 0);
+    }
+
+    // Tempo médio de pagamento (dias entre solicitação e pagamento) – insight premium
+    let diasSoma = 0;
+    let diasCount = 0;
+    for (const r of requests) {
+      if (r.status !== "pago" || !r.paid_at || !r.created_at) continue;
+      const d = (new Date(r.paid_at).getTime() - new Date(r.created_at).getTime()) / 86400000;
+      if (isFinite(d) && d >= 0) { diasSoma += d; diasCount += 1; }
+    }
+    const tempoMedio = diasCount > 0 ? diasSoma / diasCount : null;
+
+    return { total, pagas, aReceber, adiantado, finalPago, pendReq, count: sales.length, valorSolicitado, tempoMedio };
   }, [sales, requests, paidBySale]);
 
   const monthly = useMemo(() => {
@@ -477,15 +497,29 @@ function ComissoesPage() {
             </div>
           </div>
 
-          <div className={`grid grid-cols-2 gap-3 ${totalADevolver > 0 ? "md:grid-cols-6" : "md:grid-cols-5"}`}>
+          <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 ${totalADevolver > 0 ? "xl:grid-cols-8" : "xl:grid-cols-7"}`}>
             <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.total)} />
             <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantado" value={BRL(kpis.adiantado)} />
             <Kpi icon={<CheckCircle2 className="w-4 h-4" />} label="Já Pago" value={BRL(kpis.pagas)} />
             <Kpi icon={<Clock className="w-4 h-4" />} label="A Receber" value={BRL(kpis.aReceber)} accent />
+            <Kpi
+              icon={<Send className="w-4 h-4" />}
+              label="Valor Solicitado"
+              value={BRL(kpis.valorSolicitado)}
+              warn
+              hint={kpis.pendReq > 0 ? `${kpis.pendReq} solicitação(ões) pendente(s)` : "Nenhuma pendente"}
+            />
             {totalADevolver > 0 && (
               <Kpi icon={<Ban className="w-4 h-4" />} label="A Devolver (distrato)" value={BRL(totalADevolver)} danger />
             )}
             <Kpi icon={<FileText className="w-4 h-4" />} label="Vendas / Pendentes" value={`${kpis.count} / ${kpis.pendReq}`} />
+            <Kpi
+              icon={<Timer className="w-4 h-4" />}
+              label="Tempo médio de pagamento"
+              value={kpis.tempoMedio == null ? "—" : `${kpis.tempoMedio.toFixed(1)} dias`}
+              premium
+              hint={kpis.tempoMedio == null ? "Sem histórico ainda" : "Da solicitação até o crédito"}
+            />
           </div>
 
           {distratos.length > 0 && (
@@ -1097,11 +1131,31 @@ function ComissoesPage() {
   );
 }
 
-function Kpi({ icon, label, value, accent, danger }: { icon: React.ReactNode; label: string; value: string; accent?: boolean; danger?: boolean }) {
+function Kpi({ icon, label, value, accent, danger, warn, premium, hint }: { icon: React.ReactNode; label: string; value: string; accent?: boolean; danger?: boolean; warn?: boolean; premium?: boolean; hint?: string }) {
+  const border = danger
+    ? "border border-destructive/30"
+    : premium
+      ? "border border-amber-400/30 bg-gradient-to-br from-amber-500/[0.06] to-transparent relative overflow-hidden"
+      : warn
+        ? "border border-amber-500/30"
+        : "";
+  const valueColor = danger
+    ? "text-destructive"
+    : premium
+      ? "text-amber-300"
+      : warn
+        ? "text-amber-400"
+        : accent
+          ? "text-primary"
+          : "";
   return (
-    <div className={`glass-card p-4 ${danger ? "border border-destructive/30" : ""}`}>
+    <div className={`glass-card p-4 ${border}`}>
+      {premium && (
+        <div className="pointer-events-none absolute -top-8 -right-8 w-24 h-24 rounded-full bg-amber-400/10 blur-2xl" />
+      )}
       <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">{icon}{label}</div>
-      <div className={`mt-2 font-display text-2xl font-semibold ${danger ? "text-destructive" : accent ? "text-primary" : ""}`}>{value}</div>
+      <div className={`mt-2 font-display text-2xl font-semibold ${valueColor}`}>{value}</div>
+      {hint && <div className="mt-1 text-[11px] text-muted-foreground/80">{hint}</div>}
     </div>
   );
 }
