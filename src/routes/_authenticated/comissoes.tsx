@@ -143,6 +143,7 @@ function ComissoesPage() {
       });
       m.set(r.sale_id, cur);
     }
+    return m;
   }, [requests]);
 
   // ---- Distratos do corretor ----
