@@ -216,6 +216,7 @@ export const markNFEmitted = createServerFn({ method: "POST" })
       .update({
         status: "recebida",
         numero_nf: data.numero_nf,
+        valor_nf: data.valor_nf,
         observacao_corretor: data.observacao ?? null,
         arquivo_nf_url: uploaded.webViewLink,
         drive_file_id: uploaded.id,
