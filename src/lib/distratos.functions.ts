@@ -98,6 +98,25 @@ export const createDistrato = createServerFn({ method: "POST" })
         .in("id", ids);
     }
 
+    // Atualiza status local da venda + planilha do Google Sheets
+    await supabaseAdmin.from("sales").update({ status: "DISTRATO" }).eq("id", sale.id);
+    try {
+      const { setSheetStatus } = await import("./sheets-write.server");
+      const res = await setSheetStatus(
+        {
+          data: sale.data ?? null,
+          empreendimento: sale.empreendimento ?? null,
+          unidade: sale.unidade ?? null,
+          comprador: sale.comprador ?? null,
+          valor_venda: sale.valor_venda ?? null,
+        },
+        "DISTRATO",
+      );
+      if (!res.ok) console.warn("[distrato] sheets status update failed:", res.error);
+    } catch (e) {
+      console.warn("[distrato] sheets status update error:", e);
+    }
+
     return { ok: true, id: ins.id };
   });
 
