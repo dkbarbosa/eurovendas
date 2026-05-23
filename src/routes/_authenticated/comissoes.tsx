@@ -1151,9 +1151,17 @@ function ComissoesPage() {
             const paidS = sale ? paidBySale.get(sale.id) : undefined;
             const jaAdiantado = paidS?.adiantado ?? 0;
             const jaFinal = paidS?.finalPago ?? 0;
+            // Descontos de distrato aplicados pelo financeiro sobre pedidos APROVADOS desta venda
+            const aprovDaVenda = sale ? requests.filter((r) => r.sale_id === sale.id && r.status === "aprovado") : [];
+            const descontoTotal = aprovDaVenda.reduce(
+              (s, r) => s + (Number((r as { desconto_distrato?: number }).desconto_distrato) || 0),
+              0,
+            );
+            const valorBruto = aprovDaVenda.reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
             const aReceber = Math.max(0, comLiq - jaAdiantado - jaFinal);
             const valor = nfForm.valor_nf ?? 0;
-            const excedeu = valor > aReceber;
+            const excedeu = valor > aReceber + 0.001;
+            const temDesconto = descontoTotal > 0;
             return (
               <div className="space-y-3">
                 <div className="rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs grid grid-cols-3 gap-2">
@@ -1162,17 +1170,47 @@ function ComissoesPage() {
                   <div><div className="text-muted-foreground">A receber</div><div className="font-semibold text-primary">{BRL(aReceber)}</div></div>
                 </div>
 
+                {temDesconto && (
+                  <div className="rounded-lg border border-violet-400/40 bg-violet-500/10 p-3 text-xs space-y-1">
+                    <div className="flex items-center gap-1.5 font-semibold text-violet-300">
+                      <Ban className="w-3.5 h-3.5" /> Desconto de distrato aplicado pelo financeiro
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">Pedido aprovado</div>
+                        <div className="font-semibold">{BRL(valorBruto)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">Desconto</div>
+                        <div className="font-semibold text-rose-300">− {BRL(descontoTotal)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">Líquido (NF)</div>
+                        <div className="font-semibold text-emerald-300">{BRL(Math.max(0, valorBruto - descontoTotal))}</div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-violet-200/80 pt-1">
+                      O valor da NF foi recalculado automaticamente com o desconto e <b>não pode ser alterado</b>.
+                    </p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>Número da NF *</Label>
                     <Input value={nfForm.numero_nf} onChange={(e) => setNfForm({ ...nfForm, numero_nf: e.target.value })} maxLength={80} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Valor da NF (R$) *</Label>
-                    <CurrencyInput value={nfForm.valor_nf} onValueChange={(v) => setNfForm({ ...nfForm, valor_nf: v ?? 0 })} />
+                    <Label>Valor da NF (R$) *{temDesconto && <span className="ml-1 text-[10px] text-violet-300">(fixado pelo financeiro)</span>}</Label>
+                    <CurrencyInput
+                      value={nfForm.valor_nf}
+                      onValueChange={(v) => setNfForm({ ...nfForm, valor_nf: v ?? 0 })}
+                      disabled={temDesconto}
+                    />
                     {excedeu && (
                       <p className="text-xs text-destructive">Valor excede o saldo a receber ({BRL(aReceber)}).</p>
                     )}
+
                   </div>
                 </div>
 
