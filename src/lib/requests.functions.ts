@@ -350,7 +350,7 @@ export const decideRequest = createServerFn({ method: "POST" })
                 corretor_user_id: corretorUserId,
                 solicitado_por: context.userId,
                 status: "solicitada",
-                observacao_financeiro: "NF solicitada automaticamente após aprovação de adiantamento.",
+                observacao_financeiro: `NF solicitada automaticamente após aprovação de ${req.tipo === "adiantamento" ? "adiantamento" : "comissão"}.`,
               });
             }
           }
