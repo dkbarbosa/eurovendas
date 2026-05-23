@@ -3,6 +3,19 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { addAdvanceToSheet } from "./sheets-write.server";
+import { uploadFileToDriveFolder, getOrCreateDriveFolder } from "./drive.server";
+
+function b64ToBytes(s: string): Uint8Array {
+  const clean = s.replace(/^data:[^;]+;base64,/, "");
+  const bin = atob(clean);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf;
+}
+function sanitizeFolderName(parts: Array<string | null | undefined>): string {
+  return parts.map((p) => (p ?? "").toString().trim()).filter(Boolean).join(" - ")
+    .replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").slice(0, 200) || "Venda";
+}
 
 async function getRoles(userId: string) {
   const { data } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId);
