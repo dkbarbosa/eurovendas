@@ -1219,14 +1219,28 @@ function Kpi({ icon, label, value, accent, danger, warn, premium, hint }: { icon
         : accent
           ? "text-primary"
           : "";
+  const bgTint = danger
+    ? "text-destructive/10"
+    : premium
+      ? "text-amber-300/10"
+      : warn
+        ? "text-amber-400/10"
+        : accent
+          ? "text-primary/10"
+          : "text-foreground/[0.06]";
   return (
-    <div className={`glass-card p-4 ${border}`}>
+    <div className={`glass-card p-4 relative overflow-hidden ${border}`}>
       {premium && (
         <div className="pointer-events-none absolute -top-8 -right-8 w-24 h-24 rounded-full bg-amber-400/10 blur-2xl" />
       )}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">{icon}{label}</div>
-      <div className={`mt-2 font-display text-2xl font-semibold ${valueColor}`}>{value}</div>
-      {hint && <div className="mt-1 text-[11px] text-muted-foreground/80">{hint}</div>}
+      <div className={`pointer-events-none absolute -bottom-4 -right-3 ${bgTint} transition-transform duration-500 group-hover:scale-110`}>
+        {React.isValidElement(icon)
+          ? React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "w-20 h-20" })
+          : null}
+      </div>
+      <div className="relative flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">{icon}{label}</div>
+      <div className={`relative mt-2 font-display text-2xl font-semibold ${valueColor}`}>{value}</div>
+      {hint && <div className="relative mt-1 text-[11px] text-muted-foreground/80">{hint}</div>}
     </div>
   );
 }
