@@ -231,6 +231,7 @@ function ComissoesPage() {
     let total = 0;
     let adiantado = 0;
     let finalPago = 0;
+    const saleIds = new Set(sales.map((s) => s.id));
     for (const s of sales) {
       total += Number(s.comissao_liq_corretor) || 0;
       const p = paidBySale.get(s.id);
@@ -242,7 +243,26 @@ function ComissoesPage() {
     const pagas = adiantado + finalPago;
     const aReceber = Math.max(0, total - pagas);
     const pendReq = requests.filter((r) => r.status === "pendente").length;
-    return { total, pagas, aReceber, adiantado, finalPago, pendReq, count: sales.length };
+
+    // Valor solicitado em aberto (pendentes nas vendas do filtro)
+    let valorSolicitado = 0;
+    for (const r of requests) {
+      if (r.status !== "pendente") continue;
+      if (!saleIds.has(r.sale_id)) continue;
+      valorSolicitado += (Number(r.valor_solicitado) || 0) + (Number(r.bonus_corretor) || 0);
+    }
+
+    // Tempo médio de pagamento (dias entre solicitação e pagamento) – insight premium
+    let diasSoma = 0;
+    let diasCount = 0;
+    for (const r of requests) {
+      if (r.status !== "pago" || !r.paid_at || !r.created_at) continue;
+      const d = (new Date(r.paid_at).getTime() - new Date(r.created_at).getTime()) / 86400000;
+      if (isFinite(d) && d >= 0) { diasSoma += d; diasCount += 1; }
+    }
+    const tempoMedio = diasCount > 0 ? diasSoma / diasCount : null;
+
+    return { total, pagas, aReceber, adiantado, finalPago, pendReq, count: sales.length, valorSolicitado, tempoMedio };
   }, [sales, requests, paidBySale]);
 
   const monthly = useMemo(() => {
