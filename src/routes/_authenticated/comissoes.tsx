@@ -782,32 +782,9 @@ function ComissoesPage() {
                         <div className="space-y-1">
                           {/* (removido) badge "A receber" no painel do corretor */}
 
-                          {(() => {
-                            // Pago só pode ser marcado sob o valor solicitado
-                            // depois que a NF foi enviada (recebida) ou já paga.
-                            const nfEnviada = sNfs.find((n) => n.status === "recebida" || n.status === "paga");
-                            return reqs.map((r) => (
+                          {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1 flex-wrap">
                               <RequestPill r={r} />
-                              {r.status !== "pago" && r.status !== "negado" && nfEnviada && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-6 px-2 text-[11px]"
-                                  disabled={payMut.isPending || payNFMut.isPending}
-                                  onClick={() => {
-                                    if (confirm("Confirmar que o pagamento foi recebido? Isso finaliza o processo.")) {
-                                      payMut.mutate(r.id);
-                                      if (nfEnviada.status === "recebida") payNFMut.mutate(nfEnviada.id);
-                                    }
-                                  }}
-                                >
-                                  <Wallet className="w-3 h-3 mr-1" />Pago
-                                </Button>
-                              )}
-
-
-
                               {r.status === "negado" && r.motivo_negacao && (
                                 <Popover>
                                   <PopoverTrigger asChild>
@@ -837,8 +814,7 @@ function ComissoesPage() {
                                 </button>
                               )}
                             </div>
-                            ));
-                          })()}
+                          ))}
 
                           {sNfs.map((n) => (
                             <div key={n.id} className="flex items-center gap-1 flex-wrap">
