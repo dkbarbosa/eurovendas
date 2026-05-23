@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { listAllRequests, decideRequest, markRequestPaid, deleteCommissionRequest } from "@/lib/requests.functions";
+import { listAllRequests, decideRequest, markRequestPaid, deleteCommissionRequest, removeBonusFromRequest } from "@/lib/requests.functions";
 import { listAllNFs, listEligibleSalesForNF, requestNF, confirmNFReceived, cancelNF, deleteNFRequest, downloadNFFile, markNFPaid } from "@/lib/nf.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -403,6 +403,13 @@ function AdvancesTab() {
     onSuccess: () => { toast.success("Excluído."); qc.invalidateQueries({ queryKey: ["all-requests"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const fnRemoveBonus = useServerFn(removeBonusFromRequest);
+  const removeBonusMut = useMutation({
+    mutationFn: (v: { id: string; motivo?: string }) => fnRemoveBonus({ data: v }),
+    onSuccess: () => { toast.success("Bônus removido. Cálculo atualizado."); qc.invalidateQueries({ queryKey: ["all-requests"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
 
   return (
@@ -596,10 +603,26 @@ function AdvancesTab() {
                                     </Badge>
                                   )}
                                   {Number(r.bonus_corretor) > 0 && (
-                                    <Badge variant="outline" className="text-[10px] bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30">
-                                      Bônus: {BRL(r.bonus_corretor)}
-                                    </Badge>
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-fuchsia-500/30 bg-fuchsia-500/10 pl-2 pr-0.5 py-0.5 text-[10px] text-fuchsia-300">
+                                      <span>Bônus: <b>{BRL(r.bonus_corretor)}</b></span>
+                                      {r.status !== "pago" && (
+                                        <button
+                                          type="button"
+                                          title="Remover bônus (erro)"
+                                          onClick={() => {
+                                            if (confirm(`Remover bônus de ${BRL(r.bonus_corretor)} deste pedido? O cálculo será refeito sem o bônus.`)) {
+                                              removeBonusMut.mutate({ id: r.id });
+                                            }
+                                          }}
+                                          className="ml-0.5 w-4 h-4 rounded-sm hover:bg-fuchsia-500/20 inline-flex items-center justify-center text-fuchsia-300/80 hover:text-fuchsia-100 transition"
+                                          disabled={removeBonusMut.isPending}
+                                        >
+                                          <XCircle className="w-3 h-3" />
+                                        </button>
+                                      )}
+                                    </span>
                                   )}
+
                                   {(r as { comprovante_sinal_url?: string | null }).comprovante_sinal_url && (
                                     <a
                                       href={(r as { comprovante_sinal_url?: string | null }).comprovante_sinal_url ?? "#"}
