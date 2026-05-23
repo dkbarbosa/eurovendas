@@ -767,27 +767,136 @@ function AdvancesTab() {
       </Dialog>
 
       {/* Approve/Pay dialog */}
-      <Dialog open={obs.open} onOpenChange={(o) => setObs({ ...obs, open: o })}>
-        <DialogContent>
+      <Dialog open={obs.open} onOpenChange={(o) => { setObs({ ...obs, open: o }); if (!o) setAprovDesc({ distratoId: "", valor: "", obs: "" }); }}>
+        <DialogContent className={obsEligibleDistrato ? "max-w-xl" : undefined}>
           <DialogHeader>
             <DialogTitle>{obs.action === "aprovar" ? "Aprovar pedido" : "Marcar como pago"}</DialogTitle>
-            <DialogDescription>Observação opcional para o corretor.</DialogDescription>
+            <DialogDescription>
+              {obsEligibleDistrato
+                ? "Antes de aprovar, verifique se o corretor possui distrato pendente para devolução."
+                : "Observação opcional para o corretor."}
+            </DialogDescription>
           </DialogHeader>
+
+          {obsEligibleDistrato && (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-border/60 bg-secondary/30 p-3 grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground">Pedido</div>
+                  <div className="font-semibold">{BRL(aprovValorReq)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground">Desc. atual</div>
+                  <div className="font-semibold text-rose-300">{BRL(aprovDescAtual)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground">Líquido</div>
+                  <div className="font-semibold text-emerald-300">
+                    {BRL(Math.max(0, aprovRestReq - (aprovValorNum > 0 && aprovSelected ? aprovValorNum : 0)))}
+                  </div>
+                </div>
+              </div>
+
+              {aprovPendLoading && (
+                <div className="p-4 text-center"><Loader2 className="w-4 h-4 animate-spin inline" /></div>
+              )}
+              {!aprovPendLoading && aprovPendencias.length === 0 && (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs text-emerald-300 text-center">
+                  Corretor sem distrato pendente.
+                </div>
+              )}
+              {aprovPendencias.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Distrato para descontar (opcional)</Label>
+                  <div className="max-h-40 overflow-auto rounded-lg border border-border/60 divide-y divide-border/40">
+                    <button
+                      type="button"
+                      onClick={() => setAprovDesc({ distratoId: "", valor: "", obs: "" })}
+                      className={`w-full text-left px-3 py-2 text-xs hover:bg-secondary/40 transition ${aprovDesc.distratoId === "" ? "bg-secondary/40" : ""}`}
+                    >
+                      <span className="text-muted-foreground">— Não vincular distrato —</span>
+                    </button>
+                    {aprovPendencias.map((p) => {
+                      const sugerido = Math.min(p.saldo_restante, aprovRestReq);
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setAprovDesc({ distratoId: p.id, valor: sugerido.toFixed(2), obs: aprovDesc.obs })}
+                          className={`w-full text-left px-3 py-2 text-xs hover:bg-secondary/40 transition ${aprovDesc.distratoId === p.id ? "bg-primary/10" : ""}`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">{p.comprador ?? "—"}</div>
+                              <div className="text-muted-foreground text-[10px] truncate">{p.empreendimento} / {p.unidade}</div>
+                            </div>
+                            <div className="text-right whitespace-nowrap">
+                              <div className="font-semibold text-destructive">{BRL(p.saldo_restante)}</div>
+                              <Badge variant="outline" className="text-[9px]">saldo</Badge>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {aprovSelected && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Valor a descontar *</Label>
+                    <Input
+                      type="number" step="0.01" min="0" max={aprovMaxApply}
+                      value={aprovDesc.valor}
+                      onChange={(e) => setAprovDesc({ ...aprovDesc, valor: e.target.value })}
+                      className="text-base font-semibold"
+                    />
+                    <div className="text-[11px] text-muted-foreground">
+                      Sugerido: <b>{BRL(Math.min(aprovSelected.saldo_restante, aprovRestReq))}</b> · Máx: <b>{BRL(aprovMaxApply)}</b>
+                      {aprovValorNum > 0 && aprovValorNum < aprovSelected.saldo_restante && (
+                        <span className="ml-2 text-amber-300">
+                          Saldo restante do distrato: {BRL(aprovSelected.saldo_restante - aprovValorNum)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Observação do desconto (opcional)</Label>
+                    <Textarea rows={2} value={aprovDesc.obs} onChange={(e) => setAprovDesc({ ...aprovDesc, obs: e.target.value })} maxLength={2000} />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="space-y-1.5">
-            <Label>Observação</Label>
+            <Label>Observação para o corretor</Label>
             <Textarea value={obs.text} onChange={(e) => setObs({ ...obs, text: e.target.value })} rows={3} maxLength={2000} />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setObs({ open: false, id: null, action: "aprovar", text: "" })}>Cancelar</Button>
-            <Button disabled={decideMut.isPending || payMut.isPending}
+            <Button variant="ghost" onClick={() => { setObs({ open: false, id: null, action: "aprovar", text: "" }); setAprovDesc({ distratoId: "", valor: "", obs: "" }); }}>Cancelar</Button>
+            <Button
+              disabled={
+                decideMut.isPending || payMut.isPending ||
+                (obsEligibleDistrato && !!aprovSelected && (!(aprovValorNum > 0) || aprovValorNum > aprovMaxApply + 0.001))
+              }
               onClick={() => obs.action === "aprovar"
-                ? decideMut.mutate({ id: obs.id!, decision: "aprovado", observacao: obs.text || undefined })
+                ? decideMut.mutate({
+                    id: obs.id!,
+                    decision: "aprovado",
+                    observacao: obs.text || undefined,
+                    descDistratoId: aprovSelected ? aprovDesc.distratoId : undefined,
+                    descValor: aprovSelected ? aprovValorNum : undefined,
+                    descObs: aprovSelected ? aprovDesc.obs : undefined,
+                  })
                 : payMut.mutate({ id: obs.id!, observacao: obs.text || undefined })}
               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
               {(decideMut.isPending || payMut.isPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>
+
       </Dialog>
     </>
   );
