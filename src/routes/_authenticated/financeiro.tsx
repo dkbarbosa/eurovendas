@@ -826,11 +826,12 @@ function AdvancesTab() {
                     </button>
                     {aprovPendencias.map((p) => {
                       const sugerido = Math.min(p.saldo_restante, aprovRestReq);
+                      const autoObs = `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`;
                       return (
                         <button
                           key={p.id}
                           type="button"
-                          onClick={() => setAprovDesc({ distratoId: p.id, valor: sugerido.toFixed(2), obs: aprovDesc.obs })}
+                          onClick={() => setAprovDesc({ distratoId: p.id, valor: sugerido.toFixed(2), obs: autoObs })}
                           className={`w-full text-left px-3 py-2 text-xs hover:bg-secondary/40 transition ${aprovDesc.distratoId === p.id ? "bg-primary/10" : ""}`}
                         >
                           <div className="flex justify-between items-start gap-2">
@@ -846,6 +847,7 @@ function AdvancesTab() {
                         </button>
                       );
                     })}
+
                   </div>
                 </div>
               )}
