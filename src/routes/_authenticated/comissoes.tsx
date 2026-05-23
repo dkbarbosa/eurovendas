@@ -79,6 +79,9 @@ function ComissoesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["my-broker-sales", activeBrokerArg ?? myName],
     queryFn: () => fnSales({ data: activeBrokerArg ? { corretorNome: activeBrokerArg } : undefined }),
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
   });
 
   const allSales = data?.sales ?? [];
