@@ -41,6 +41,11 @@ const CreateRequestSchema = z.object({
   valor_solicitado: z.number().min(0.01).max(10_000_000),
   observacao_corretor: z.string().trim().max(2000).optional(),
   act_as_corretor: z.string().trim().max(255).optional(),
+  comprovante_sinal: z.object({
+    file_base64: z.string().min(10).max(20_000_000),
+    file_name: z.string().trim().min(1).max(255),
+    file_mime: z.string().trim().min(1).max(120),
+  }).optional(),
 });
 
 export const createCommissionRequest = createServerFn({ method: "POST" })
