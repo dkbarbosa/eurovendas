@@ -236,7 +236,9 @@ function ComissoesPage() {
       total += Number(s.comissao_liq_corretor) || 0;
       const p = paidBySale.get(s.id);
       if (p) {
-        adiantado += p.adiantado;
+        // Adiantamentos só permanecem visíveis enquanto a comissão final
+        // daquela venda ainda não foi paga.
+        if (p.finalPago <= 0) adiantado += p.adiantado;
         finalPago += p.finalPago;
       }
     }
