@@ -282,6 +282,7 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string; icon?: React.ReactNode }> = {
     pendente_devolucao: { label: "Pendente devolução", cls: "bg-amber-500/10 text-amber-400 border-amber-500/30", icon: <AlertTriangle className="w-3 h-3 mr-1" /> },
     devolvido: { label: "Devolvido", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30", icon: <CheckCircle2 className="w-3 h-3 mr-1" /> },
+    quitado_por_desconto: { label: "Quitado p/ desconto", cls: "bg-violet-500/10 text-violet-300 border-violet-500/30", icon: <RotateCcw className="w-3 h-3 mr-1" /> },
     cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground border-border", icon: <Ban className="w-3 h-3 mr-1" /> },
   };
   const it = map[status] ?? { label: status, cls: "bg-muted text-muted-foreground border-border" };
