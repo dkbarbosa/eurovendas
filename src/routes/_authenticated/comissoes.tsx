@@ -1006,11 +1006,13 @@ function NFPill({ n }: { n: { id: string; status: string; numero_nf: string | nu
     solicitada: "bg-amber-500/10 text-amber-500 border-amber-500/30",
     emitida: "bg-sky-500/10 text-sky-500 border-sky-500/30",
     recebida: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
+    paga: "bg-primary/10 text-primary border-primary/30",
     cancelada: "bg-destructive/10 text-destructive border-destructive/30",
   };
+  const label = n.status === "paga" ? "finalizado" : n.status;
   return (
     <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] rounded-full border ${map[n.status] ?? ""}`}>
-      <Receipt className="w-3 h-3" /> NF {n.numero_nf ? `#${n.numero_nf}` : ""} · {n.status}
+      <Receipt className="w-3 h-3" /> NF {n.numero_nf ? `#${n.numero_nf}` : ""} · {label}
     </div>
   );
 }
