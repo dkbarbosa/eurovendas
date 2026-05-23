@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Ban, CheckCircle2, Trash2, Search, AlertTriangle, Plus, ChevronDown, RotateCcw } from "lucide-react";
+import { Loader2, Ban, CheckCircle2, Trash2, Search, AlertTriangle, Plus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
