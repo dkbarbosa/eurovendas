@@ -323,14 +323,26 @@ function ComissoesPage() {
     valor_solicitado: null,
     observacao: "",
   });
+  const [comprovanteSinal, setComprovanteSinal] = useState<File | null>(null);
   const openReq = (sale: (typeof sales)[number]) => {
     const sinalSheet = Number((sale as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || null;
     setReqForm({ tipo: "adiantamento", valor_sinal: sinalSheet, bonus_corretor: null, valor_solicitado: null, observacao: "" });
+    setComprovanteSinal(null);
     setReqDialog({ open: true, sale });
   };
   const createMut = useMutation({
-    mutationFn: () =>
-      fnCreate({
+    mutationFn: async () => {
+      let comprovante: { file_base64: string; file_name: string; file_mime: string } | undefined;
+      if (comprovanteSinal) {
+        if (comprovanteSinal.size > 15 * 1024 * 1024) throw new Error("Comprovante muito grande (máx. 15 MB).");
+        const base64 = await readFileB64(comprovanteSinal);
+        comprovante = {
+          file_base64: base64,
+          file_name: comprovanteSinal.name,
+          file_mime: comprovanteSinal.type || "application/octet-stream",
+        };
+      }
+      return fnCreate({
         data: {
           sale_id: reqDialog.sale!.id,
           tipo: reqForm.tipo,
@@ -339,11 +351,14 @@ function ComissoesPage() {
           valor_solicitado: reqForm.valor_solicitado ?? 0,
           observacao_corretor: reqForm.observacao || undefined,
           act_as_corretor: isStaff ? activeBrokerArg : undefined,
+          comprovante_sinal: comprovante,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success(isStaff ? "Pedido de teste criado." : "Solicitação enviada ao financeiro.");
       setReqDialog({ open: false, sale: null });
+      setComprovanteSinal(null);
       qc.invalidateQueries({ queryKey: ["my-broker-sales"] });
     },
     onError: (e: Error) => toast.error(e.message),
