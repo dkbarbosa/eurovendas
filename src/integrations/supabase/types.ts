@@ -49,6 +49,8 @@ export type Database = {
       commission_requests: {
         Row: {
           bonus_corretor: number
+          comprovante_sinal_drive_id: string | null
+          comprovante_sinal_url: string | null
           corretor_user_id: string | null
           created_at: string
           decided_at: string | null
@@ -67,6 +69,8 @@ export type Database = {
         }
         Insert: {
           bonus_corretor?: number
+          comprovante_sinal_drive_id?: string | null
+          comprovante_sinal_url?: string | null
           corretor_user_id?: string | null
           created_at?: string
           decided_at?: string | null
@@ -85,6 +89,8 @@ export type Database = {
         }
         Update: {
           bonus_corretor?: number
+          comprovante_sinal_drive_id?: string | null
+          comprovante_sinal_url?: string | null
           corretor_user_id?: string | null
           created_at?: string
           decided_at?: string | null
