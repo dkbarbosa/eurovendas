@@ -57,6 +57,7 @@ function ComissoesPage() {
   const fnEmit = useServerFn(markNFEmitted);
   const fnDelReq = useServerFn(deleteCommissionRequest);
   const fnDelNF = useServerFn(deleteNFRequest);
+  const fnPayNF = useServerFn(markNFPaid);
   const fnPaid = useServerFn(markRequestPaid);
   const fnDistratos = useServerFn(listDistratos);
 
