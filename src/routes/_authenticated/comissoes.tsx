@@ -1131,11 +1131,31 @@ function ComissoesPage() {
   );
 }
 
-function Kpi({ icon, label, value, accent, danger }: { icon: React.ReactNode; label: string; value: string; accent?: boolean; danger?: boolean }) {
+function Kpi({ icon, label, value, accent, danger, warn, premium, hint }: { icon: React.ReactNode; label: string; value: string; accent?: boolean; danger?: boolean; warn?: boolean; premium?: boolean; hint?: string }) {
+  const border = danger
+    ? "border border-destructive/30"
+    : premium
+      ? "border border-amber-400/30 bg-gradient-to-br from-amber-500/[0.06] to-transparent relative overflow-hidden"
+      : warn
+        ? "border border-amber-500/30"
+        : "";
+  const valueColor = danger
+    ? "text-destructive"
+    : premium
+      ? "text-amber-300"
+      : warn
+        ? "text-amber-400"
+        : accent
+          ? "text-primary"
+          : "";
   return (
-    <div className={`glass-card p-4 ${danger ? "border border-destructive/30" : ""}`}>
+    <div className={`glass-card p-4 ${border}`}>
+      {premium && (
+        <div className="pointer-events-none absolute -top-8 -right-8 w-24 h-24 rounded-full bg-amber-400/10 blur-2xl" />
+      )}
       <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">{icon}{label}</div>
-      <div className={`mt-2 font-display text-2xl font-semibold ${danger ? "text-destructive" : accent ? "text-primary" : ""}`}>{value}</div>
+      <div className={`mt-2 font-display text-2xl font-semibold ${valueColor}`}>{value}</div>
+      {hint && <div className="mt-1 text-[11px] text-muted-foreground/80">{hint}</div>}
     </div>
   );
 }
