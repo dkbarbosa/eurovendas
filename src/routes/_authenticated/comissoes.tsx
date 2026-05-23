@@ -613,9 +613,18 @@ function ComissoesPage() {
                   const historico = (paid?.items ?? []).slice().sort((a, b) =>
                     (b.data ?? "").localeCompare(a.data ?? ""),
                   );
+                  const d10 = (s.data ?? "").slice(0, 10);
+                  const isOutOfPeriod = !!d10 && ((dateFrom && d10 < dateFrom) || (dateTo && d10 > dateTo));
                   return (
-                    <tr key={s.id} className={`border-t border-border align-top ${distrato && distrato.status === "pendente_devolucao" ? "bg-destructive/5" : ""}`}>
-                      <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
+                    <tr key={s.id} className={`border-t border-border align-top ${distrato && distrato.status === "pendente_devolucao" ? "bg-destructive/5" : isOutOfPeriod ? "bg-primary/[0.04]" : ""}`}>
+                      <td className="p-3 whitespace-nowrap">
+                        <div>{fmtBR(s.data)}</div>
+                        {isOutOfPeriod && (
+                          <Badge variant="outline" className="mt-1 text-[10px] gap-1 border-primary/40 text-primary bg-primary/10">
+                            Fora do período
+                          </Badge>
+                        )}
+                      </td>
                       <td className="p-3 font-medium">
                         <div>{s.comprador ?? "—"}</div>
                         {distrato && (
