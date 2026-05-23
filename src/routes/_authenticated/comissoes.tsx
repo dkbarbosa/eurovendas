@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { listMyBrokerSales, listDistinctCorretores } from "@/lib/commissions.functions";
 import { createCommissionRequest, deleteCommissionRequest, markRequestPaid } from "@/lib/requests.functions";
-import { markNFEmitted, deleteNFRequest } from "@/lib/nf.functions";
+import { markNFEmitted, deleteNFRequest, markNFPaid } from "@/lib/nf.functions";
 import { listDistratos } from "@/lib/distratos.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
