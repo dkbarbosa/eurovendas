@@ -380,7 +380,11 @@ function ComissoesPage() {
   const [nfFile2, setNfFile2] = useState<File | null>(null);
   const [uploadingNF, setUploadingNF] = useState(false);
   const openNF = (nfId: string, sale: typeof allSales[number]) => {
-    setNfForm({ numero_nf: "", observacao: "", valor_nf: 0 });
+    // Auto-preenche o valor da NF com a soma dos pedidos aprovados (aguardando pagamento) desta venda.
+    const aprovadoValor = requests
+      .filter((r) => r.sale_id === sale.id && r.status === "aprovado")
+      .reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
+    setNfForm({ numero_nf: "", observacao: "", valor_nf: aprovadoValor });
     setNfFile(null);
     setNfFile2(null);
     setNfDialog({ open: true, nfId, sale });
@@ -1132,57 +1136,60 @@ function ComissoesPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Anexos (Nota Fiscal e Promissória)</Label>
-                    <span className="text-[11px] text-muted-foreground">{(nfFile ? 1 : 0) + (nfFile2 ? 1 : 0)}/2</span>
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Anexos</span>
+                    <span className="text-[11px] text-muted-foreground">{(nfFile ? 1 : 0) + (nfFile2 ? 1 : 0)}/2 · máx 15MB</span>
                   </div>
-
-                  <div className="space-y-1.5 rounded-md border border-border/40 bg-background/60 p-2.5">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs text-muted-foreground">Nota fiscal *</Label>
-                      {nfFile && (
-                        <button type="button" className="text-[11px] text-destructive hover:underline" onClick={() => setNfFile(null)}>
-                          Remover
-                        </button>
-                      )}
-                    </div>
-                    <Input
-                      type="file"
-                      accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
-                      onChange={(e) => setNfFile(e.target.files?.[0] ?? null)}
-                    />
-                    {nfFile && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {nfFile.name} · {(nfFile.size / 1024).toFixed(0)} KB
-                      </p>
-                    )}
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { key: "nf", file: nfFile, setFile: setNfFile, label: "Nota Fiscal", required: true },
+                      { key: "pr", file: nfFile2, setFile: setNfFile2, label: "Promissória", required: false },
+                    ] as const).map((slot) => {
+                      const has = !!slot.file;
+                      return (
+                        <label
+                          key={slot.key}
+                          className={`group relative cursor-pointer rounded-md border px-3 py-2.5 transition-all flex items-center gap-2.5 ${
+                            has
+                              ? "border-emerald-400/40 bg-emerald-500/10 hover:bg-emerald-500/15"
+                              : slot.required
+                                ? "border-primary/40 bg-primary/5 hover:bg-primary/10 hover:border-primary/60"
+                                : "border-border/60 bg-background/40 hover:bg-background/70"
+                          }`}
+                        >
+                          <input
+                            type="file"
+                            className="sr-only"
+                            accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
+                            onChange={(e) => slot.setFile(e.target.files?.[0] ?? null)}
+                          />
+                          <div className={`shrink-0 w-8 h-8 rounded-md flex items-center justify-center ${has ? "bg-emerald-500/20 text-emerald-300" : "bg-secondary/60 text-muted-foreground group-hover:text-foreground"}`}>
+                            {has ? <CheckCircle2 className="w-4 h-4" /> : <Paperclip className="w-4 h-4" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-medium flex items-center gap-1">
+                              {slot.label}
+                              {slot.required && <span className="text-primary">*</span>}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground truncate">
+                              {has ? `${slot.file!.name} · ${(slot.file!.size / 1024).toFixed(0)} KB` : "Clique para anexar"}
+                            </div>
+                          </div>
+                          {has && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); slot.setFile(null); }}
+                              className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              aria-label="Remover"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </label>
+                      );
+                    })}
                   </div>
-
-                  <div className="space-y-1.5 rounded-md border border-border/40 bg-background/60 p-2.5">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs text-muted-foreground">Promissória (opcional)</Label>
-                      {nfFile2 && (
-                        <button type="button" className="text-[11px] text-destructive hover:underline" onClick={() => setNfFile2(null)}>
-                          Remover
-                        </button>
-                      )}
-                    </div>
-                    <Input
-                      type="file"
-                      accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
-                      onChange={(e) => setNfFile2(e.target.files?.[0] ?? null)}
-                    />
-                    {nfFile2 && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {nfFile2.name} · {(nfFile2.size / 1024).toFixed(0)} KB
-                      </p>
-                    )}
-                  </div>
-
-                  <p className="text-[11px] text-muted-foreground">
-                    Formatos: PDF, XML ou imagem (máx. 15 MB cada). Arquivados em uma pasta com o nome do cliente, unidade e empreendimento.
-                  </p>
                 </div>
 
                 <div className="space-y-1.5">
