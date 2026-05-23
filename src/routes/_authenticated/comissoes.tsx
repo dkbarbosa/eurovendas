@@ -89,7 +89,20 @@ function ComissoesPage() {
   const allSales = data?.sales ?? [];
   const requests = data?.requests ?? [];
   const nfs = data?.nfs ?? [];
+  const descontosAll = (data as { descontos?: DescontoInfo[] } | undefined)?.descontos ?? [];
   const displayName = data?.corretorNome ?? null;
+
+  // descontos agrupados por commission_request_id
+  const descontosByRequest = useMemo(() => {
+    const m = new Map<string, DescontoInfo[]>();
+    for (const d of descontosAll) {
+      const arr = m.get(d.commission_request_id) ?? [];
+      arr.push(d);
+      m.set(d.commission_request_id, arr);
+    }
+    return m;
+  }, [descontosAll]);
+
 
   // Vendas com qualquer evento em aberto (pedido não pago OU NF
   // solicitada/emitida/recebida) permanecem sempre visíveis —
