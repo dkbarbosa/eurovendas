@@ -911,7 +911,7 @@ function ComissoesPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Valor da NF (R$) *</Label>
-                    <CurrencyInput value={nfForm.valor_nf} onValueChange={(v) => setNfForm({ ...nfForm, valor_nf: v })} />
+                    <CurrencyInput value={nfForm.valor_nf} onValueChange={(v) => setNfForm({ ...nfForm, valor_nf: v ?? 0 })} />
                     {excedeu && (
                       <p className="text-xs text-destructive">Valor excede o saldo a receber ({BRL(aReceber)}).</p>
                     )}
