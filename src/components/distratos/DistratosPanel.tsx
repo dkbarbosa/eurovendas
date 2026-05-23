@@ -119,8 +119,8 @@ export function DistratosPanel() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiTile label="Distratos" value={String(totals.qtdTotal)} sub="No recorte atual" />
         <KpiTile label="Total a devolver" value={BRL(totals.totalDevolver)} sub="Soma de todos" highlight />
-        <KpiTile label="Pendentes" value={BRL(totals.pendente)} sub="Aguardando devolução" />
-        <KpiTile label="Devolvido" value={BRL(totals.devolvido)} sub="Já recebido" success />
+        <KpiTile label="Saldo a recuperar" value={BRL(totals.saldoRestante)} sub="Pendente (dinheiro + desconto)" />
+        <KpiTile label="Devolvido" value={BRL(totals.devolvido)} sub="Já recuperado" success />
       </div>
 
       {/* Filtros */}
