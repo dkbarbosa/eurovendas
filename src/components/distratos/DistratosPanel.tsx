@@ -206,7 +206,14 @@ export function DistratosPanel() {
                   )}
                   <td className="px-3 py-2 text-right whitespace-nowrap text-xs">{BRL(r.valor_adiantamento)}</td>
                   <td className="px-3 py-2 text-right whitespace-nowrap text-xs">{BRL(r.valor_comissao_final)}</td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap font-semibold text-destructive">{BRL(r.valor_devolver)}</td>
+                  <td className="px-3 py-2 text-right whitespace-nowrap font-semibold text-destructive">
+                    {BRL(r.valor_devolver)}
+                    {Number((r as { valor_devolvido?: number }).valor_devolvido ?? 0) > 0 && (
+                      <div className="text-[10px] font-normal text-muted-foreground">
+                        Devolvido: <span className="text-emerald-300">{BRL((r as { valor_devolvido?: number }).valor_devolvido)}</span>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
                   <td className="px-3 py-2 max-w-[260px]">
                     <div className="text-xs">{r.motivo}</div>
