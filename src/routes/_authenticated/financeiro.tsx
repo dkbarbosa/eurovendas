@@ -761,9 +761,10 @@ function NFTab() {
   const fnCancel = useServerFn(cancelNF);
   const fnDel = useServerFn(deleteNFRequest);
   const fnDownload = useServerFn(downloadNFFile);
-  const handleDownload = async (id: string) => {
+  const fnPayNF = useServerFn(markNFPaid);
+  const handleDownload = async (id: string, which: "1" | "2" = "1") => {
     try {
-      const res = await fnDownload({ data: { id } }) as { base64: string; contentType: string; filename: string };
+      const res = await fnDownload({ data: { id, which } }) as { base64: string; contentType: string; filename: string };
       const bin = atob(res.base64);
       const buf = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
