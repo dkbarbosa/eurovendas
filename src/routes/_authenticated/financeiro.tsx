@@ -631,7 +631,7 @@ function AdvancesTab() {
                                   </div>
                                 )}
                                 {r.status === "aprovado" && (() => {
-                                  const nfOk = r.nf_status === "recebida" || r.nf_status == null;
+                                  const nfOk = r.nf_status === "recebida";
                                   if (!nfOk) {
                                     const label = r.nf_status === "emitida"
                                       ? "Aguardando recebimento da NF"
