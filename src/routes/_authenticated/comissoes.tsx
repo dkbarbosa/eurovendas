@@ -738,7 +738,7 @@ function ComissoesPage() {
                       </td>
                       <td className="p-3">
                         <div className="flex flex-col gap-1.5">
-                          {comissaoLiq > 0 && aReceberSale === 0 ? (
+                          {isFinalizada ? (
                             <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold px-2 py-1">
                               <CheckCircle2 className="w-3.5 h-3.5" />Finalizado
                             </span>
