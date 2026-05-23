@@ -362,6 +362,37 @@ export const decideRequest = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---------- REMOVER BÔNUS (financeiro) ----------
+// O financeiro pode zerar o bônus de um pedido em qualquer status diferente de "pago".
+// Após remoção, os cálculos passam a desconsiderar o bônus daquele pedido.
+const RemoveBonusSchema = z.object({
+  id: z.string().uuid(),
+  motivo: z.string().trim().max(500).optional(),
+});
+export const removeBonusFromRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => RemoveBonusSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertFinanceiro(context.userId);
+    const { data: cur } = await supabaseAdmin
+      .from("commission_requests")
+      .select("id,status,bonus_corretor,observacao_financeiro")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!cur) throw new Error("Pedido não encontrado.");
+    if (cur.status === "pago") throw new Error("Pedido já pago — bônus não pode ser removido.");
+    if (!Number(cur.bonus_corretor)) throw new Error("Este pedido não possui bônus.");
+    const stamp = `[${new Date().toLocaleString("pt-BR")}] Bônus removido pelo financeiro (R$ ${Number(cur.bonus_corretor).toFixed(2)})${data.motivo ? ` — ${data.motivo}` : ""}.`;
+    const novaObs = [cur.observacao_financeiro, stamp].filter(Boolean).join("\n");
+    const { error } = await supabaseAdmin
+      .from("commission_requests")
+      .update({ bonus_corretor: 0, observacao_financeiro: novaObs })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 // ---------- MARCAR COMO PAGO ----------
 const PaidSchema = z.object({ id: z.string().uuid(), observacao: z.string().trim().max(2000).optional() });
 
