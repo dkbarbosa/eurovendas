@@ -405,13 +405,27 @@ function AdvancesTab() {
 
 
   const decideMut = useMutation({
-    mutationFn: (v: { id: string; decision: "aprovado" | "negado"; motivo?: string; observacao?: string }) =>
-      fnDecide({ data: v }),
+    mutationFn: async (v: { id: string; decision: "aprovado" | "negado"; motivo?: string; observacao?: string; descDistratoId?: string; descValor?: number; descObs?: string }) => {
+      await fnDecide({ data: { id: v.id, decision: v.decision, motivo: v.motivo, observacao: v.observacao } });
+      if (v.decision === "aprovado" && v.descDistratoId && v.descValor && v.descValor > 0) {
+        await fnApplyDesc({
+          data: {
+            distrato_id: v.descDistratoId,
+            commission_request_id: v.id,
+            valor_desconto: v.descValor,
+            observacao: v.descObs || undefined,
+          },
+        });
+      }
+    },
     onSuccess: () => {
       toast.success("Decisão registrada.");
       qc.invalidateQueries({ queryKey: ["all-requests"] });
+      qc.invalidateQueries({ queryKey: ["distratos"] });
+      qc.invalidateQueries({ queryKey: ["pendencias-distrato"] });
       setDeny({ open: false, id: null, motivo: "" });
       setObs({ open: false, id: null, action: "aprovar", text: "" });
+      setAprovDesc({ distratoId: "", valor: "", obs: "" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
