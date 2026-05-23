@@ -178,12 +178,16 @@ function ComissoesPage() {
       });
       m.set(r.sale_id, cur);
     }
-    // NFs pagas (fluxo iniciado pelo financeiro) também contam como comissão paga
+    // NFs pagas (fluxo iniciado pelo financeiro) também contam como comissão paga,
+    // MAS apenas quando NÃO existe um commission_request pago para a mesma venda —
+    // caso contrário, o valor seria contado em dobro (o pedido pago já representa o
+    // desembolso ao corretor; a NF é apenas o documento fiscal).
     for (const n of nfs) {
       if (n.status !== "paga") continue;
       const v = Number((n as { valor_nf?: number | null }).valor_nf) || 0;
       if (v <= 0) continue;
       const cur = m.get(n.sale_id) ?? { adiantado: 0, finalPago: 0, items: [] };
+      if (cur.adiantado > 0 || cur.finalPago > 0) continue; // já existe pedido pago → não duplica
       cur.finalPago += v;
       cur.items.push({
         id: n.id,
@@ -193,6 +197,7 @@ function ComissoesPage() {
       });
       m.set(n.sale_id, cur);
     }
+
     return m;
   }, [requests, nfs]);
 
