@@ -988,6 +988,53 @@ function ComissoesPage() {
                         onValueChange={(v) => setReqForm({ ...reqForm, valor_sinal: v })}
                         disabled={Number((sale as { valor_sinal_negocio?: number | null })?.valor_sinal_negocio) > 0 || statusUp === "CAIXA"}
                       />
+                      {(() => {
+                        const sheetSinal = Number((sale as { valor_sinal_negocio?: number | null })?.valor_sinal_negocio) || 0;
+                        const needsComprovante = sheetSinal <= 0 && statusUp !== "CAIXA";
+                        if (!needsComprovante) return null;
+                        return (
+                          <div className="mt-1">
+                            <label
+                              htmlFor="comprovante-sinal"
+                              className={`inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md border cursor-pointer transition ${
+                                comprovanteSinal
+                                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                                  : "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15"
+                              }`}
+                              title="O sinal não consta na planilha — anexe o comprovante (obrigatório)"
+                            >
+                              <Paperclip className="w-3 h-3" />
+                              {comprovanteSinal ? (
+                                <span className="truncate max-w-[160px]">{comprovanteSinal.name}</span>
+                              ) : (
+                                <span>Anexar comprovante de sinal *</span>
+                              )}
+                            </label>
+                            {comprovanteSinal && (
+                              <button
+                                type="button"
+                                className="ml-1 inline-flex items-center text-[11px] text-muted-foreground hover:text-destructive"
+                                onClick={() => setComprovanteSinal(null)}
+                                title="Remover"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                            <input
+                              id="comprovante-sinal"
+                              type="file"
+                              className="hidden"
+                              accept="image/*,application/pdf"
+                              onChange={(e) => setComprovanteSinal(e.target.files?.[0] ?? null)}
+                            />
+                            {!comprovanteSinal && (
+                              <p className="mt-1 text-[10px] text-amber-300/80">
+                                Obrigatório: sem comprovante, a solicitação não é enviada.
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {statusUp !== "CAIXA" && reqForm.tipo === "adiantamento" && sinal > 0 && sinal < 2999.99 && (
                         <p className="text-xs text-destructive">Sinal precisa ser ≥ R$ 2.999,99 para liberar adiantamento.</p>
                       )}
@@ -1008,10 +1055,21 @@ function ComissoesPage() {
                 </div>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setReqDialog({ open: false, sale: null })}>Cancelar</Button>
-                  <Button disabled={createMut.isPending || !reqForm.valor_solicitado || excedeu || ruleViolated} onClick={() => createMut.mutate()}
-                    style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
-                    {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar pedido"}
-                  </Button>
+                  {(() => {
+                    const sheetSinal = Number((sale as { valor_sinal_negocio?: number | null })?.valor_sinal_negocio) || 0;
+                    const needsComprovante = sheetSinal <= 0 && statusUp !== "CAIXA";
+                    const missingComprovante = needsComprovante && !comprovanteSinal;
+                    return (
+                      <Button
+                        disabled={createMut.isPending || !reqForm.valor_solicitado || excedeu || ruleViolated || missingComprovante}
+                        onClick={() => createMut.mutate()}
+                        style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+                        title={missingComprovante ? "Anexe o comprovante de sinal para enviar" : undefined}
+                      >
+                        {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar pedido"}
+                      </Button>
+                    );
+                  })()}
                 </DialogFooter>
               </>
             );
