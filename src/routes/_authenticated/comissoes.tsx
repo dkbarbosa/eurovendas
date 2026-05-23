@@ -28,6 +28,8 @@ export const Route = createFileRoute("/_authenticated/comissoes")({
 const BRL = (n: number | null | undefined) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const money = (n: number | null | undefined) => Math.round((Number(n) || 0) * 100) / 100;
+
 // Formata "YYYY-MM-DD" (vindo do tipo date do Postgres) como DD/MM/YYYY
 // sem deslocamento de fuso horário.
 const fmtBR = (d: string | null | undefined) => {
@@ -576,9 +578,9 @@ function ComissoesPage() {
                   const adiantadoSale = paid?.adiantado ?? 0;
                   const finalPagoSale = paid?.finalPago ?? 0;
                   const totalPagoSale = adiantadoSale + finalPagoSale;
-                  const aReceberSale = Math.max(0, comissaoLiq - totalPagoSale);
-                  // Finalizado só quando todo o valor foi solicitado e pago (saldo zero).
-                  const isFinalizada = comissaoLiq > 0 && aReceberSale === 0;
+                  const aReceberSale = Math.max(0, money(comissaoLiq - totalPagoSale));
+                  // Quando o saldo exibido em "A Receber" zera, o processo fica finalizado e não abre nova solicitação.
+                  const isFinalizada = aReceberSale <= 0;
                   const historico = (paid?.items ?? []).slice().sort((a, b) =>
                     (b.data ?? "").localeCompare(a.data ?? ""),
                   );
