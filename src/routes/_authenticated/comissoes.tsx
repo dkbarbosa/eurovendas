@@ -351,6 +351,11 @@ function ComissoesPage() {
     onSuccess: () => { toast.success("Pagamento confirmado. Processo finalizado."); qc.invalidateQueries({ queryKey: ["my-broker-sales"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const payNFMut = useMutation({
+    mutationFn: (id: string) => fnPayNF({ data: { id } }),
+    onSuccess: () => { toast.success("NF marcada como paga. Processo finalizado."); qc.invalidateQueries({ queryKey: ["my-broker-sales"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
 
   return (
