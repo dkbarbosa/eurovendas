@@ -665,7 +665,7 @@ function RequestNFTab() {
   const qc = useQueryClient();
   const fnList = useServerFn(listEligibleSalesForNF);
   const fnRequest = useServerFn(requestNF);
-  const { data = [], isLoading } = useQuery({ queryKey: ["nf-eligible"], queryFn: () => fnList() });
+  const { data = [], isLoading } = useQuery({ queryKey: ["nf-eligible"], queryFn: () => fnList(), refetchInterval: 10_000, refetchOnWindowFocus: true });
 
   const [dialog, setDialog] = useState<{ open: boolean; saleId: string | null; observacao: string }>({ open: false, saleId: null, observacao: "" });
   const [search, setSearch] = useState("");
