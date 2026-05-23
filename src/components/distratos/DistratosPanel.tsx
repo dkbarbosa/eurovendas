@@ -70,7 +70,7 @@ export function DistratosPanel() {
       filtered.filter(pred).reduce((s, r) => s + (Number(r.valor_devolver) || 0), 0);
     return {
       qtdTotal: filtered.length,
-      totalDevolver: sum(() => true),
+      totalDevolver: sum((r) => r.status === "pendente_devolucao"),
       pendente: sum((r) => r.status === "pendente_devolucao"),
       devolvido: sum((r) => r.status === "devolvido"),
     };
