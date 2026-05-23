@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlus2, Trash2, Download, LayoutDashboard, TrendingUp, AlertTriangle, FileText, Hourglass, BadgeCheck, Ban } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlus2, Trash2, Download, LayoutDashboard, TrendingUp, AlertTriangle, FileText, Hourglass, BadgeCheck, Ban, Paperclip } from "lucide-react";
 import { motion } from "framer-motion";
 import { DistratoButton } from "@/components/distratos/DistratoButton";
 import { DistratosPanel } from "@/components/distratos/DistratosPanel";
