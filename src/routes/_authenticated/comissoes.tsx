@@ -691,9 +691,18 @@ function ComissoesPage() {
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
                         {isFinalizada ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
-                            <CheckCircle2 className="w-3.5 h-3.5" />100% pago
-                          </span>
+                          isPagoAntecipado ? (
+                            <span
+                              className="inline-flex items-center gap-1 text-sky-400 font-semibold"
+                              title="Comissão integralmente paga antes de a venda virar Caixa."
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />Pago antecipadamente
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                              <CheckCircle2 className="w-3.5 h-3.5" />100% pago
+                            </span>
+                          )
                         ) : (
                           <span className={aReceberSale > 0 ? "text-primary font-semibold" : "text-muted-foreground"}>
                             {BRL(aReceberSale)}
