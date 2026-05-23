@@ -279,17 +279,18 @@ function ComissoesPage() {
   });
 
   // ---- Diálogo NF
-  const [nfDialog, setNfDialog] = useState<{ open: boolean; nfId: string | null }>({ open: false, nfId: null });
-  const [nfForm, setNfForm] = useState({ numero_nf: "", observacao: "" });
+  const [nfDialog, setNfDialog] = useState<{ open: boolean; nfId: string | null; sale: SaleRow | null }>({ open: false, nfId: null, sale: null });
+  const [nfForm, setNfForm] = useState({ numero_nf: "", observacao: "", valor_nf: 0 });
   const [nfFile, setNfFile] = useState<File | null>(null);
   const [nfFile2, setNfFile2] = useState<File | null>(null);
   const [uploadingNF, setUploadingNF] = useState(false);
-  const openNF = (nfId: string) => {
-    setNfForm({ numero_nf: "", observacao: "" });
+  const openNF = (nfId: string, sale: SaleRow) => {
+    setNfForm({ numero_nf: "", observacao: "", valor_nf: 0 });
     setNfFile(null);
     setNfFile2(null);
-    setNfDialog({ open: true, nfId });
+    setNfDialog({ open: true, nfId, sale });
   };
+
   const readFileB64 = (f: File) => new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
