@@ -170,6 +170,8 @@ function ComissoesPage() {
     queryKey: ["distratos-broker", displayName],
     queryFn: () => fnDistratos({ data: {} }),
     enabled: !!displayName,
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
   });
   const distratos = useMemo(() => {
     if (!displayName) return [];
