@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { listMyBrokerSales, listDistinctCorretores } from "@/lib/commissions.functions";
 import { createCommissionRequest, deleteCommissionRequest, markRequestPaid } from "@/lib/requests.functions";
 import { markNFEmitted, deleteNFRequest } from "@/lib/nf.functions";
+import { listDistratos } from "@/lib/distratos.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning } from "lucide-react";
+import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning, Ban } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from "recharts";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -57,6 +58,7 @@ function ComissoesPage() {
   const fnDelReq = useServerFn(deleteCommissionRequest);
   const fnDelNF = useServerFn(deleteNFRequest);
   const fnPaid = useServerFn(markRequestPaid);
+  const fnDistratos = useServerFn(listDistratos);
 
 
   const [staffSelectedBroker, setStaffSelectedBroker] = useState<string | undefined>(undefined);
@@ -143,6 +145,35 @@ function ComissoesPage() {
     }
     return m;
   }, [requests]);
+
+  // ---- Distratos do corretor ----
+  const { data: distratosAll = [] } = useQuery({
+    queryKey: ["distratos-broker", displayName],
+    queryFn: () => fnDistratos({ data: {} }),
+    enabled: !!displayName,
+  });
+  const distratos = useMemo(() => {
+    if (!displayName) return [];
+    // Para staff impersonando um corretor, filtrar pelo nome; corretor já vê só os seus pelo RLS.
+    if (isStaff) {
+      const dn = displayName.trim().toLowerCase();
+      return distratosAll.filter((d) => (d.corretor_nome ?? "").trim().toLowerCase() === dn);
+    }
+    return distratosAll;
+  }, [distratosAll, displayName, isStaff]);
+  const distratoBySale = useMemo(() => {
+    const m = new Map<string, (typeof distratos)[number]>();
+    for (const d of distratos) if (d.status !== "cancelado") m.set(d.sale_id, d);
+    return m;
+  }, [distratos]);
+  const totalADevolver = useMemo(
+    () => distratos.filter((d) => d.status === "pendente_devolucao").reduce((s, d) => s + (Number(d.valor_devolver) || 0), 0),
+    [distratos],
+  );
+  const totalDevolvido = useMemo(
+    () => distratos.filter((d) => d.status === "devolvido").reduce((s, d) => s + (Number(d.valor_devolver) || 0), 0),
+    [distratos],
+  );
 
   const kpis = useMemo(() => {
     let total = 0;
@@ -387,13 +418,75 @@ function ComissoesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className={`grid grid-cols-2 gap-3 ${totalADevolver > 0 ? "md:grid-cols-6" : "md:grid-cols-5"}`}>
             <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.total)} />
             <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantado" value={BRL(kpis.adiantado)} />
             <Kpi icon={<CheckCircle2 className="w-4 h-4" />} label="Já Pago" value={BRL(kpis.pagas)} />
             <Kpi icon={<Clock className="w-4 h-4" />} label="A Receber" value={BRL(kpis.aReceber)} accent />
+            {totalADevolver > 0 && (
+              <Kpi icon={<Ban className="w-4 h-4" />} label="A Devolver (distrato)" value={BRL(totalADevolver)} danger />
+            )}
             <Kpi icon={<FileText className="w-4 h-4" />} label="Vendas / Pendentes" value={`${kpis.count} / ${kpis.pendReq}`} />
           </div>
+
+          {distratos.length > 0 && (
+            <div className="glass-card p-5 border border-destructive/30">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Ban className="w-4 h-4 text-destructive" />
+                  <h3 className="font-display text-lg">Distratos — Saldo de devolução</h3>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Pendente <span className="text-destructive font-semibold">{BRL(totalADevolver)}</span>
+                  {totalDevolvido > 0 && <> · Devolvido <span className="text-emerald-400 font-semibold">{BRL(totalDevolvido)}</span></>}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Vendas distratadas pelo financeiro. O saldo pendente será descontado de futuras comissões. Somente o financeiro pode marcar como devolvido.
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[760px]">
+                  <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="text-left p-2">Cliente</th>
+                      <th className="text-left p-2">Empreend. / Un.</th>
+                      <th className="text-left p-2">Motivo</th>
+                      <th className="text-right p-2">A Devolver</th>
+                      <th className="text-left p-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {distratos.map((d) => (
+                      <tr key={d.id} className="border-t border-border align-top">
+                        <td className="p-2 font-medium">{d.comprador ?? "—"}</td>
+                        <td className="p-2 text-muted-foreground">
+                          <div>{d.empreendimento ?? "—"}</div>
+                          <div className="text-xs">Unid: {d.unidade ?? "—"}</div>
+                        </td>
+                        <td className="p-2 text-xs text-muted-foreground max-w-[260px] truncate" title={d.motivo ?? ""}>
+                          {d.motivo ?? "—"}
+                        </td>
+                        <td className="p-2 text-right whitespace-nowrap font-semibold text-destructive">
+                          {BRL(d.valor_devolver)}
+                        </td>
+                        <td className="p-2">
+                          {d.status === "devolvido" ? (
+                            <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Devolvido</Badge>
+                          ) : d.status === "cancelado" ? (
+                            <Badge variant="outline" className="text-muted-foreground">Cancelado</Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+                              Pendente devolução
+                            </Badge>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -474,6 +567,7 @@ function ComissoesPage() {
                   const hasPending = reqs.some((r) => r.status === "pendente");
                   const nfAberta = sNfs.find((n) => n.status === "solicitada" || n.status === "emitida");
                   const paid = paidBySale.get(s.id);
+                  const distrato = distratoBySale.get(s.id);
                   const comissaoLiq = Number(s.comissao_liq_corretor) || 0;
                   const adiantadoSale = paid?.adiantado ?? 0;
                   const finalPagoSale = paid?.finalPago ?? 0;
@@ -483,9 +577,21 @@ function ComissoesPage() {
                     (b.data ?? "").localeCompare(a.data ?? ""),
                   );
                   return (
-                    <tr key={s.id} className="border-t border-border align-top">
+                    <tr key={s.id} className={`border-t border-border align-top ${distrato && distrato.status === "pendente_devolucao" ? "bg-destructive/5" : ""}`}>
                       <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
-                      <td className="p-3 font-medium">{s.comprador ?? "—"}</td>
+                      <td className="p-3 font-medium">
+                        <div>{s.comprador ?? "—"}</div>
+                        {distrato && (
+                          <Badge
+                            variant="outline"
+                            className={`mt-1 text-[10px] gap-1 ${distrato.status === "devolvido" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-destructive/10 text-destructive border-destructive/30"}`}
+                            title={distrato.motivo ?? undefined}
+                          >
+                            <Ban className="w-2.5 h-2.5" />
+                            {distrato.status === "devolvido" ? "Distrato devolvido" : `Distrato · devolver ${BRL(distrato.valor_devolver)}`}
+                          </Badge>
+                        )}
+                      </td>
                       <td className="p-3 text-muted-foreground">
                         <div>{s.empreendimento ?? "—"}</div>
                         <div className="text-xs">Unid: {s.unidade ?? "—"}</div>
@@ -877,11 +983,11 @@ function ComissoesPage() {
   );
 }
 
-function Kpi({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent?: boolean }) {
+function Kpi({ icon, label, value, accent, danger }: { icon: React.ReactNode; label: string; value: string; accent?: boolean; danger?: boolean }) {
   return (
-    <div className="glass-card p-4">
+    <div className={`glass-card p-4 ${danger ? "border border-destructive/30" : ""}`}>
       <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">{icon}{label}</div>
-      <div className={`mt-2 font-display text-2xl font-semibold ${accent ? "text-primary" : ""}`}>{value}</div>
+      <div className={`mt-2 font-display text-2xl font-semibold ${danger ? "text-destructive" : accent ? "text-primary" : ""}`}>{value}</div>
     </div>
   );
 }
