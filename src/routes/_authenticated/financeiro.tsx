@@ -378,6 +378,31 @@ function AdvancesTab() {
   const [obs, setObs] = useState<{ open: boolean; id: string | null; action: "aprovar" | "pagar"; text: string }>({
     open: false, id: null, action: "aprovar", text: "",
   });
+  // Distrato vinculado durante a aprovação
+  const [aprovDesc, setAprovDesc] = useState<{ distratoId: string; valor: string; obs: string }>({ distratoId: "", valor: "", obs: "" });
+
+  // Pedido em foco no diálogo de obs (para checar elegibilidade de distrato)
+  const obsRequest = useMemo(() => data.find((r) => r.id === obs.id) ?? null, [data, obs.id]);
+  const obsEligibleDistrato = !!(
+    obsRequest &&
+    obs.action === "aprovar" &&
+    obsRequest.tipo === "comissao_final" &&
+    (((obsRequest.sale?.status ?? "").toUpperCase() === "CAIXA") || !!obsRequest.nf_status)
+  );
+
+  const { data: aprovPendencias = [], isLoading: aprovPendLoading } = useQuery({
+    queryKey: ["pendencias-distrato", obsRequest?.corretor_user_id ?? null],
+    queryFn: () => fnListPend({ data: obsRequest?.corretor_user_id ? { corretor_user_id: obsRequest.corretor_user_id } : undefined }),
+    enabled: obs.open && obsEligibleDistrato && !!obsRequest?.corretor_user_id,
+  });
+
+  const aprovSelected = aprovPendencias.find((p) => p.id === aprovDesc.distratoId) ?? null;
+  const aprovValorReq = Number(obsRequest?.valor_solicitado) || 0;
+  const aprovDescAtual = Number((obsRequest as { desconto_distrato?: number } | null)?.desconto_distrato) || 0;
+  const aprovRestReq = Math.max(0, aprovValorReq - aprovDescAtual);
+  const aprovMaxApply = aprovSelected ? Math.min(aprovSelected.saldo_restante, aprovRestReq) : 0;
+  const aprovValorNum = Number((aprovDesc.valor || "").replace(",", "."));
+
 
   const decideMut = useMutation({
     mutationFn: (v: { id: string; decision: "aprovado" | "negado"; motivo?: string; observacao?: string }) =>
