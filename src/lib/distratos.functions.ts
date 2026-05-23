@@ -39,7 +39,7 @@ export const createDistrato = createServerFn({ method: "POST" })
     // Carrega venda
     const { data: sale, error: saleErr } = await supabaseAdmin
       .from("sales")
-      .select("id,corretor,comprador,empreendimento,unidade")
+      .select("id,corretor,comprador,empreendimento,unidade,data,valor_venda")
       .eq("id", data.sale_id)
       .maybeSingle();
     if (saleErr) throw new Error(saleErr.message);
