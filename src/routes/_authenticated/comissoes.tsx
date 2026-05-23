@@ -284,7 +284,7 @@ function ComissoesPage() {
   const [nfFile, setNfFile] = useState<File | null>(null);
   const [nfFile2, setNfFile2] = useState<File | null>(null);
   const [uploadingNF, setUploadingNF] = useState(false);
-  const openNF = (nfId: string, sale: SaleRow) => {
+  const openNF = (nfId: string, sale: typeof allSales[number]) => {
     setNfForm({ numero_nf: "", observacao: "", valor_nf: 0 });
     setNfFile(null);
     setNfFile2(null);
