@@ -897,9 +897,15 @@ function ComissoesPage() {
               <Label>Número da NF *</Label>
               <Input value={nfForm.numero_nf} onChange={(e) => setNfForm({ ...nfForm, numero_nf: e.target.value })} maxLength={80} />
             </div>
-            <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+          <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Anexos (Nota Fiscal e Promissória)</Label>
+              <span className="text-[11px] text-muted-foreground">{(nfFile ? 1 : 0) + (nfFile2 ? 1 : 0)}/2</span>
+            </div>
+
+            <div className="space-y-1.5 rounded-md border border-border/40 bg-background/60 p-2.5">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Anexos da NF (até 2 arquivos)</Label>
+                <Label className="text-xs text-muted-foreground">Nota fiscal *</Label>
                 <span className="text-[11px] text-muted-foreground">{(nfFile ? 1 : 0) + (nfFile2 ? 1 : 0)}/2</span>
               </div>
 
