@@ -317,7 +317,7 @@ export const decideRequest = createServerFn({ method: "POST" })
         .select("tipo, valor_solicitado, sale_id, corretor_user_id")
         .eq("id", data.id)
         .single();
-      if (req?.tipo === "adiantamento" && req.sale_id) {
+      if (req?.sale_id) {
         const { data: sale } = await supabaseAdmin
           .from("sales")
           .select("data, empreendimento, unidade, comprador, valor_venda, corretor")
