@@ -1245,7 +1245,7 @@ function Kpi({ icon, label, value, accent, danger, warn, premium, hint }: { icon
   );
 }
 
-function RequestPill({ r }: { r: { id: string; tipo: string; valor_solicitado: number; status: string; motivo_negacao: string | null } }) {
+function RequestPill({ r }: { r: { id: string; tipo: string; valor_solicitado: number; status: string; motivo_negacao: string | null; desconto_distrato?: number | null } }) {
   const map: Record<string, { c: string; i: React.ReactNode; l: string }> = {
     pendente: { c: "bg-amber-500/10 text-amber-500 border-amber-500/30", i: <Clock className="w-3 h-3" />, l: "Pendente" },
     aprovado: { c: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30", i: <CheckCircle2 className="w-3 h-3" />, l: "Aprovado" },
@@ -1253,9 +1253,18 @@ function RequestPill({ r }: { r: { id: string; tipo: string; valor_solicitado: n
     pago: { c: "bg-primary/10 text-primary border-primary/30", i: <Wallet className="w-3 h-3" />, l: "Pago" },
   };
   const s = map[r.status] ?? map.pendente;
+  const desc = Number(r.desconto_distrato) || 0;
+  const liquido = Math.max(0, Number(r.valor_solicitado) - desc);
   return (
-    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] rounded-full border ${s.c}`} title={r.motivo_negacao ?? undefined}>
-      {s.i}<FileText className="w-3 h-3" /> {r.tipo === "adiantamento" ? "Adiant." : "Comiss."}: {BRL(r.valor_solicitado)} · {s.l}
+    <div className="inline-flex flex-col gap-0.5">
+      <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] rounded-full border ${s.c}`} title={r.motivo_negacao ?? undefined}>
+        {s.i}<FileText className="w-3 h-3" /> {r.tipo === "adiantamento" ? "Adiant." : "Comiss."}: {BRL(r.valor_solicitado)} · {s.l}
+      </div>
+      {desc > 0 && (
+        <div className="inline-flex items-center gap-1 text-[10px] text-violet-300 px-2" title="Desconto vinculado a distrato">
+          <Ban className="w-2.5 h-2.5" /> Desc. distrato: {BRL(desc)} · Líq. {BRL(liquido)}
+        </div>
+      )}
     </div>
   );
 }
