@@ -144,8 +144,23 @@ function ComissoesPage() {
       });
       m.set(r.sale_id, cur);
     }
+    // NFs pagas (fluxo iniciado pelo financeiro) também contam como comissão paga
+    for (const n of nfs) {
+      if (n.status !== "paga") continue;
+      const v = Number((n as { valor_nf?: number | null }).valor_nf) || 0;
+      if (v <= 0) continue;
+      const cur = m.get(n.sale_id) ?? { adiantado: 0, finalPago: 0, items: [] };
+      cur.finalPago += v;
+      cur.items.push({
+        id: n.id,
+        tipo: "comissao_final",
+        valor: v,
+        data: (n.paga_at ?? n.recebida_at ?? n.created_at) as string | null,
+      });
+      m.set(n.sale_id, cur);
+    }
     return m;
-  }, [requests]);
+  }, [requests, nfs]);
 
   // ---- Distratos do corretor ----
   const { data: distratosAll = [] } = useQuery({
@@ -316,10 +331,11 @@ function ComissoesPage() {
           data: {
             id: nfDialog.nfId!,
             numero_nf: nfForm.numero_nf.trim(),
+            valor_nf: nfForm.valor_nf,
             file_base64: base64,
             file_name: nfFile.name,
             file_mime: nfFile.type || "application/octet-stream",
-            observacao: [nfForm.valor_nf > 0 ? `Valor da NF: ${BRL(nfForm.valor_nf)}` : "", nfForm.observacao].filter(Boolean).join(" — ") || undefined,
+            observacao: nfForm.observacao || undefined,
             file2,
           },
         });

@@ -137,6 +137,7 @@ const FileSchema = z.object({
 const MarkEmittedSchema = z.object({
   id: z.string().uuid(),
   numero_nf: z.string().trim().min(1, "Número da NF é obrigatório").max(80),
+  valor_nf: z.number().positive("Valor da NF deve ser maior que zero"),
   observacao: z.string().trim().max(2000).optional(),
   file_base64: z.string().min(10).max(20_000_000),
   file_name: z.string().trim().min(1).max(255),
@@ -215,6 +216,7 @@ export const markNFEmitted = createServerFn({ method: "POST" })
       .update({
         status: "recebida",
         numero_nf: data.numero_nf,
+        valor_nf: data.valor_nf,
         observacao_corretor: data.observacao ?? null,
         arquivo_nf_url: uploaded.webViewLink,
         drive_file_id: uploaded.id,

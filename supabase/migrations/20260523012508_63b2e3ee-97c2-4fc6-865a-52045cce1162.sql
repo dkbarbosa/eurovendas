@@ -1,0 +1,1 @@
+ALTER TABLE public.nf_requests ADD COLUMN IF NOT EXISTS valor_nf numeric;
