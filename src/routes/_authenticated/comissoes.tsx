@@ -555,7 +555,11 @@ function ComissoesPage() {
                   const adiantadoSale = paid?.adiantado ?? 0;
                   const finalPagoSale = paid?.finalPago ?? 0;
                   const totalPagoSale = adiantadoSale + finalPagoSale;
-                  const aReceberSale = Math.max(0, comissaoLiq - totalPagoSale);
+                  // Se há NF paga, considerar a comissão como totalmente quitada
+                  // (cobre o caso em que financeiro pagou direto via NF sem pedido vinculado).
+                  const hasNfPaga = sNfs.some((n) => n.status === "paga");
+                  const aReceberSale = hasNfPaga ? 0 : Math.max(0, comissaoLiq - totalPagoSale);
+                  const isFinalizada = comissaoLiq > 0 && (aReceberSale === 0 || hasNfPaga);
                   const historico = (paid?.items ?? []).slice().sort((a, b) =>
                     (b.data ?? "").localeCompare(a.data ?? ""),
                   );
@@ -624,7 +628,7 @@ function ComissoesPage() {
                         </div>
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
-                        {comissaoLiq > 0 && aReceberSale === 0 ? (
+                        {isFinalizada ? (
                           <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
                             <CheckCircle2 className="w-3.5 h-3.5" />100% pago
                           </span>
@@ -734,7 +738,7 @@ function ComissoesPage() {
                       </td>
                       <td className="p-3">
                         <div className="flex flex-col gap-1.5">
-                          {comissaoLiq > 0 && aReceberSale === 0 ? (
+                          {isFinalizada ? (
                             <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold px-2 py-1">
                               <CheckCircle2 className="w-3.5 h-3.5" />Finalizado
                             </span>
