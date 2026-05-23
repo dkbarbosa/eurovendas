@@ -403,6 +403,13 @@ function AdvancesTab() {
     onSuccess: () => { toast.success("Excluído."); qc.invalidateQueries({ queryKey: ["all-requests"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const fnRemoveBonus = useServerFn(removeBonusFromRequest);
+  const removeBonusMut = useMutation({
+    mutationFn: (v: { id: string; motivo?: string }) => fnRemoveBonus({ data: v }),
+    onSuccess: () => { toast.success("Bônus removido. Cálculo atualizado."); qc.invalidateQueries({ queryKey: ["all-requests"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
 
   return (
