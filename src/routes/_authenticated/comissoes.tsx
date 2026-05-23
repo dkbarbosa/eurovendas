@@ -79,6 +79,9 @@ function ComissoesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["my-broker-sales", activeBrokerArg ?? myName],
     queryFn: () => fnSales({ data: activeBrokerArg ? { corretorNome: activeBrokerArg } : undefined }),
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
   });
 
   const allSales = data?.sales ?? [];
@@ -167,6 +170,8 @@ function ComissoesPage() {
     queryKey: ["distratos-broker", displayName],
     queryFn: () => fnDistratos({ data: {} }),
     enabled: !!displayName,
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
   });
   const distratos = useMemo(() => {
     if (!displayName) return [];

@@ -75,10 +75,14 @@ function DashboardTab() {
   const { data: reqs = [], isLoading: lr } = useQuery({
     queryKey: ["all-requests", "todos"],
     queryFn: () => fnListReqs({ data: undefined }),
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
   });
   const { data: nfs = [], isLoading: ln } = useQuery({
     queryKey: ["all-nfs"],
     queryFn: () => fnListNFs(),
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
   });
 
   const stats = useMemo(() => {
@@ -355,6 +359,8 @@ function AdvancesTab() {
   const { data = [], isLoading } = useQuery({
     queryKey: ["all-requests", statusFilter],
     queryFn: () => fnList({ data: statusFilter === "todos" ? undefined : { status: statusFilter } }),
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
   });
 
   const filtered = useMemo(() => {
@@ -659,7 +665,7 @@ function RequestNFTab() {
   const qc = useQueryClient();
   const fnList = useServerFn(listEligibleSalesForNF);
   const fnRequest = useServerFn(requestNF);
-  const { data = [], isLoading } = useQuery({ queryKey: ["nf-eligible"], queryFn: () => fnList() });
+  const { data = [], isLoading } = useQuery({ queryKey: ["nf-eligible"], queryFn: () => fnList(), refetchInterval: 10_000, refetchOnWindowFocus: true });
 
   const [dialog, setDialog] = useState<{ open: boolean; saleId: string | null; observacao: string }>({ open: false, saleId: null, observacao: "" });
   const [search, setSearch] = useState("");
@@ -779,7 +785,7 @@ function NFTab() {
   };
 
   const [statusFilter, setStatusFilter] = useState<"solicitada" | "emitida" | "recebida" | "paga" | "cancelada" | "todos">("todos");
-  const { data = [], isLoading } = useQuery({ queryKey: ["all-nfs"], queryFn: () => fnList() });
+  const { data = [], isLoading } = useQuery({ queryKey: ["all-nfs"], queryFn: () => fnList(), refetchInterval: 10_000, refetchOnWindowFocus: true });
   const filtered = statusFilter === "todos" ? data : data.filter((n) => n.status === statusFilter);
 
   const [confirmDlg, setConfirmDlg] = useState<{ open: boolean; id: string | null; obs: string }>({ open: false, id: null, obs: "" });

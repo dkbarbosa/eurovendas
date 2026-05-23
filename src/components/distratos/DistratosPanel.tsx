@@ -44,6 +44,8 @@ export function DistratosPanel() {
           to: to ? new Date(to + "T23:59:59").toISOString() : undefined,
         },
       }),
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
   });
 
   const filtered = useMemo(() => {
