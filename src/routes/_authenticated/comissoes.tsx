@@ -610,6 +610,9 @@ function ComissoesPage() {
                   const aReceberSale = Math.max(0, money(comissaoLiq - totalPagoSale));
                   // Quando o saldo exibido em "A Receber" zera, o processo fica finalizado e não abre nova solicitação.
                   const isFinalizada = aReceberSale <= 0;
+                  // Pagamento antecipado: 100% pago e a venda está como "Caixa"
+                  // (corretor recebeu adiantamento antes de a venda virar Caixa).
+                  const isPagoAntecipado = isFinalizada && (s.status ?? "").trim().toUpperCase() === "CAIXA";
                   const historico = (paid?.items ?? []).slice().sort((a, b) =>
                     (b.data ?? "").localeCompare(a.data ?? ""),
                   );
