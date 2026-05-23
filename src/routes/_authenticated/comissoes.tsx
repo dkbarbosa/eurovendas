@@ -810,8 +810,12 @@ function ComissoesPage() {
                       <td className="p-3">
                         <div className="flex flex-col gap-1.5">
                           {isFinalizada ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold px-2 py-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" />Finalizado
+                            <span
+                              className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 ${isPagoAntecipado ? "text-sky-400" : "text-emerald-400"}`}
+                              title={isPagoAntecipado ? "Comissão integralmente paga antes de a venda virar Caixa." : undefined}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {isPagoAntecipado ? "Pago antecipadamente" : "Finalizado"}
                             </span>
                           ) : (
                             (() => {
