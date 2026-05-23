@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listDistratos, markDistratoDevolvido, cancelDistrato, createDistrato, listSalesForDistrato, deleteDistrato } from "@/lib/distratos.functions";
+import { listDistratos, markDistratoDevolvido, cancelDistrato, createDistrato, listSalesForDistrato, deleteDistrato, listDescontosByDistrato, estornarDescontoDistrato } from "@/lib/distratos.functions";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -78,14 +78,14 @@ export function DistratosPanel() {
     };
   }, [filtered]);
 
-  const [markDlg, setMarkDlg] = useState<{ open: boolean; id: string | null; text: string }>({ open: false, id: null, text: "" });
+  const [markDlg, setMarkDlg] = useState<{ open: boolean; id: string | null; saldo: number; valor: string; text: string }>({ open: false, id: null, saldo: 0, valor: "", text: "" });
 
   const markMut = useMutation({
-    mutationFn: (v: { id: string; observacao_recebimento?: string }) => fnMark({ data: v }),
+    mutationFn: (v: { id: string; valor?: number; observacao_recebimento?: string }) => fnMark({ data: v }),
     onSuccess: () => {
-      toast.success("Devolução confirmada.");
+      toast.success("Devolução registrada.");
       qc.invalidateQueries({ queryKey: ["distratos"] });
-      setMarkDlg({ open: false, id: null, text: "" });
+      setMarkDlg({ open: false, id: null, saldo: 0, valor: "", text: "" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -196,7 +196,10 @@ export function DistratosPanel() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {filtered.map((r) => {
+                const dev = Number((r as { valor_devolvido?: number }).valor_devolvido ?? 0);
+                const saldo = Math.max(0, Number(r.valor_devolver) - dev);
+                return (
                 <tr key={r.id} className="border-t border-border/40 align-top">
                   <td className="px-3 py-2 whitespace-nowrap text-xs">{new Date(r.created_at).toLocaleDateString("pt-BR")}</td>
                   <td className="px-3 py-2 font-medium">{r.comprador ?? "—"}</td>
@@ -208,11 +211,13 @@ export function DistratosPanel() {
                   <td className="px-3 py-2 text-right whitespace-nowrap text-xs">{BRL(r.valor_comissao_final)}</td>
                   <td className="px-3 py-2 text-right whitespace-nowrap font-semibold text-destructive">
                     {BRL(r.valor_devolver)}
-                    {Number((r as { valor_devolvido?: number }).valor_devolvido ?? 0) > 0 && (
+                    {dev > 0 && (
                       <div className="text-[10px] font-normal text-muted-foreground">
-                        Devolvido: <span className="text-emerald-300">{BRL((r as { valor_devolvido?: number }).valor_devolvido)}</span>
+                        Recuperado: <span className="text-emerald-300">{BRL(dev)}</span>
+                        {saldo > 0 && <> · Saldo: <span className="text-destructive">{BRL(saldo)}</span></>}
                       </div>
                     )}
+                    <DescontosInline distratoId={r.id} />
                   </td>
                   <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
                   <td className="px-3 py-2 max-w-[260px]">
@@ -222,9 +227,9 @@ export function DistratosPanel() {
                   </td>
                   {isStaff && (
                     <td className="px-3 py-2 text-right whitespace-nowrap">
-                      {r.status === "pendente_devolucao" && (
-                        <Button size="sm" className="h-7 text-xs" onClick={() => setMarkDlg({ open: true, id: r.id, text: "" })}>
-                          <CheckCircle2 className="w-3 h-3 mr-1" /> Marcar devolvido
+                      {r.status === "pendente_devolucao" && saldo > 0 && (
+                        <Button size="sm" className="h-7 text-xs" onClick={() => setMarkDlg({ open: true, id: r.id, saldo, valor: "", text: "" })}>
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Receber em dinheiro
                         </Button>
                       )}
                       {isAdmin && r.status !== "cancelado" && (
@@ -249,31 +254,93 @@ export function DistratosPanel() {
                     </td>
                   )}
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         )}
       </div>
 
-      {/* Mark devolvido */}
+      {/* Mark devolvido (parcial ou total) */}
       <Dialog open={markDlg.open} onOpenChange={(o) => setMarkDlg({ ...markDlg, open: o })}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar devolução</DialogTitle>
-            <DialogDescription>Registre observações sobre o recebimento do valor.</DialogDescription>
+            <DialogTitle>Registrar devolução em dinheiro</DialogTitle>
+            <DialogDescription>
+              Saldo restante: <span className="font-semibold text-destructive">{BRL(markDlg.saldo)}</span>. Deixe em branco para quitar tudo.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-1.5">
-            <Label>Observação (opcional)</Label>
-            <Textarea rows={3} value={markDlg.text} onChange={(e) => setMarkDlg({ ...markDlg, text: e.target.value })} maxLength={2000} />
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Valor recebido (opcional)</Label>
+              <Input
+                type="number" min={0} step="0.01" max={markDlg.saldo}
+                placeholder={`Máx ${BRL(markDlg.saldo)}`}
+                value={markDlg.valor}
+                onChange={(e) => setMarkDlg({ ...markDlg, valor: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Observação (opcional)</Label>
+              <Textarea rows={3} value={markDlg.text} onChange={(e) => setMarkDlg({ ...markDlg, text: e.target.value })} maxLength={2000} />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setMarkDlg({ open: false, id: null, text: "" })}>Cancelar</Button>
-            <Button disabled={markMut.isPending} onClick={() => markMut.mutate({ id: markDlg.id!, observacao_recebimento: markDlg.text || undefined })}>
+            <Button variant="ghost" onClick={() => setMarkDlg({ open: false, id: null, saldo: 0, valor: "", text: "" })}>Cancelar</Button>
+            <Button
+              disabled={markMut.isPending}
+              onClick={() => {
+                const v = markDlg.valor ? Number(markDlg.valor) : undefined;
+                if (v !== undefined && (!Number.isFinite(v) || v <= 0)) { toast.error("Valor inválido."); return; }
+                if (v !== undefined && v > markDlg.saldo + 0.001) { toast.error("Valor maior que o saldo."); return; }
+                markMut.mutate({ id: markDlg.id!, valor: v, observacao_recebimento: markDlg.text || undefined });
+              }}>
               {markMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function DescontosInline({ distratoId }: { distratoId: string }) {
+  const qc = useQueryClient();
+  const fnList = useServerFn(listDescontosByDistrato);
+  const fnEstornar = useServerFn(estornarDescontoDistrato);
+  const { data: descontos = [] } = useQuery({
+    queryKey: ["distrato-descontos", distratoId],
+    queryFn: () => fnList({ data: { distrato_id: distratoId } }),
+    refetchInterval: 20_000,
+  });
+  const ativos = (descontos as Array<{ id: string; valor_desconto: number; status: string; observacao: string | null }>)
+    .filter((d) => d.status === "aplicado");
+  const estornarMut = useMutation({
+    mutationFn: (id: string) => fnEstornar({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Desconto estornado.");
+      qc.invalidateQueries({ queryKey: ["distrato-descontos", distratoId] });
+      qc.invalidateQueries({ queryKey: ["distratos"] });
+      qc.invalidateQueries({ queryKey: ["all-requests"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  if (ativos.length === 0) return null;
+  return (
+    <div className="mt-1.5 space-y-1 text-left">
+      {ativos.map((d) => (
+        <div key={d.id} className="flex items-center justify-end gap-1.5 text-[10px] text-violet-300">
+          <RotateCcw className="w-2.5 h-2.5" />
+          <span title={d.observacao ?? undefined}>Desc.: <b>{BRL(d.valor_desconto)}</b></span>
+          <Button
+            size="sm" variant="ghost"
+            className="h-5 px-1 text-[10px] text-muted-foreground hover:text-destructive"
+            disabled={estornarMut.isPending}
+            onClick={() => { if (confirm("Estornar este desconto? Ele volta a compor o saldo a recuperar.")) estornarMut.mutate(d.id); }}
+          >
+            Estornar
+          </Button>
+        </div>
+      ))}
     </div>
   );
 }
