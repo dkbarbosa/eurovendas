@@ -497,15 +497,29 @@ function ComissoesPage() {
             </div>
           </div>
 
-          <div className={`grid grid-cols-2 gap-3 ${totalADevolver > 0 ? "md:grid-cols-6" : "md:grid-cols-5"}`}>
+          <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 ${totalADevolver > 0 ? "xl:grid-cols-8" : "xl:grid-cols-7"}`}>
             <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.total)} />
             <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantado" value={BRL(kpis.adiantado)} />
             <Kpi icon={<CheckCircle2 className="w-4 h-4" />} label="Já Pago" value={BRL(kpis.pagas)} />
             <Kpi icon={<Clock className="w-4 h-4" />} label="A Receber" value={BRL(kpis.aReceber)} accent />
+            <Kpi
+              icon={<Send className="w-4 h-4" />}
+              label="Valor Solicitado"
+              value={BRL(kpis.valorSolicitado)}
+              warn
+              hint={kpis.pendReq > 0 ? `${kpis.pendReq} solicitação(ões) pendente(s)` : "Nenhuma pendente"}
+            />
             {totalADevolver > 0 && (
               <Kpi icon={<Ban className="w-4 h-4" />} label="A Devolver (distrato)" value={BRL(totalADevolver)} danger />
             )}
             <Kpi icon={<FileText className="w-4 h-4" />} label="Vendas / Pendentes" value={`${kpis.count} / ${kpis.pendReq}`} />
+            <Kpi
+              icon={<Timer className="w-4 h-4" />}
+              label="Tempo médio de pagamento"
+              value={kpis.tempoMedio == null ? "—" : `${kpis.tempoMedio.toFixed(1)} dias`}
+              premium
+              hint={kpis.tempoMedio == null ? "Sem histórico ainda" : "Da solicitação até o crédito"}
+            />
           </div>
 
           {distratos.length > 0 && (
