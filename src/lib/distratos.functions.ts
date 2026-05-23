@@ -204,28 +204,195 @@ export const listDistratos = createServerFn({ method: "POST" })
     }));
   });
 
-// ---------- MARCAR DEVOLVIDO ----------
+// ---------- MARCAR DEVOLVIDO (em dinheiro, total ou parcial) ----------
 const MarkSchema = z.object({
   id: z.string().uuid(),
   observacao_recebimento: z.string().trim().max(2000).optional(),
+  valor: z.number().positive().max(99999999).optional(),
 });
 export const markDistratoDevolvido = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => MarkSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertFinanceiro(context.userId);
+    const { data: dist } = await supabaseAdmin
+      .from("distratos")
+      .select("valor_devolver,valor_devolvido,status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!dist) throw new Error("Distrato não encontrado.");
+    if (dist.status !== "pendente_devolucao")
+      throw new Error("Distrato não está pendente.");
+    const saldo = Math.max(0, Number(dist.valor_devolver) - Number(dist.valor_devolvido));
+    const valor = data.valor ?? saldo;
+    if (valor > saldo + 0.001) throw new Error(`Valor excede o saldo restante.`);
+    const novoDevolvido = Number(dist.valor_devolvido) + valor;
+    const quitado = novoDevolvido >= Number(dist.valor_devolver) - 0.001;
     const { error } = await supabaseAdmin
       .from("distratos")
       .update({
-        status: "devolvido",
-        devolvido_at: new Date().toISOString(),
-        devolvido_por: context.userId,
+        valor_devolvido: novoDevolvido,
+        status: quitado ? "devolvido" : "pendente_devolucao",
+        devolvido_at: quitado ? new Date().toISOString() : null,
+        devolvido_por: quitado ? context.userId : null,
         observacao_recebimento: data.observacao_recebimento ?? null,
       })
-      .eq("id", data.id)
-      .eq("status", "pendente_devolucao");
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+// ---------- LISTAR PENDÊNCIAS (com saldo > 0) ----------
+export const listPendenciasDistrato = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ corretor_user_id: z.string().uuid().optional() }).optional().parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    const isStaff = roles.includes("financeiro") || roles.includes("admin");
+    let q = supabaseAdmin
+      .from("distratos")
+      .select("id,sale_id,corretor_user_id,corretor_nome,comprador,empreendimento,unidade,valor_devolver,valor_devolvido,status,created_at")
+      .neq("status", "cancelado")
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    if (!isStaff) q = q.eq("corretor_user_id", context.userId);
+    else if (data?.corretor_user_id) q = q.eq("corretor_user_id", data.corretor_user_id);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return (rows ?? [])
+      .map((r) => ({
+        ...r,
+        saldo_restante: Math.max(0, Number(r.valor_devolver) - Number(r.valor_devolvido)),
+      }))
+      .filter((r) => r.saldo_restante > 0.001);
+  });
+
+// ---------- APLICAR DESCONTO EM PEDIDO APROVADO ----------
+const AplicarSchema = z.object({
+  distrato_id: z.string().uuid(),
+  commission_request_id: z.string().uuid(),
+  valor_desconto: z.number().positive().max(99999999),
+  observacao: z.string().trim().max(2000).optional(),
+});
+export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => AplicarSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertFinanceiro(context.userId);
+    const [{ data: dist }, { data: req }] = await Promise.all([
+      supabaseAdmin
+        .from("distratos")
+        .select("id,corretor_user_id,valor_devolver,valor_devolvido,status")
+        .eq("id", data.distrato_id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("commission_requests")
+        .select("id,corretor_user_id,valor_solicitado,desconto_distrato,status")
+        .eq("id", data.commission_request_id)
+        .maybeSingle(),
+    ]);
+    if (!dist) throw new Error("Distrato não encontrado.");
+    if (!req) throw new Error("Pedido não encontrado.");
+    if (dist.status === "cancelado") throw new Error("Distrato cancelado.");
+    if (req.status !== "aprovado")
+      throw new Error("Desconto só pode ser vinculado a pedidos APROVADOS (ainda não pagos).");
+    if (dist.corretor_user_id && req.corretor_user_id && dist.corretor_user_id !== req.corretor_user_id)
+      throw new Error("Distrato e pedido pertencem a corretores diferentes.");
+
+    const saldoDist = Math.max(0, Number(dist.valor_devolver) - Number(dist.valor_devolvido));
+    const descontoAtual = Number(req.desconto_distrato) || 0;
+    const restanteRequest = Math.max(0, Number(req.valor_solicitado) - descontoAtual);
+    if (data.valor_desconto > saldoDist + 0.001)
+      throw new Error(`Valor excede o saldo do distrato.`);
+    if (data.valor_desconto > restanteRequest + 0.001)
+      throw new Error(`Valor excede o disponível neste pedido.`);
+
+    const { error: insErr } = await supabaseAdmin.from("distrato_descontos").insert({
+      distrato_id: data.distrato_id,
+      commission_request_id: data.commission_request_id,
+      corretor_user_id: req.corretor_user_id,
+      valor_desconto: data.valor_desconto,
+      observacao: data.observacao ?? null,
+      aplicado_por: context.userId,
+      status: "aplicado",
+    });
+    if (insErr) throw new Error(insErr.message);
+
+    await supabaseAdmin
+      .from("commission_requests")
+      .update({ desconto_distrato: descontoAtual + data.valor_desconto })
+      .eq("id", data.commission_request_id);
+
+    const novoDevolvido = Number(dist.valor_devolvido) + data.valor_desconto;
+    const quitado = novoDevolvido >= Number(dist.valor_devolver) - 0.001;
+    await supabaseAdmin
+      .from("distratos")
+      .update({
+        valor_devolvido: novoDevolvido,
+        status: quitado ? "quitado_por_desconto" : "pendente_devolucao",
+      })
+      .eq("id", data.distrato_id);
+
+    return { ok: true };
+  });
+
+// ---------- ESTORNAR DESCONTO ----------
+export const estornarDescontoDistrato = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertFinanceiro(context.userId);
+    const { data: dd } = await supabaseAdmin
+      .from("distrato_descontos")
+      .select("id,distrato_id,commission_request_id,valor_desconto,status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!dd) throw new Error("Desconto não encontrado.");
+    if (dd.status !== "aplicado") throw new Error("Desconto já estornado.");
+
+    await supabaseAdmin
+      .from("distrato_descontos")
+      .update({ status: "estornado", estornado_por: context.userId, estornado_at: new Date().toISOString() })
+      .eq("id", data.id);
+
+    const { data: req } = await supabaseAdmin
+      .from("commission_requests").select("desconto_distrato")
+      .eq("id", dd.commission_request_id).maybeSingle();
+    if (req) {
+      await supabaseAdmin
+        .from("commission_requests")
+        .update({ desconto_distrato: Math.max(0, Number(req.desconto_distrato) - Number(dd.valor_desconto)) })
+        .eq("id", dd.commission_request_id);
+    }
+    const { data: dist } = await supabaseAdmin
+      .from("distratos").select("valor_devolvido,status")
+      .eq("id", dd.distrato_id).maybeSingle();
+    if (dist) {
+      await supabaseAdmin
+        .from("distratos")
+        .update({
+          valor_devolvido: Math.max(0, Number(dist.valor_devolvido) - Number(dd.valor_desconto)),
+          status: dist.status === "quitado_por_desconto" ? "pendente_devolucao" : dist.status,
+        })
+        .eq("id", dd.distrato_id);
+    }
+    return { ok: true };
+  });
+
+// ---------- LISTAR DESCONTOS DE UM DISTRATO ----------
+export const listDescontosByDistrato = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ distrato_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { data: rows, error } = await supabaseAdmin
+      .from("distrato_descontos")
+      .select("*")
+      .eq("distrato_id", data.distrato_id)
+      .order("aplicado_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
   });
 
 // ---------- CANCELAR DISTRATO (admin) ----------

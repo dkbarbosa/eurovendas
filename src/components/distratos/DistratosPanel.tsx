@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Ban, CheckCircle2, Trash2, Search, AlertTriangle, Plus } from "lucide-react";
+import { Loader2, Ban, CheckCircle2, Trash2, Search, AlertTriangle, Plus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -68,13 +68,13 @@ export function DistratosPanel() {
   }, [rows]);
 
   const totals = useMemo(() => {
-    const sum = (pred: (r: typeof filtered[number]) => boolean) =>
-      filtered.filter(pred).reduce((s, r) => s + (Number(r.valor_devolver) || 0), 0);
+    const saldo = (r: typeof filtered[number]) =>
+      Math.max(0, Number(r.valor_devolver) - Number((r as { valor_devolvido?: number }).valor_devolvido ?? 0));
     return {
       qtdTotal: filtered.length,
-      totalDevolver: sum((r) => r.status === "pendente_devolucao"),
-      pendente: sum((r) => r.status === "pendente_devolucao"),
-      devolvido: sum((r) => r.status === "devolvido"),
+      totalDevolver: filtered.reduce((s, r) => s + (Number(r.valor_devolver) || 0), 0),
+      saldoRestante: filtered.reduce((s, r) => s + saldo(r), 0),
+      devolvido: filtered.reduce((s, r) => s + Number((r as { valor_devolvido?: number }).valor_devolvido ?? 0), 0),
     };
   }, [filtered]);
 
@@ -119,8 +119,8 @@ export function DistratosPanel() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiTile label="Distratos" value={String(totals.qtdTotal)} sub="No recorte atual" />
         <KpiTile label="Total a devolver" value={BRL(totals.totalDevolver)} sub="Soma de todos" highlight />
-        <KpiTile label="Pendentes" value={BRL(totals.pendente)} sub="Aguardando devolução" />
-        <KpiTile label="Devolvido" value={BRL(totals.devolvido)} sub="Já recebido" success />
+        <KpiTile label="Saldo a recuperar" value={BRL(totals.saldoRestante)} sub="Pendente (dinheiro + desconto)" />
+        <KpiTile label="Devolvido" value={BRL(totals.devolvido)} sub="Já recuperado" success />
       </div>
 
       {/* Filtros */}
@@ -206,7 +206,14 @@ export function DistratosPanel() {
                   )}
                   <td className="px-3 py-2 text-right whitespace-nowrap text-xs">{BRL(r.valor_adiantamento)}</td>
                   <td className="px-3 py-2 text-right whitespace-nowrap text-xs">{BRL(r.valor_comissao_final)}</td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap font-semibold text-destructive">{BRL(r.valor_devolver)}</td>
+                  <td className="px-3 py-2 text-right whitespace-nowrap font-semibold text-destructive">
+                    {BRL(r.valor_devolver)}
+                    {Number((r as { valor_devolvido?: number }).valor_devolvido ?? 0) > 0 && (
+                      <div className="text-[10px] font-normal text-muted-foreground">
+                        Devolvido: <span className="text-emerald-300">{BRL((r as { valor_devolvido?: number }).valor_devolvido)}</span>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
                   <td className="px-3 py-2 max-w-[260px]">
                     <div className="text-xs">{r.motivo}</div>
@@ -275,6 +282,7 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string; icon?: React.ReactNode }> = {
     pendente_devolucao: { label: "Pendente devolução", cls: "bg-amber-500/10 text-amber-400 border-amber-500/30", icon: <AlertTriangle className="w-3 h-3 mr-1" /> },
     devolvido: { label: "Devolvido", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30", icon: <CheckCircle2 className="w-3 h-3 mr-1" /> },
+    quitado_por_desconto: { label: "Quitado p/ desconto", cls: "bg-violet-500/10 text-violet-300 border-violet-500/30", icon: <RotateCcw className="w-3 h-3 mr-1" /> },
     cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground border-border", icon: <Ban className="w-3 h-3 mr-1" /> },
   };
   const it = map[status] ?? { label: status, cls: "bg-muted text-muted-foreground border-border" };

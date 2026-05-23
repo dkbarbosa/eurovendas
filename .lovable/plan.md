@@ -1,57 +1,74 @@
-## Funcionalidade: Distrato
+## Devolução por Distrato com Desconto em Comissões Futuras
 
-Adicionar fluxo de distrato (cancelamento de contrato) que reverte adiantamentos/comissões já pagos ao corretor.
+Hoje o distrato apenas marca pedidos pagos como `distratado` e registra valor a devolver. Vamos adicionar o ciclo completo: pendência financeira → vincular desconto em novo pedido → abater do valor pago → controlar saldo restante.
 
-### 1. Banco de dados (nova tabela `distratos`)
+### 1. Banco de dados (nova migration)
 
-Campos principais:
-- `sale_id` (referência à venda)
-- `corretor_user_id`
-- `valor_devolver` (soma dos pedidos pagos da venda)
-- `motivo`, `observacao`
-- `status`: `pendente_devolucao` | `devolvido` | `cancelado`
-- `created_by` (financeiro que registrou), `created_at`
-- `devolvido_at`, `confirmado_por`
+**Nova tabela `distrato_descontos`** (cada aplicação de desconto vinculada a um pedido de comissão):
+- `distrato_id` (FK lógica → distratos)
+- `commission_request_id` (FK lógica → commission_requests — pedido onde o desconto foi aplicado)
+- `valor_desconto` numeric
+- `aplicado_por` uuid, `aplicado_at` timestamptz
+- `status`: `aplicado` | `estornado`
+- `observacao` text
 
-RLS:
-- Financeiro/admin: full
-- Corretor: SELECT dos próprios
+**Alterações em `distratos`**:
+- `valor_devolvido` numeric default 0 (soma dos descontos aplicados + devoluções diretas)
+- `saldo_restante` (calculado em queries: `valor_devolver - valor_devolvido`)
+- adicionar status `quitado_por_desconto` ao enum `distrato_status`
 
-Ao criar distrato: marcar `commission_requests` pagos da venda como `distratado` (novo status) — para sumir do "a receber" e aparecer na lista de devolução.
+**Alterações em `commission_requests`** (apenas para visualização rápida):
+- `desconto_distrato` numeric default 0 (soma dos descontos vinculados, refletido ao aprovar/pagar)
+
+RLS: financeiro/admin gerencia; corretor vê os seus.
 
 ### 2. Backend — `src/lib/distratos.functions.ts`
 
-- `createDistrato({ sale_id, motivo })` — financeiro/admin. Calcula soma de tudo já pago (adiantamento + final), cria registro, marca pedidos pagos como `distratado`.
-- `listDistratos({ status?, corretor_user_id?, from?, to? })` — financeiro vê todos; corretor vê só os seus.
-- `markDistratoDevolvido({ id, observacao })` — financeiro confirma que valor foi devolvido pelo corretor.
-- `cancelDistrato({ id })` — admin, reverte (volta pedidos para `pago`).
+Adicionar:
+- `listPendenciasDistrato({ corretor_user_id? })` — retorna distratos com `saldo_restante > 0`. Financeiro vê todos; corretor vê os seus.
+- `aplicarDescontoDistrato({ distrato_id, commission_request_id, valor_desconto, observacao? })` — financeiro/admin. Valida: pedido `aprovado` (ainda não pago) e do mesmo corretor; valor ≤ saldo restante; valor ≤ valor_solicitado do pedido. Insere `distrato_descontos`, soma em `commission_requests.desconto_distrato`, soma em `distratos.valor_devolvido`. Se `valor_devolvido >= valor_devolver`, marca distrato como `quitado_por_desconto`.
+- `estornarDescontoDistrato({ id })` — admin/financeiro. Marca desconto como `estornado`, decrementa contadores, volta distrato para `pendente_devolucao` se aplicável.
+- `listDescontosByRequest({ commission_request_id })` — lista descontos aplicados em um pedido.
 
-### 3. UI Financeiro (`/financeiro`)
+Ajuste em `markDistratoDevolvido` para somar em `valor_devolvido` quando devolução em dinheiro.
 
-- **Botão vermelho "Distrato"** ao lado de cada linha em pedidos `pago` (ou na linha da venda). Abre dialog com motivo e mostra valor total a devolver.
-- **Novo bloco "Distratos"** com:
-  - KPIs: total a devolver, total devolvido, qtd distratos
-  - Filtros: corretor (select), período (data início/fim), status
-  - Tabela: data, cliente, empreendimento, corretor, valor, status, ação "Marcar devolvido"
+### 3. UI Financeiro
 
-### 4. UI Corretor (no dashboard `/` ou nova aba)
+**Em `/financeiro` — no card de cada pedido `aprovado`**:
+- Se corretor tem pendências de distrato, mostrar botão **"Vincular desconto"** (roxo/destrutivo suave).
+- Dialog: lista pendências do corretor (cliente, valor a devolver, saldo restante) + input valor desconto + observação. Permite múltiplos descontos no mesmo pedido.
+- Linha do pedido passa a exibir: `Valor: R$ 3.500 − Desconto distrato: R$ 1.000 = Líquido: R$ 2.500`.
+- Ao confirmar pagamento, valor pago = `valor_solicitado - desconto_distrato`.
 
-- **Bloco "Distratos"** quando existirem distratos do corretor:
-  - Lista: cliente, empreendimento, valor a devolver à empresa, status
-  - Aviso destacado em vermelho com total a devolver
+**Em `/distratos` (DistratosPanel)**:
+- Nova coluna "Saldo restante" e "Devolvido".
+- Sub-bloco expansível mostrando descontos aplicados (data, pedido, valor, financeiro responsável, botão estornar).
+- KPI extra: "Saldo a recuperar" (soma de saldos restantes).
 
-### Arquivos a criar/editar
+### 4. UI Corretor
 
-- **Migration**: nova tabela `distratos` + novo enum `distrato_status` + adicionar `'distratado'` ao enum `request_status`
-- **Criar**: `src/lib/distratos.functions.ts`
-- **Criar**: `src/components/distratos/DistratoButton.tsx` (dialog do botão vermelho)
-- **Criar**: `src/components/distratos/DistratosPanel.tsx` (bloco financeiro)
-- **Criar**: `src/components/distratos/DistratosCorretor.tsx` (bloco corretor)
-- **Editar**: `src/routes/_authenticated/financeiro.tsx` — botão + painel
-- **Editar**: `src/routes/_authenticated/index.tsx` — bloco corretor
+**Em `/comissoes` (visão do corretor)**:
+- Bloco vermelho "Pendências de devolução por distrato" listando: cliente, valor original, devolvido, saldo restante.
+- Em cada pedido `aprovado`, se houver desconto vinculado: mostrar "Desconto aplicado: R$ X.XXX — Distrato cliente João Silva".
+
+### Detalhes técnicos
+
+- Tabela `distrato_descontos` usa FK lógica (sem ON DELETE CASCADE — preservar histórico).
+- Pagamento: o `markPago` (em requests.functions.ts) precisa registrar `valor_pago_liquido = valor_solicitado - desconto_distrato` em log/auditoria. O fluxo de transferência continua sendo do financeiro, só ajustamos a exibição e cálculos.
+- Estorno do distrato (`cancelDistrato`/`deleteDistrato`): também estornar descontos vinculados.
+- KPIs de `/comissoes` (`Recebidos`, `Adiantamentos`) precisam descontar valores estornados/distratados para refletir a realidade.
+
+### Arquivos
+
+- **Migration**: criar `distrato_descontos`, adicionar colunas em `distratos` e `commission_requests`, novo valor enum.
+- **Editar**: `src/lib/distratos.functions.ts` — novas funções e ajustes em delete/cancel.
+- **Criar**: `src/components/distratos/AplicarDescontoButton.tsx`
+- **Editar**: `src/components/distratos/DistratosPanel.tsx` — saldo, descontos aplicados, estorno.
+- **Editar**: `src/routes/_authenticated/financeiro.tsx` — botão "Vincular desconto" nas linhas `aprovado` + exibição valor líquido.
+- **Editar**: `src/routes/_authenticated/comissoes.tsx` — bloco pendências do corretor + exibição desconto nos pedidos.
 
 ### Confirmar antes de implementar
 
-1. O distrato deve **bloquear novos pedidos** dessa venda? (recomendo sim)
-2. O botão vermelho deve aparecer em **toda venda já paga** ou só na lista de pedidos pagos da tela `/financeiro`?
-3. Distrato gera devolução do **valor total já pago** (adiantamento + comissão final somados) ou financeiro define o valor manualmente?
+1. O desconto pode ser aplicado em pedido **`aprovado` (ainda não pago)** apenas, ou também em pedidos `pendente`? (recomendo apenas `aprovado` — momento natural antes do pagamento).
+2. Se o pedido onde o desconto está vinculado for **negado/cancelado** depois, o desconto deve ser **estornado automaticamente** (saldo volta para o distrato)? (recomendo sim).
+3. Permitir **devolução em dinheiro parcial** (corretor paga parte e o restante vira desconto)? (atualmente `markDistratoDevolvido` quita 100% — ajustar para aceitar valor parcial).

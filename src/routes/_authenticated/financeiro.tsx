@@ -18,6 +18,7 @@ import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlu
 import { motion } from "framer-motion";
 import { DistratoButton } from "@/components/distratos/DistratoButton";
 import { DistratosPanel } from "@/components/distratos/DistratosPanel";
+import { AplicarDescontoButton } from "@/components/distratos/AplicarDescontoButton";
 
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
@@ -629,20 +630,35 @@ function AdvancesTab() {
                                 )}
                                 {r.status === "aprovado" && (() => {
                                   const nfOk = r.nf_status === "recebida";
-                                  if (!nfOk) {
-                                    const label = r.nf_status === "emitida"
-                                      ? "Aguardando recebimento da NF"
-                                      : "Aguardando emissão da NF";
-                                    return (
-                                      <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-[10px]">
-                                        {label}
-                                      </Badge>
-                                    );
-                                  }
+                                  const desconto = Number((r as { desconto_distrato?: number }).desconto_distrato) || 0;
+                                  const liquido = Math.max(0, valor - desconto);
                                   return (
-                                    <Button size="sm" onClick={() => setObs({ open: true, id: r.id, action: "pagar", text: "" })}>
-                                      <Wallet className="w-3.5 h-3.5 mr-1" />Marcar pago
-                                    </Button>
+                                    <div className="flex flex-col items-end gap-1">
+                                      {desconto > 0 && (
+                                        <div className="text-[10px] text-right">
+                                          <span className="text-rose-300">− {BRL(desconto)} (distrato)</span>
+                                          <span className="text-muted-foreground"> = </span>
+                                          <span className="font-semibold text-emerald-300">{BRL(liquido)}</span>
+                                        </div>
+                                      )}
+                                      <div className="flex gap-1 items-center">
+                                        <AplicarDescontoButton
+                                          commissionRequestId={r.id}
+                                          corretorUserId={r.corretor_user_id}
+                                          valorSolicitado={valor}
+                                          descontoAtual={desconto}
+                                        />
+                                        {!nfOk ? (
+                                          <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-[10px]">
+                                            {r.nf_status === "emitida" ? "Aguardando recebimento da NF" : "Aguardando emissão da NF"}
+                                          </Badge>
+                                        ) : (
+                                          <Button size="sm" onClick={() => setObs({ open: true, id: r.id, action: "pagar", text: "" })}>
+                                            <Wallet className="w-3.5 h-3.5 mr-1" />Marcar pago {liquido !== valor ? `(${BRL(liquido)})` : ""}
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
                                   );
                                 })()}
                                 {isAdmin && (
