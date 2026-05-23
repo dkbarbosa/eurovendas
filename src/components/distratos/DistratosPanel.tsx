@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listDistratos, markDistratoDevolvido, cancelDistrato, createDistrato, listSalesForDistrato } from "@/lib/distratos.functions";
+import { listDistratos, markDistratoDevolvido, cancelDistrato, createDistrato, listSalesForDistrato, deleteDistrato } from "@/lib/distratos.functions";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,6 +25,7 @@ export function DistratosPanel() {
   const fnList = useServerFn(listDistratos);
   const fnMark = useServerFn(markDistratoDevolvido);
   const fnCancel = useServerFn(cancelDistrato);
+  const fnDelete = useServerFn(deleteDistrato);
 
   const [status, setStatus] = useState<"todos" | "pendente_devolucao" | "devolvido" | "cancelado">("todos");
   const [corretorFilter, setCorretorFilter] = useState<string>("todos");
@@ -89,6 +90,16 @@ export function DistratosPanel() {
   const cancelMut = useMutation({
     mutationFn: (id: string) => fnCancel({ data: { id } }),
     onSuccess: () => { toast.success("Distrato cancelado."); qc.invalidateQueries({ queryKey: ["distratos"] }); qc.invalidateQueries({ queryKey: ["all-requests"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => fnDelete({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Distrato apagado. Dados revertidos.");
+      qc.invalidateQueries({ queryKey: ["distratos"] });
+      qc.invalidateQueries({ queryKey: ["all-requests"] });
+      qc.invalidateQueries({ queryKey: ["sales-for-distrato"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -208,8 +219,21 @@ export function DistratosPanel() {
                         </Button>
                       )}
                       {isAdmin && r.status !== "cancelado" && (
-                        <Button size="sm" variant="ghost" className="h-7 text-destructive ml-1"
+                        <Button size="sm" variant="ghost" className="h-7 text-muted-foreground ml-1"
+                          title="Cancelar (mantém o registro)"
                           onClick={() => { if (confirm("Cancelar este distrato? Os pedidos voltarão para 'pago'.")) cancelMut.mutate(r.id); }}>
+                          <Ban className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      {(isAdmin || isFinanceiro) && (
+                        <Button size="sm" variant="ghost" className="h-7 text-destructive ml-1"
+                          title="Apagar distrato e reverter dados"
+                          disabled={deleteMut.isPending}
+                          onClick={() => {
+                            if (confirm("Apagar este distrato? A operação some e os valores são zerados (pedidos voltam a 'pago' e o status da venda volta a 'PAGO').")) {
+                              deleteMut.mutate(r.id);
+                            }
+                          }}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       )}
