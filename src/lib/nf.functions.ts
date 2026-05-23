@@ -335,20 +335,35 @@ export const markNFPaid = createServerFn({ method: "POST" })
     const isStaff = roles.includes("financeiro") || roles.includes("admin");
     const { data: nf } = await supabaseAdmin
       .from("nf_requests")
-      .select("id,status,corretor_user_id")
+      .select("id,status,corretor_user_id,sale_id")
       .eq("id", data.id)
       .maybeSingle();
     if (!nf) throw new Error("NF não encontrada.");
     if (!isStaff && nf.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
-    if (nf.status === "paga") return { ok: true, alreadyPaid: true };
-    if (nf.status !== "recebida") throw new Error("NF precisa estar recebida para ser marcada como paga.");
-    const { data: upd, error } = await supabaseAdmin
-      .from("nf_requests")
-      .update({ status: "paga", paga_at: new Date().toISOString(), paga_por: context.userId })
-      .eq("id", data.id)
-      .eq("status", "recebida")
-      .select("id");
-    if (error) throw new Error(error.message);
-    if (!upd?.length) return { ok: true, alreadyPaid: true };
+    if (nf.status !== "paga" && nf.status !== "recebida")
+      throw new Error("NF precisa estar recebida para ser marcada como paga.");
+
+    if (nf.status === "recebida") {
+      const { error } = await supabaseAdmin
+        .from("nf_requests")
+        .update({ status: "paga", paga_at: new Date().toISOString(), paga_por: context.userId })
+        .eq("id", data.id)
+        .eq("status", "recebida");
+      if (error) throw new Error(error.message);
+    }
+
+    // Cascata: marcar pedidos vinculados (aprovado/pendente) como pagos para sinalizar
+    // no painel do corretor que o processo foi finalizado.
+    if (nf.sale_id) {
+      try {
+        await supabaseAdmin
+          .from("commission_requests")
+          .update({ status: "pago", paid_at: new Date().toISOString() })
+          .eq("sale_id", nf.sale_id)
+          .in("status", ["aprovado", "pendente"]);
+      } catch (e) {
+        console.error("cascade markRequestPaid from NF:", e);
+      }
+    }
     return { ok: true };
   });
