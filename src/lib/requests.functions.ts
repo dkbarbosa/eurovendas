@@ -140,6 +140,34 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
       ? `[TESTE — admin agindo como ${data.act_as_corretor}] ${data.observacao_corretor ?? ""}`.trim()
       : data.observacao_corretor ?? null;
 
+    // Comprovante de sinal: obrigatório quando a planilha não traz o valor preenchido
+    // (e não é venda em CAIXA — que dispensa exigência de sinal).
+    const sinalSheetMissing = sinalSheet <= 0 && statusUp !== "CAIXA";
+    if (sinalSheetMissing && !data.comprovante_sinal) {
+      throw new Error("Sinal não consta na planilha. Anexe o comprovante de sinal para enviar a solicitação.");
+    }
+
+    let comprovanteUrl: string | null = null;
+    let comprovanteDriveId: string | null = null;
+    if (data.comprovante_sinal) {
+      try {
+        const folderName = sanitizeFolderName([sale.corretor, "Comprovantes Sinal"]);
+        const folderId = await getOrCreateDriveFolder(folderName);
+        const buf = b64ToBytes(data.comprovante_sinal.file_base64);
+        const safeName = `${data.sale_id}-sinal-${Date.now()}-${data.comprovante_sinal.file_name.replace(/[^\w.\-]+/g, "_")}`;
+        const up = await uploadFileToDriveFolder({
+          buffer: buf,
+          filename: safeName,
+          mimeType: data.comprovante_sinal.file_mime,
+          folderId,
+        });
+        comprovanteUrl = up.webViewLink;
+        comprovanteDriveId = up.id;
+      } catch (e) {
+        throw new Error(`Falha ao enviar comprovante de sinal: ${(e as Error).message}`);
+      }
+    }
+
     const { error } = await supabaseAdmin.from("commission_requests").insert({
       corretor_user_id: actorUserId,
       sale_id: data.sale_id,
@@ -148,6 +176,8 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
       bonus_corretor: data.bonus_corretor,
       valor_solicitado: data.valor_solicitado,
       observacao_corretor: obs,
+      comprovante_sinal_url: comprovanteUrl,
+      comprovante_sinal_drive_id: comprovanteDriveId,
       status: "pendente",
     });
     if (error) throw new Error(error.message);
