@@ -279,17 +279,18 @@ function ComissoesPage() {
   });
 
   // ---- Diálogo NF
-  const [nfDialog, setNfDialog] = useState<{ open: boolean; nfId: string | null }>({ open: false, nfId: null });
-  const [nfForm, setNfForm] = useState({ numero_nf: "", observacao: "" });
+  const [nfDialog, setNfDialog] = useState<{ open: boolean; nfId: string | null; sale: typeof allSales[number] | null }>({ open: false, nfId: null, sale: null });
+  const [nfForm, setNfForm] = useState({ numero_nf: "", observacao: "", valor_nf: 0 });
   const [nfFile, setNfFile] = useState<File | null>(null);
   const [nfFile2, setNfFile2] = useState<File | null>(null);
   const [uploadingNF, setUploadingNF] = useState(false);
-  const openNF = (nfId: string) => {
-    setNfForm({ numero_nf: "", observacao: "" });
+  const openNF = (nfId: string, sale: typeof allSales[number]) => {
+    setNfForm({ numero_nf: "", observacao: "", valor_nf: 0 });
     setNfFile(null);
     setNfFile2(null);
-    setNfDialog({ open: true, nfId });
+    setNfDialog({ open: true, nfId, sale });
   };
+
   const readFileB64 = (f: File) => new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
@@ -318,7 +319,7 @@ function ComissoesPage() {
             file_base64: base64,
             file_name: nfFile.name,
             file_mime: nfFile.type || "application/octet-stream",
-            observacao: nfForm.observacao || undefined,
+            observacao: [nfForm.valor_nf > 0 ? `Valor da NF: ${BRL(nfForm.valor_nf)}` : "", nfForm.observacao].filter(Boolean).join(" — ") || undefined,
             file2,
           },
         });
@@ -329,7 +330,7 @@ function ComissoesPage() {
 
     onSuccess: () => {
       toast.success("NF enviada com sucesso.");
-      setNfDialog({ open: false, nfId: null });
+      setNfDialog({ open: false, nfId: null, sale: null });
       qc.invalidateQueries({ queryKey: ["my-broker-sales"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -741,7 +742,7 @@ function ComissoesPage() {
                           )}
 
                           {nfAberta && aReceberSale > 0 && (
-                            <Button size="sm" onClick={() => openNF(nfAberta.id)}
+                            <Button size="sm" onClick={() => openNF(nfAberta.id, s)}
                               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
                               Enviar NF
                             </Button>
@@ -876,92 +877,127 @@ function ComissoesPage() {
       </Dialog>
 
       {/* DIALOG: Enviar NF */}
-      <Dialog open={nfDialog.open} onOpenChange={(o) => setNfDialog({ open: o, nfId: o ? nfDialog.nfId : null })}>
+      <Dialog open={nfDialog.open} onOpenChange={(o) => setNfDialog({ open: o, nfId: o ? nfDialog.nfId : null, sale: o ? nfDialog.sale : null })}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enviar Nota Fiscal</DialogTitle>
-            <DialogDescription>Informe o número da NF, anexe o arquivo (PDF/XML) e adicione observações se necessário.</DialogDescription>
+            <DialogDescription>
+              {nfDialog.sale && (
+                <>Venda: <b>{nfDialog.sale.comprador}</b> · {nfDialog.sale.empreendimento} / {nfDialog.sale.unidade} · {fmtBR(nfDialog.sale.data)}</>
+              )}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>Número da NF *</Label>
-              <Input value={nfForm.numero_nf} onChange={(e) => setNfForm({ ...nfForm, numero_nf: e.target.value })} maxLength={80} />
-            </div>
-            <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Anexos (Nota Fiscal e Promissória)</Label>
-                <span className="text-[11px] text-muted-foreground">{(nfFile ? 1 : 0) + (nfFile2 ? 1 : 0)}/2</span>
-              </div>
-
-              <div className="space-y-1.5 rounded-md border border-border/40 bg-background/60 p-2.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Nota fiscal *</Label>
-                  {nfFile && (
-                    <button type="button" className="text-[11px] text-destructive hover:underline" onClick={() => setNfFile(null)}>
-                      Remover
-                    </button>
-                  )}
+          {(() => {
+            const sale = nfDialog.sale;
+            const comLiq = Number(sale?.comissao_liq_corretor) || 0;
+            const paidS = sale ? paidBySale.get(sale.id) : undefined;
+            const jaAdiantado = paidS?.adiantado ?? 0;
+            const jaFinal = paidS?.finalPago ?? 0;
+            const aReceber = Math.max(0, comLiq - jaAdiantado - jaFinal);
+            const valor = nfForm.valor_nf ?? 0;
+            const excedeu = valor > aReceber;
+            return (
+              <div className="space-y-3">
+                <div className="rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs grid grid-cols-3 gap-2">
+                  <div><div className="text-muted-foreground">Comissão Liq.</div><div className="font-semibold">{BRL(comLiq)}</div></div>
+                  <div><div className="text-muted-foreground">Já pago</div><div className={`font-semibold ${(jaAdiantado + jaFinal) > 0 ? "text-amber-400" : ""}`}>{BRL(jaAdiantado + jaFinal)}</div></div>
+                  <div><div className="text-muted-foreground">A receber</div><div className="font-semibold text-primary">{BRL(aReceber)}</div></div>
                 </div>
-                <Input
-                  type="file"
-                  accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
-                  onChange={(e) => setNfFile(e.target.files?.[0] ?? null)}
-                />
-                {nfFile && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {nfFile.name} · {(nfFile.size / 1024).toFixed(0)} KB
-                  </p>
-                )}
-              </div>
 
-              <div className="space-y-1.5 rounded-md border border-border/40 bg-background/60 p-2.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Promissória (opcional)</Label>
-                  {nfFile2 && (
-                    <button type="button" className="text-[11px] text-destructive hover:underline" onClick={() => setNfFile2(null)}>
-                      Remover
-                    </button>
-                  )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Número da NF *</Label>
+                    <Input value={nfForm.numero_nf} onChange={(e) => setNfForm({ ...nfForm, numero_nf: e.target.value })} maxLength={80} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Valor da NF (R$) *</Label>
+                    <CurrencyInput value={nfForm.valor_nf} onValueChange={(v) => setNfForm({ ...nfForm, valor_nf: v ?? 0 })} />
+                    {excedeu && (
+                      <p className="text-xs text-destructive">Valor excede o saldo a receber ({BRL(aReceber)}).</p>
+                    )}
+                  </div>
                 </div>
-                <Input
-                  type="file"
-                  accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
-                  onChange={(e) => setNfFile2(e.target.files?.[0] ?? null)}
-                />
-                {nfFile2 && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {nfFile2.name} · {(nfFile2.size / 1024).toFixed(0)} KB
-                  </p>
-                )}
-              </div>
 
-              <p className="text-[11px] text-muted-foreground">
-                Formatos: PDF, XML ou imagem (máx. 15 MB cada). Arquivados em uma pasta com o nome do cliente, unidade e empreendimento.
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Observações</Label>
-              <Textarea
-                value={nfForm.observacao}
-                onChange={(e) => setNfForm({ ...nfForm, observacao: e.target.value })}
-                rows={3}
-                maxLength={2000}
-                placeholder="Opcional — informações adicionais para o financeiro"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setNfDialog({ open: false, nfId: null })}>Cancelar</Button>
-            <Button
-              disabled={emitMut.isPending || uploadingNF || !nfForm.numero_nf.trim() || !nfFile}
-              onClick={() => emitMut.mutate()}
-              style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
-            >
-              {emitMut.isPending || uploadingNF ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar NF"}
-            </Button>
-          </DialogFooter>
+                <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Anexos (Nota Fiscal e Promissória)</Label>
+                    <span className="text-[11px] text-muted-foreground">{(nfFile ? 1 : 0) + (nfFile2 ? 1 : 0)}/2</span>
+                  </div>
+
+                  <div className="space-y-1.5 rounded-md border border-border/40 bg-background/60 p-2.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-muted-foreground">Nota fiscal *</Label>
+                      {nfFile && (
+                        <button type="button" className="text-[11px] text-destructive hover:underline" onClick={() => setNfFile(null)}>
+                          Remover
+                        </button>
+                      )}
+                    </div>
+                    <Input
+                      type="file"
+                      accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
+                      onChange={(e) => setNfFile(e.target.files?.[0] ?? null)}
+                    />
+                    {nfFile && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {nfFile.name} · {(nfFile.size / 1024).toFixed(0)} KB
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5 rounded-md border border-border/40 bg-background/60 p-2.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-muted-foreground">Promissória (opcional)</Label>
+                      {nfFile2 && (
+                        <button type="button" className="text-[11px] text-destructive hover:underline" onClick={() => setNfFile2(null)}>
+                          Remover
+                        </button>
+                      )}
+                    </div>
+                    <Input
+                      type="file"
+                      accept=".pdf,.xml,application/pdf,text/xml,application/xml,image/*"
+                      onChange={(e) => setNfFile2(e.target.files?.[0] ?? null)}
+                    />
+                    {nfFile2 && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {nfFile2.name} · {(nfFile2.size / 1024).toFixed(0)} KB
+                      </p>
+                    )}
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground">
+                    Formatos: PDF, XML ou imagem (máx. 15 MB cada). Arquivados em uma pasta com o nome do cliente, unidade e empreendimento.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Observações</Label>
+                  <Textarea
+                    value={nfForm.observacao}
+                    onChange={(e) => setNfForm({ ...nfForm, observacao: e.target.value })}
+                    rows={3}
+                    maxLength={2000}
+                    placeholder="Opcional — informações adicionais para o financeiro"
+                  />
+                </div>
+
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setNfDialog({ open: false, nfId: null, sale: null })}>Cancelar</Button>
+                  <Button
+                    disabled={emitMut.isPending || uploadingNF || !nfForm.numero_nf.trim() || !nfFile || valor <= 0 || excedeu}
+                    onClick={() => emitMut.mutate()}
+                    style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+                  >
+                    {emitMut.isPending || uploadingNF ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar NF"}
+                  </Button>
+                </DialogFooter>
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
+
 
     </div>
   );
