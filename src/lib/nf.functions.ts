@@ -325,3 +325,30 @@ export const deleteNFRequest = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---------- MARCAR NF COMO PAGA (corretor ou financeiro — quem clicar primeiro finaliza) ----------
+export const markNFPaid = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    const isStaff = roles.includes("financeiro") || roles.includes("admin");
+    const { data: nf } = await supabaseAdmin
+      .from("nf_requests")
+      .select("id,status,corretor_user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!nf) throw new Error("NF não encontrada.");
+    if (!isStaff && nf.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
+    if (nf.status === "paga") return { ok: true, alreadyPaid: true };
+    if (nf.status !== "recebida") throw new Error("NF precisa estar recebida para ser marcada como paga.");
+    const { data: upd, error } = await supabaseAdmin
+      .from("nf_requests")
+      .update({ status: "paga", paga_at: new Date().toISOString(), paga_por: context.userId })
+      .eq("id", data.id)
+      .eq("status", "recebida")
+      .select("id");
+    if (error) throw new Error(error.message);
+    if (!upd?.length) return { ok: true, alreadyPaid: true };
+    return { ok: true };
+  });
