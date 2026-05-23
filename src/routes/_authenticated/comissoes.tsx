@@ -628,7 +628,7 @@ function ComissoesPage() {
                         </div>
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
-                        {comissaoLiq > 0 && aReceberSale === 0 ? (
+                        {isFinalizada ? (
                           <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
                             <CheckCircle2 className="w-3.5 h-3.5" />100% pago
                           </span>
