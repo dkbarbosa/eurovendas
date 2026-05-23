@@ -1346,7 +1346,7 @@ function Kpi({ icon, label, value, accent, danger, warn, premium, hint }: { icon
   );
 }
 
-function RequestPill({ r }: { r: { id: string; tipo: string; valor_solicitado: number; status: string; motivo_negacao: string | null; desconto_distrato?: number | null } }) {
+function RequestPill({ r, descontos = [] }: { r: { id: string; tipo: string; valor_solicitado: number; status: string; motivo_negacao: string | null; desconto_distrato?: number | null }; descontos?: DescontoInfo[] }) {
   const map: Record<string, { c: string; i: React.ReactNode; l: string }> = {
     pendente: { c: "bg-amber-500/10 text-amber-500 border-amber-500/30", i: <Clock className="w-3 h-3" />, l: "Pendente" },
     aprovado: { c: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30", i: <CheckCircle2 className="w-3 h-3" />, l: "Aprovado" },
@@ -1356,19 +1356,81 @@ function RequestPill({ r }: { r: { id: string; tipo: string; valor_solicitado: n
   const s = map[r.status] ?? map.pendente;
   const desc = Number(r.desconto_distrato) || 0;
   const liquido = Math.max(0, Number(r.valor_solicitado) - desc);
+  const ativos = descontos.filter((d) => d.status === "aplicado");
   return (
     <div className="inline-flex flex-col gap-0.5">
       <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] rounded-full border ${s.c}`} title={r.motivo_negacao ?? undefined}>
         {s.i}<FileText className="w-3 h-3" /> {r.tipo === "adiantamento" ? "Adiant." : "Comiss."}: {BRL(r.valor_solicitado)} · {s.l}
       </div>
       {desc > 0 && (
-        <div className="inline-flex items-center gap-1 text-[10px] text-violet-300 px-2" title="Desconto vinculado a distrato">
-          <Ban className="w-2.5 h-2.5" /> Desc. distrato: {BRL(desc)} · Líq. {BRL(liquido)}
-        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              title="Ver detalhes do desconto de distrato"
+              className="inline-flex items-center gap-1 text-[10px] rounded-md border border-violet-400/40 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 transition px-2 py-0.5 self-start"
+            >
+              <Ban className="w-2.5 h-2.5" /> Desc. distrato: {BRL(desc)} · Líq. {BRL(liquido)}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-80 p-3 space-y-2">
+            <div className="flex items-center gap-1.5 text-violet-300 text-xs font-semibold uppercase tracking-wide">
+              <Ban className="w-3.5 h-3.5" /> Desconto de distrato
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              O financeiro vinculou este pedido a um distrato pendente. O valor abaixo será abatido do pagamento.
+            </p>
+            <div className="rounded-md border border-border/60 bg-secondary/30 p-2 text-xs grid grid-cols-3 gap-2">
+              <div><div className="text-[9px] uppercase text-muted-foreground">Pedido</div><div className="font-semibold">{BRL(r.valor_solicitado)}</div></div>
+              <div><div className="text-[9px] uppercase text-muted-foreground">Desconto</div><div className="font-semibold text-rose-300">− {BRL(desc)}</div></div>
+              <div><div className="text-[9px] uppercase text-muted-foreground">Líquido</div><div className="font-semibold text-emerald-300">{BRL(liquido)}</div></div>
+            </div>
+            <div className="space-y-2 max-h-72 overflow-auto">
+              {ativos.length === 0 && (
+                <div className="text-[11px] text-muted-foreground italic">Detalhes do distrato não disponíveis.</div>
+              )}
+              {ativos.map((d) => (
+                <div key={d.id} className="rounded-md border border-violet-400/30 bg-violet-500/5 p-2 text-xs space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold text-foreground truncate">{d.distrato?.comprador ?? "—"}</div>
+                    <div className="font-semibold text-rose-300 whitespace-nowrap">{BRL(d.valor_desconto)}</div>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {d.distrato?.empreendimento ?? "—"} / {d.distrato?.unidade ?? "—"}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 text-[10px] pt-1 border-t border-border/40">
+                    <div>
+                      <div className="text-muted-foreground">Data da venda</div>
+                      <div className="font-medium">{fmtBR(d.distrato?.data_venda)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Aplicado em</div>
+                      <div className="font-medium">{d.aplicado_at ? new Date(d.aplicado_at).toLocaleDateString("pt-BR") : "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Adiant. pago</div>
+                      <div className="font-medium">{BRL(d.distrato?.valor_adiantamento)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">A devolver</div>
+                      <div className="font-medium text-destructive">{BRL(d.distrato?.valor_devolver)}</div>
+                    </div>
+                  </div>
+                  {d.observacao && (
+                    <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/40">
+                      <b>Obs:</b> {d.observacao}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       )}
     </div>
   );
 }
+
 
 function NFPill({ n }: { n: { id: string; status: string; numero_nf: string | null } }) {
   const map: Record<string, string> = {
