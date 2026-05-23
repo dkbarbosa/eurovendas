@@ -106,6 +106,33 @@ function ComissoesPage() {
     return ids;
   }, [requests, nfs]);
 
+  // Vendas elegíveis a solicitar pagamento (têm saldo a receber e status permite).
+  // Permanecem sempre visíveis na tela mesmo fora do período selecionado,
+  // para o corretor não precisar voltar meses para encontrá-las.
+  const eligibleSaleIds = useMemo(() => {
+    const ids = new Set<string>();
+    const paidMap = new Map<string, number>();
+    for (const r of requests) {
+      if (r.status === "pago") {
+        paidMap.set(r.sale_id, (paidMap.get(r.sale_id) ?? 0) + (Number(r.valor_solicitado) || 0));
+      }
+    }
+    for (const n of nfs) {
+      if (n.status === "paga") {
+        paidMap.set(n.sale_id, (paidMap.get(n.sale_id) ?? 0) + (Number((n as { valor_nf?: number | null }).valor_nf) || 0));
+      }
+    }
+    for (const s of allSales) {
+      const stUp = (s.status ?? "").trim().toUpperCase();
+      if (stUp === "RESERVADO") continue;
+      const comLiq = Number(s.comissao_liq_corretor) || 0;
+      const pago = paidMap.get(s.id) ?? 0;
+      const aReceber = Math.round((comLiq - pago) * 100) / 100;
+      if (aReceber > 0) ids.add(s.id);
+    }
+    return ids;
+  }, [allSales, requests, nfs]);
+
   // aplica filtros (período + cliente)
   const sales = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
@@ -114,16 +141,18 @@ function ComissoesPage() {
       if (seen.has(s.id)) return false;
       seen.add(s.id);
       const hasOpen = salesWithOpenRequest.has(s.id);
+      const isEligible = eligibleSaleIds.has(s.id);
       const d = (s.data ?? "").slice(0, 10);
-      // Período só filtra quando não há pedido em aberto.
-      if (!hasOpen) {
+      // Período só filtra quando não há pedido em aberto e a venda
+      // não está elegível para solicitar pagamento.
+      if (!hasOpen && !isEligible) {
         if (dateFrom && d && d < dateFrom) return false;
         if (dateTo && d && d > dateTo) return false;
       }
       if (q && !(s.comprador ?? "").toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [allSales, dateFrom, dateTo, clientSearch, salesWithOpenRequest]);
+  }, [allSales, dateFrom, dateTo, clientSearch, salesWithOpenRequest, eligibleSaleIds]);
 
   // Mapa de adiantamentos/pagamentos por venda
   const paidBySale = useMemo(() => {
@@ -584,9 +613,18 @@ function ComissoesPage() {
                   const historico = (paid?.items ?? []).slice().sort((a, b) =>
                     (b.data ?? "").localeCompare(a.data ?? ""),
                   );
+                  const d10 = (s.data ?? "").slice(0, 10);
+                  const isOutOfPeriod = !!d10 && ((dateFrom && d10 < dateFrom) || (dateTo && d10 > dateTo));
                   return (
-                    <tr key={s.id} className={`border-t border-border align-top ${distrato && distrato.status === "pendente_devolucao" ? "bg-destructive/5" : ""}`}>
-                      <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
+                    <tr key={s.id} className={`border-t border-border align-top ${distrato && distrato.status === "pendente_devolucao" ? "bg-destructive/5" : isOutOfPeriod ? "bg-primary/[0.04]" : ""}`}>
+                      <td className="p-3 whitespace-nowrap">
+                        <div>{fmtBR(s.data)}</div>
+                        {isOutOfPeriod && (
+                          <Badge variant="outline" className="mt-1 text-[10px] gap-1 border-primary/40 text-primary bg-primary/10">
+                            Fora do período
+                          </Badge>
+                        )}
+                      </td>
                       <td className="p-3 font-medium">
                         <div>{s.comprador ?? "—"}</div>
                         {distrato && (
