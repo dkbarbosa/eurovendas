@@ -231,6 +231,7 @@ export type Database = {
           solicitado_por: string | null
           status: Database["public"]["Enums"]["nf_status"]
           updated_at: string
+          valor_nf: number | null
         }
         Insert: {
           arquivo_nf_url?: string | null
@@ -253,6 +254,7 @@ export type Database = {
           solicitado_por?: string | null
           status?: Database["public"]["Enums"]["nf_status"]
           updated_at?: string
+          valor_nf?: number | null
         }
         Update: {
           arquivo_nf_url?: string | null
@@ -275,6 +277,7 @@ export type Database = {
           solicitado_por?: string | null
           status?: Database["public"]["Enums"]["nf_status"]
           updated_at?: string
+          valor_nf?: number | null
         }
         Relationships: [
           {
