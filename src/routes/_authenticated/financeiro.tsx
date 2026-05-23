@@ -700,12 +700,19 @@ function AdvancesTab() {
                                   const desconto = Number((r as { desconto_distrato?: number }).desconto_distrato) || 0;
                                   const liquido = Math.max(0, valor - desconto);
                                   return (
-                                    <div className="flex flex-col items-end gap-1">
+                                    <div className="flex flex-col items-end gap-1.5">
                                       {desconto > 0 && (
-                                        <div className="text-[10px] text-right">
-                                          <span className="text-rose-300">− {BRL(desconto)} (distrato)</span>
-                                          <span className="text-muted-foreground"> = </span>
-                                          <span className="font-semibold text-emerald-300">{BRL(liquido)}</span>
+                                        <div className="rounded-md border border-violet-400/50 bg-gradient-to-br from-violet-500/20 to-rose-500/10 px-2.5 py-1.5 shadow-sm">
+                                          <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-semibold text-violet-200">
+                                            <Ban className="w-3 h-3" /> Desc. distrato
+                                          </div>
+                                          <div className="flex items-baseline gap-1.5 mt-0.5">
+                                            <span className="text-[11px] line-through text-muted-foreground">{BRL(valor)}</span>
+                                            <span className="text-[11px] text-rose-300">− {BRL(desconto)}</span>
+                                          </div>
+                                          <div className="text-sm font-bold text-emerald-300">
+                                            = {BRL(liquido)} <span className="text-[10px] font-normal text-emerald-300/80">líquido</span>
+                                          </div>
                                         </div>
                                       )}
                                       <div className="flex gap-1 items-center">
@@ -728,6 +735,7 @@ function AdvancesTab() {
                                     </div>
                                   );
                                 })()}
+
                                 {isAdmin && (
                                   <Button size="sm" variant="ghost" className="text-destructive ml-1"
                                     onClick={() => { if (confirm("Excluir esta solicitação? (admin)")) delMut.mutate(r.id); }}>
@@ -818,11 +826,12 @@ function AdvancesTab() {
                     </button>
                     {aprovPendencias.map((p) => {
                       const sugerido = Math.min(p.saldo_restante, aprovRestReq);
+                      const autoObs = `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`;
                       return (
                         <button
                           key={p.id}
                           type="button"
-                          onClick={() => setAprovDesc({ distratoId: p.id, valor: sugerido.toFixed(2), obs: aprovDesc.obs })}
+                          onClick={() => setAprovDesc({ distratoId: p.id, valor: sugerido.toFixed(2), obs: autoObs })}
                           className={`w-full text-left px-3 py-2 text-xs hover:bg-secondary/40 transition ${aprovDesc.distratoId === p.id ? "bg-primary/10" : ""}`}
                         >
                           <div className="flex justify-between items-start gap-2">
@@ -838,6 +847,7 @@ function AdvancesTab() {
                         </button>
                       );
                     })}
+
                   </div>
                 </div>
               )}

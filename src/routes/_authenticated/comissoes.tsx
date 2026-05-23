@@ -28,6 +28,26 @@ export const Route = createFileRoute("/_authenticated/comissoes")({
 const BRL = (n: number | null | undefined) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+type DescontoInfo = {
+  id: string;
+  commission_request_id: string;
+  distrato_id: string;
+  valor_desconto: number;
+  status: string;
+  aplicado_at: string | null;
+  observacao: string | null;
+  distrato: {
+    comprador: string | null;
+    empreendimento: string | null;
+    unidade: string | null;
+    valor_devolver: number | null;
+    valor_adiantamento: number | null;
+    valor_comissao_final: number | null;
+    data_venda: string | null;
+  } | null;
+};
+
+
 const money = (n: number | null | undefined) => Math.round((Number(n) || 0) * 100) / 100;
 
 // Formata "YYYY-MM-DD" (vindo do tipo date do Postgres) como DD/MM/YYYY
@@ -89,7 +109,20 @@ function ComissoesPage() {
   const allSales = data?.sales ?? [];
   const requests = data?.requests ?? [];
   const nfs = data?.nfs ?? [];
+  const descontosAll = (data as { descontos?: DescontoInfo[] } | undefined)?.descontos ?? [];
   const displayName = data?.corretorNome ?? null;
+
+  // descontos agrupados por commission_request_id
+  const descontosByRequest = useMemo(() => {
+    const m = new Map<string, DescontoInfo[]>();
+    for (const d of descontosAll) {
+      const arr = m.get(d.commission_request_id) ?? [];
+      arr.push(d);
+      m.set(d.commission_request_id, arr);
+    }
+    return m;
+  }, [descontosAll]);
+
 
   // Vendas com qualquer evento em aberto (pedido não pago OU NF
   // solicitada/emitida/recebida) permanecem sempre visíveis —
@@ -387,15 +420,22 @@ function ComissoesPage() {
   const [nfFile2, setNfFile2] = useState<File | null>(null);
   const [uploadingNF, setUploadingNF] = useState(false);
   const openNF = (nfId: string, sale: typeof allSales[number]) => {
-    // Auto-preenche o valor da NF com a soma dos pedidos aprovados (aguardando pagamento) desta venda.
+    // Auto-preenche o valor da NF com a soma dos pedidos aprovados (aguardando pagamento)
+    // desta venda, JÁ ABATENDO os descontos de distrato aplicados pelo financeiro.
+    // O corretor não pode alterar este valor — o cálculo é fixado pelo financeiro.
     const aprovadoValor = requests
       .filter((r) => r.sale_id === sale.id && r.status === "aprovado")
-      .reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
+      .reduce((s, r) => {
+        const v = Number(r.valor_solicitado) || 0;
+        const desc = Number((r as { desconto_distrato?: number }).desconto_distrato) || 0;
+        return s + Math.max(0, v - desc);
+      }, 0);
     setNfForm({ numero_nf: "", observacao: "", valor_nf: aprovadoValor });
     setNfFile(null);
     setNfFile2(null);
     setNfDialog({ open: true, nfId, sale });
   };
+
 
   const readFileB64 = (f: File) => new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -791,7 +831,8 @@ function ComissoesPage() {
 
                           {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1 flex-wrap">
-                              <RequestPill r={r} />
+                              <RequestPill r={r} descontos={descontosByRequest.get(r.id) ?? []} />
+
                               {r.status === "negado" && r.motivo_negacao && (
                                 <Popover>
                                   <PopoverTrigger asChild>
@@ -1111,9 +1152,17 @@ function ComissoesPage() {
             const paidS = sale ? paidBySale.get(sale.id) : undefined;
             const jaAdiantado = paidS?.adiantado ?? 0;
             const jaFinal = paidS?.finalPago ?? 0;
+            // Descontos de distrato aplicados pelo financeiro sobre pedidos APROVADOS desta venda
+            const aprovDaVenda = sale ? requests.filter((r) => r.sale_id === sale.id && r.status === "aprovado") : [];
+            const descontoTotal = aprovDaVenda.reduce(
+              (s, r) => s + (Number((r as { desconto_distrato?: number }).desconto_distrato) || 0),
+              0,
+            );
+            const valorBruto = aprovDaVenda.reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
             const aReceber = Math.max(0, comLiq - jaAdiantado - jaFinal);
             const valor = nfForm.valor_nf ?? 0;
-            const excedeu = valor > aReceber;
+            const excedeu = valor > aReceber + 0.001;
+            const temDesconto = descontoTotal > 0;
             return (
               <div className="space-y-3">
                 <div className="rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs grid grid-cols-3 gap-2">
@@ -1122,17 +1171,47 @@ function ComissoesPage() {
                   <div><div className="text-muted-foreground">A receber</div><div className="font-semibold text-primary">{BRL(aReceber)}</div></div>
                 </div>
 
+                {temDesconto && (
+                  <div className="rounded-lg border border-violet-400/40 bg-violet-500/10 p-3 text-xs space-y-1">
+                    <div className="flex items-center gap-1.5 font-semibold text-violet-300">
+                      <Ban className="w-3.5 h-3.5" /> Desconto de distrato aplicado pelo financeiro
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">Pedido aprovado</div>
+                        <div className="font-semibold">{BRL(valorBruto)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">Desconto</div>
+                        <div className="font-semibold text-rose-300">− {BRL(descontoTotal)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">Líquido (NF)</div>
+                        <div className="font-semibold text-emerald-300">{BRL(Math.max(0, valorBruto - descontoTotal))}</div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-violet-200/80 pt-1">
+                      O valor da NF foi recalculado automaticamente com o desconto e <b>não pode ser alterado</b>.
+                    </p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>Número da NF *</Label>
                     <Input value={nfForm.numero_nf} onChange={(e) => setNfForm({ ...nfForm, numero_nf: e.target.value })} maxLength={80} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Valor da NF (R$) *</Label>
-                    <CurrencyInput value={nfForm.valor_nf} onValueChange={(v) => setNfForm({ ...nfForm, valor_nf: v ?? 0 })} />
+                    <Label>Valor da NF (R$) *{temDesconto && <span className="ml-1 text-[10px] text-violet-300">(fixado pelo financeiro)</span>}</Label>
+                    <CurrencyInput
+                      value={nfForm.valor_nf}
+                      onValueChange={(v) => setNfForm({ ...nfForm, valor_nf: v ?? 0 })}
+                      disabled={temDesconto}
+                    />
                     {excedeu && (
                       <p className="text-xs text-destructive">Valor excede o saldo a receber ({BRL(aReceber)}).</p>
                     )}
+
                   </div>
                 </div>
 
@@ -1267,7 +1346,7 @@ function Kpi({ icon, label, value, accent, danger, warn, premium, hint }: { icon
   );
 }
 
-function RequestPill({ r }: { r: { id: string; tipo: string; valor_solicitado: number; status: string; motivo_negacao: string | null; desconto_distrato?: number | null } }) {
+function RequestPill({ r, descontos = [] }: { r: { id: string; tipo: string; valor_solicitado: number; status: string; motivo_negacao: string | null; desconto_distrato?: number | null }; descontos?: DescontoInfo[] }) {
   const map: Record<string, { c: string; i: React.ReactNode; l: string }> = {
     pendente: { c: "bg-amber-500/10 text-amber-500 border-amber-500/30", i: <Clock className="w-3 h-3" />, l: "Pendente" },
     aprovado: { c: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30", i: <CheckCircle2 className="w-3 h-3" />, l: "Aprovado" },
@@ -1277,19 +1356,81 @@ function RequestPill({ r }: { r: { id: string; tipo: string; valor_solicitado: n
   const s = map[r.status] ?? map.pendente;
   const desc = Number(r.desconto_distrato) || 0;
   const liquido = Math.max(0, Number(r.valor_solicitado) - desc);
+  const ativos = descontos.filter((d) => d.status === "aplicado");
   return (
     <div className="inline-flex flex-col gap-0.5">
       <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] rounded-full border ${s.c}`} title={r.motivo_negacao ?? undefined}>
         {s.i}<FileText className="w-3 h-3" /> {r.tipo === "adiantamento" ? "Adiant." : "Comiss."}: {BRL(r.valor_solicitado)} · {s.l}
       </div>
       {desc > 0 && (
-        <div className="inline-flex items-center gap-1 text-[10px] text-violet-300 px-2" title="Desconto vinculado a distrato">
-          <Ban className="w-2.5 h-2.5" /> Desc. distrato: {BRL(desc)} · Líq. {BRL(liquido)}
-        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              title="Ver detalhes do desconto de distrato"
+              className="inline-flex items-center gap-1 text-[10px] rounded-md border border-violet-400/40 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 transition px-2 py-0.5 self-start"
+            >
+              <Ban className="w-2.5 h-2.5" /> Desc. distrato: {BRL(desc)} · Líq. {BRL(liquido)}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-80 p-3 space-y-2">
+            <div className="flex items-center gap-1.5 text-violet-300 text-xs font-semibold uppercase tracking-wide">
+              <Ban className="w-3.5 h-3.5" /> Desconto de distrato
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              O financeiro vinculou este pedido a um distrato pendente. O valor abaixo será abatido do pagamento.
+            </p>
+            <div className="rounded-md border border-border/60 bg-secondary/30 p-2 text-xs grid grid-cols-3 gap-2">
+              <div><div className="text-[9px] uppercase text-muted-foreground">Pedido</div><div className="font-semibold">{BRL(r.valor_solicitado)}</div></div>
+              <div><div className="text-[9px] uppercase text-muted-foreground">Desconto</div><div className="font-semibold text-rose-300">− {BRL(desc)}</div></div>
+              <div><div className="text-[9px] uppercase text-muted-foreground">Líquido</div><div className="font-semibold text-emerald-300">{BRL(liquido)}</div></div>
+            </div>
+            <div className="space-y-2 max-h-72 overflow-auto">
+              {ativos.length === 0 && (
+                <div className="text-[11px] text-muted-foreground italic">Detalhes do distrato não disponíveis.</div>
+              )}
+              {ativos.map((d) => (
+                <div key={d.id} className="rounded-md border border-violet-400/30 bg-violet-500/5 p-2 text-xs space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold text-foreground truncate">{d.distrato?.comprador ?? "—"}</div>
+                    <div className="font-semibold text-rose-300 whitespace-nowrap">{BRL(d.valor_desconto)}</div>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {d.distrato?.empreendimento ?? "—"} / {d.distrato?.unidade ?? "—"}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 text-[10px] pt-1 border-t border-border/40">
+                    <div>
+                      <div className="text-muted-foreground">Data da venda</div>
+                      <div className="font-medium">{fmtBR(d.distrato?.data_venda)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Aplicado em</div>
+                      <div className="font-medium">{d.aplicado_at ? new Date(d.aplicado_at).toLocaleDateString("pt-BR") : "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Adiant. pago</div>
+                      <div className="font-medium">{BRL(d.distrato?.valor_adiantamento)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">A devolver</div>
+                      <div className="font-medium text-destructive">{BRL(d.distrato?.valor_devolver)}</div>
+                    </div>
+                  </div>
+                  {d.observacao && (
+                    <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/40">
+                      <b>Obs:</b> {d.observacao}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       )}
     </div>
   );
 }
+
 
 function NFPill({ n }: { n: { id: string; status: string; numero_nf: string | null } }) {
   const map: Record<string, string> = {
