@@ -255,3 +255,63 @@ export const cancelDistrato = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---------- APAGAR DISTRATO (financeiro/admin) ----------
+// Remove o registro do distrato e reverte os efeitos: pedidos voltam para 'pago'
+// e o status da venda volta para 'PAGO' (Supabase + planilha do Google Sheets).
+export const deleteDistrato = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    if (!roles.includes("admin") && !roles.includes("financeiro"))
+      throw new Error("Apenas Financeiro ou Admin podem apagar distratos.");
+
+    const { data: d, error: e1 } = await supabaseAdmin
+      .from("distratos")
+      .select("sale_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (e1) throw new Error(e1.message);
+    if (!d) throw new Error("Distrato não encontrado.");
+
+    // 1) Reverte pedidos 'distratado' -> 'pago'
+    await supabaseAdmin
+      .from("commission_requests")
+      .update({ status: "pago" })
+      .eq("sale_id", d.sale_id)
+      .eq("status", "distratado");
+
+    // 2) Reverte status da venda (Supabase + Sheets)
+    const { data: sale } = await supabaseAdmin
+      .from("sales")
+      .select("id,data,empreendimento,unidade,comprador,valor_venda,status")
+      .eq("id", d.sale_id)
+      .maybeSingle();
+
+    if (sale && sale.status === "DISTRATO") {
+      await supabaseAdmin.from("sales").update({ status: "PAGO" }).eq("id", sale.id);
+      try {
+        const { setSheetStatus } = await import("./sheets-write.server");
+        const res = await setSheetStatus(
+          {
+            data: sale.data ?? null,
+            empreendimento: sale.empreendimento ?? null,
+            unidade: sale.unidade ?? null,
+            comprador: sale.comprador ?? null,
+            valor_venda: sale.valor_venda ?? null,
+          },
+          "PAGO",
+        );
+        if (!res.ok) console.warn("[distrato:delete] sheets status revert failed:", res.error);
+      } catch (e) {
+        console.warn("[distrato:delete] sheets status revert error:", e);
+      }
+    }
+
+    // 3) Apaga o registro
+    const { error } = await supabaseAdmin.from("distratos").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+
+    return { ok: true };
+  });
