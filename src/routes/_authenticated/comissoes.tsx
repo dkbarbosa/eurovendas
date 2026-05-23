@@ -555,11 +555,9 @@ function ComissoesPage() {
                   const adiantadoSale = paid?.adiantado ?? 0;
                   const finalPagoSale = paid?.finalPago ?? 0;
                   const totalPagoSale = adiantadoSale + finalPagoSale;
-                  // Se há NF paga, considerar a comissão como totalmente quitada
-                  // (cobre o caso em que financeiro pagou direto via NF sem pedido vinculado).
-                  const hasNfPaga = sNfs.some((n) => n.status === "paga");
-                  const aReceberSale = hasNfPaga ? 0 : Math.max(0, comissaoLiq - totalPagoSale);
-                  const isFinalizada = comissaoLiq > 0 && (aReceberSale === 0 || hasNfPaga);
+                  const aReceberSale = Math.max(0, comissaoLiq - totalPagoSale);
+                  // Finalizado só quando todo o valor foi solicitado e pago (saldo zero).
+                  const isFinalizada = comissaoLiq > 0 && aReceberSale === 0;
                   const historico = (paid?.items ?? []).slice().sort((a, b) =>
                     (b.data ?? "").localeCompare(a.data ?? ""),
                   );
