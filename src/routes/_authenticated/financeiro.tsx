@@ -785,7 +785,7 @@ function NFTab() {
   };
 
   const [statusFilter, setStatusFilter] = useState<"solicitada" | "emitida" | "recebida" | "paga" | "cancelada" | "todos">("todos");
-  const { data = [], isLoading } = useQuery({ queryKey: ["all-nfs"], queryFn: () => fnList() });
+  const { data = [], isLoading } = useQuery({ queryKey: ["all-nfs"], queryFn: () => fnList(), refetchInterval: 10_000, refetchOnWindowFocus: true });
   const filtered = statusFilter === "todos" ? data : data.filter((n) => n.status === statusFilter);
 
   const [confirmDlg, setConfirmDlg] = useState<{ open: boolean; id: string | null; obs: string }>({ open: false, id: null, obs: "" });
