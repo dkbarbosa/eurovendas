@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning } from "lucide-react";
+import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning, Ban } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from "recharts";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
