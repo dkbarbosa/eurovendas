@@ -399,13 +399,18 @@ export const markRequestPaid = createServerFn({ method: "POST" })
       .from("commission_requests").select("sale_id,status").eq("id", data.id).maybeSingle();
     if (!reqRow) throw new Error("Pedido não encontrado.");
     if (reqRow.sale_id) {
-      const { data: nfActive } = await supabaseAdmin
+      const { data: nfRows } = await supabaseAdmin
         .from("nf_requests")
-        .select("status")
+        .select("status,created_at")
         .eq("sale_id", reqRow.sale_id)
-        .in("status", ["solicitada", "emitida"])
-        .maybeSingle();
-      if (nfActive) {
+        .neq("status", "cancelada")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const nfActive = nfRows?.[0];
+      if (!nfActive) {
+        throw new Error("Pagamento só pode ser efetuado após o recebimento da NF do corretor.");
+      }
+      if (nfActive.status !== "recebida") {
         throw new Error(
           nfActive.status === "emitida"
             ? "Aguardando confirmação de recebimento da NF para liberar o pagamento."
