@@ -242,19 +242,23 @@ export const markNFEmitted = createServerFn({ method: "POST" })
 // ---------- BAIXAR NF DO DRIVE (financeiro/admin/dono) ----------
 export const downloadNFFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), which: z.enum(["1", "2"]).optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const roles = await getRoles(context.userId);
     const isStaff = roles.includes("financeiro") || roles.includes("admin");
     const { data: nf } = await supabaseAdmin
       .from("nf_requests")
-      .select("drive_file_id,corretor_user_id")
+      .select("drive_file_id,drive_file_id_2,corretor_user_id")
       .eq("id", data.id)
       .maybeSingle();
-    if (!nf?.drive_file_id) throw new Error("Arquivo da NF não encontrado.");
+    if (!nf) throw new Error("NF não encontrada.");
     if (!isStaff && nf.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
+    const fileId = data.which === "2" ? nf.drive_file_id_2 : nf.drive_file_id;
+    if (!fileId) throw new Error("Arquivo não encontrado.");
 
-    const file = await downloadDriveFile(nf.drive_file_id);
+    const file = await downloadDriveFile(fileId);
     // Retorna base64 (a frontend converte para Blob e dispara o download)
     let bin = "";
     for (let i = 0; i < file.buffer.length; i++) bin += String.fromCharCode(file.buffer[i]);
