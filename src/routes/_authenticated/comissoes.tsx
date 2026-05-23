@@ -430,63 +430,39 @@ function ComissoesPage() {
           </div>
 
           {distratos.length > 0 && (
-            <div className="glass-card p-5 border border-destructive/30">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Ban className="w-4 h-4 text-destructive" />
-                  <h3 className="font-display text-lg">Distratos — Saldo de devolução</h3>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Pendente <span className="text-destructive font-semibold">{BRL(totalADevolver)}</span>
-                  {totalDevolvido > 0 && <> · Devolvido <span className="text-emerald-400 font-semibold">{BRL(totalDevolvido)}</span></>}
-                </div>
+            <div className="rounded-full border border-destructive/30 bg-destructive/5 px-3 py-2 flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 pr-2 border-r border-destructive/20">
+                <Ban className="w-3.5 h-3.5 text-destructive" />
+                <span className="text-xs font-medium">Distratos</span>
+                <span className="text-[11px] text-muted-foreground">
+                  Pend. <span className="text-destructive font-semibold">{BRL(totalADevolver)}</span>
+                  {totalDevolvido > 0 && <> · Dev. <span className="text-emerald-400 font-semibold">{BRL(totalDevolvido)}</span></>}
+                </span>
               </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                Vendas distratadas pelo financeiro. O saldo pendente será descontado de futuras comissões. Somente o financeiro pode marcar como devolvido.
-              </p>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[760px]">
-                  <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-                    <tr>
-                      <th className="text-left p-2">Cliente</th>
-                      <th className="text-left p-2">Empreend. / Un.</th>
-                      <th className="text-left p-2">Motivo</th>
-                      <th className="text-right p-2">A Devolver</th>
-                      <th className="text-left p-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {distratos.map((d) => (
-                      <tr key={d.id} className="border-t border-border align-top">
-                        <td className="p-2 font-medium">{d.comprador ?? "—"}</td>
-                        <td className="p-2 text-muted-foreground">
-                          <div>{d.empreendimento ?? "—"}</div>
-                          <div className="text-xs">Unid: {d.unidade ?? "—"}</div>
-                        </td>
-                        <td className="p-2 text-xs text-muted-foreground max-w-[260px] truncate" title={d.motivo ?? ""}>
-                          {d.motivo ?? "—"}
-                        </td>
-                        <td className="p-2 text-right whitespace-nowrap font-semibold text-destructive">
-                          {BRL(d.valor_devolver)}
-                        </td>
-                        <td className="p-2">
-                          {d.status === "devolvido" ? (
-                            <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Devolvido</Badge>
-                          ) : d.status === "cancelado" ? (
-                            <Badge variant="outline" className="text-muted-foreground">Cancelado</Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
-                              Pendente devolução
-                            </Badge>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {distratos.map((d) => {
+                const dot =
+                  d.status === "devolvido" ? "bg-emerald-400"
+                  : d.status === "cancelado" ? "bg-muted-foreground/50"
+                  : "bg-destructive";
+                const amountCls =
+                  d.status === "devolvido" ? "text-emerald-400"
+                  : d.status === "cancelado" ? "text-muted-foreground line-through"
+                  : "text-destructive";
+                return (
+                  <span
+                    key={d.id}
+                    title={`${d.empreendimento ?? "—"} · Unid ${d.unidade ?? "—"}${d.motivo ? ` — ${d.motivo}` : ""}`}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-background/60 border border-border/60 px-2.5 py-1 text-[11px]"
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                    <span className="font-medium truncate max-w-[140px]">{d.comprador ?? "—"}</span>
+                    <span className={`font-semibold ${amountCls}`}>{BRL(d.valor_devolver)}</span>
+                  </span>
+                );
+              })}
             </div>
           )}
+
 
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
