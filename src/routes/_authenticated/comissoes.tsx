@@ -742,7 +742,7 @@ function ComissoesPage() {
                           )}
 
                           {nfAberta && aReceberSale > 0 && (
-                            <Button size="sm" onClick={() => openNF(nfAberta.id)}
+                            <Button size="sm" onClick={() => openNF(nfAberta.id, s)}
                               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
                               Enviar NF
                             </Button>
