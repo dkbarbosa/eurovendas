@@ -359,6 +359,8 @@ function AdvancesTab() {
   const { data = [], isLoading } = useQuery({
     queryKey: ["all-requests", statusFilter],
     queryFn: () => fnList({ data: statusFilter === "todos" ? undefined : { status: statusFilter } }),
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
   });
 
   const filtered = useMemo(() => {
