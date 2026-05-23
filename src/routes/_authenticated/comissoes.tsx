@@ -702,6 +702,21 @@ function ComissoesPage() {
                           {sNfs.map((n) => (
                             <div key={n.id} className="flex items-center gap-1 flex-wrap">
                               <NFPill n={n} />
+                              {n.status === "recebida" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 px-2 text-[11px]"
+                                  disabled={payNFMut.isPending}
+                                  onClick={() => {
+                                    if (confirm("Confirmar que o pagamento foi recebido? Isso finaliza o processo.")) {
+                                      payNFMut.mutate(n.id);
+                                    }
+                                  }}
+                                >
+                                  <Wallet className="w-3 h-3 mr-1" />Pago
+                                </Button>
+                              )}
                               {isAdmin && (
                                 <button title="Excluir NF (admin)" onClick={() => {
                                   if (confirm("Excluir esta NF?")) delNFMut.mutate(n.id);
