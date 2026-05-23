@@ -224,6 +224,8 @@ export type Database = {
           observacao_corretor: string | null
           observacao_financeiro: string | null
           observacao_recebimento: string | null
+          paga_at: string | null
+          paga_por: string | null
           recebida_at: string | null
           sale_id: string
           solicitado_por: string | null
@@ -244,6 +246,8 @@ export type Database = {
           observacao_corretor?: string | null
           observacao_financeiro?: string | null
           observacao_recebimento?: string | null
+          paga_at?: string | null
+          paga_por?: string | null
           recebida_at?: string | null
           sale_id: string
           solicitado_por?: string | null
@@ -264,6 +268,8 @@ export type Database = {
           observacao_corretor?: string | null
           observacao_financeiro?: string | null
           observacao_recebimento?: string | null
+          paga_at?: string | null
+          paga_por?: string | null
           recebida_at?: string | null
           sale_id?: string
           solicitado_por?: string | null
@@ -274,6 +280,13 @@ export type Database = {
           {
             foreignKeyName: "nf_requests_corretor_user_id_fkey"
             columns: ["corretor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nf_requests_paga_por_fkey"
+            columns: ["paga_por"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -498,7 +511,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "diretor" | "gerente" | "corretor" | "financeiro"
       distrato_status: "pendente_devolucao" | "devolvido" | "cancelado"
-      nf_status: "solicitada" | "emitida" | "recebida" | "cancelada"
+      nf_status: "solicitada" | "emitida" | "recebida" | "cancelada" | "paga"
       request_status: "pendente" | "aprovado" | "negado" | "pago" | "distratado"
       request_type: "adiantamento" | "comissao_final"
     }
@@ -630,7 +643,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "diretor", "gerente", "corretor", "financeiro"],
       distrato_status: ["pendente_devolucao", "devolvido", "cancelado"],
-      nf_status: ["solicitada", "emitida", "recebida", "cancelada"],
+      nf_status: ["solicitada", "emitida", "recebida", "cancelada", "paga"],
       request_status: ["pendente", "aprovado", "negado", "pago", "distratado"],
       request_type: ["adiantamento", "comissao_final"],
     },

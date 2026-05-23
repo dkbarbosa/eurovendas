@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { listAllRequests, decideRequest, markRequestPaid, deleteCommissionRequest } from "@/lib/requests.functions";
-import { listAllNFs, listEligibleSalesForNF, requestNF, confirmNFReceived, cancelNF, deleteNFRequest, downloadNFFile } from "@/lib/nf.functions";
+import { listAllNFs, listEligibleSalesForNF, requestNF, confirmNFReceived, cancelNF, deleteNFRequest, downloadNFFile, markNFPaid } from "@/lib/nf.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -761,9 +761,10 @@ function NFTab() {
   const fnCancel = useServerFn(cancelNF);
   const fnDel = useServerFn(deleteNFRequest);
   const fnDownload = useServerFn(downloadNFFile);
-  const handleDownload = async (id: string) => {
+  const fnPayNF = useServerFn(markNFPaid);
+  const handleDownload = async (id: string, which: "1" | "2" = "1") => {
     try {
-      const res = await fnDownload({ data: { id } }) as { base64: string; contentType: string; filename: string };
+      const res = await fnDownload({ data: { id, which } }) as { base64: string; contentType: string; filename: string };
       const bin = atob(res.base64);
       const buf = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
@@ -777,7 +778,7 @@ function NFTab() {
     }
   };
 
-  const [statusFilter, setStatusFilter] = useState<"solicitada" | "emitida" | "recebida" | "cancelada" | "todos">("todos");
+  const [statusFilter, setStatusFilter] = useState<"solicitada" | "emitida" | "recebida" | "paga" | "cancelada" | "todos">("todos");
   const { data = [], isLoading } = useQuery({ queryKey: ["all-nfs"], queryFn: () => fnList() });
   const filtered = statusFilter === "todos" ? data : data.filter((n) => n.status === statusFilter);
 
@@ -799,11 +800,16 @@ function NFTab() {
     onSuccess: () => { toast.success("NF excluída."); qc.invalidateQueries({ queryKey: ["all-nfs"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const payMut = useMutation({
+    mutationFn: (id: string) => fnPayNF({ data: { id } }),
+    onSuccess: () => { toast.success("NF marcada como paga."); qc.invalidateQueries({ queryKey: ["all-nfs"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <>
       <div className="flex gap-1 bg-secondary/40 p-1 rounded-lg w-fit mb-4">
-        {(["solicitada", "emitida", "recebida", "cancelada", "todos"] as const).map((s) => (
+        {(["solicitada", "emitida", "recebida", "paga", "cancelada", "todos"] as const).map((s) => (
           <button key={s} onClick={() => setStatusFilter(s)}
             className={`px-3 py-1.5 text-xs rounded-md capitalize transition ${statusFilter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>
             {s}
@@ -841,15 +847,26 @@ function NFTab() {
                 </td>
                 <td className="p-3">
                   {n.numero_nf ? <span className="font-mono">{n.numero_nf}</span> : <span className="text-muted-foreground">—</span>}
-                  {n.arquivo_nf_url && (
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(n.id)}
-                      className="mt-1 inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                    >
-                      <Download className="w-3 h-3" /> Baixar
-                    </button>
-                  )}
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {n.arquivo_nf_url && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(n.id, "1")}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        <Download className="w-3 h-3" /> Nota fiscal
+                      </button>
+                    )}
+                    {n.arquivo_nf_url_2 && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(n.id, "2")}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        <Download className="w-3 h-3" /> Promissória
+                      </button>
+                    )}
+                  </div>
                 </td>
                 <td className="p-3"><NFStatusBadge status={n.status} /></td>
                 <td className="p-3 max-w-[220px]">
@@ -863,6 +880,13 @@ function NFTab() {
                       <Button size="sm" onClick={() => setConfirmDlg({ open: true, id: n.id, obs: "" })}
                         style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
                         <CheckCircle2 className="w-3.5 h-3.5 mr-1" />Confirmar
+                      </Button>
+                    )}
+                    {n.status === "recebida" && (
+                      <Button size="sm" disabled={payMut.isPending}
+                        onClick={() => { if (confirm("Marcar esta NF como paga? Isso finaliza o processo.")) payMut.mutate(n.id); }}
+                        style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
+                        <Wallet className="w-3.5 h-3.5 mr-1" />Paga
                       </Button>
                     )}
                     {(n.status === "solicitada" || n.status === "emitida") && (
@@ -936,7 +960,9 @@ function NFStatusBadge({ status }: { status: string }) {
     solicitada: "bg-amber-500/10 text-amber-500 border-amber-500/30",
     emitida: "bg-sky-500/10 text-sky-500 border-sky-500/30",
     recebida: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
+    paga: "bg-primary/10 text-primary border-primary/30",
     cancelada: "bg-destructive/10 text-destructive border-destructive/30",
   };
-  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border capitalize ${map[status] ?? ""}`}><Receipt className="w-3 h-3" />{status}</span>;
+  const label = status === "paga" ? "finalizada" : status;
+  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border capitalize ${map[status] ?? ""}`}><Receipt className="w-3 h-3" />{label}</span>;
 }

@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { listMyBrokerSales, listDistinctCorretores } from "@/lib/commissions.functions";
 import { createCommissionRequest, deleteCommissionRequest, markRequestPaid } from "@/lib/requests.functions";
-import { markNFEmitted, deleteNFRequest } from "@/lib/nf.functions";
+import { markNFEmitted, deleteNFRequest, markNFPaid } from "@/lib/nf.functions";
 import { listDistratos } from "@/lib/distratos.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,7 @@ function ComissoesPage() {
   const fnEmit = useServerFn(markNFEmitted);
   const fnDelReq = useServerFn(deleteCommissionRequest);
   const fnDelNF = useServerFn(deleteNFRequest);
+  const fnPayNF = useServerFn(markNFPaid);
   const fnPaid = useServerFn(markRequestPaid);
   const fnDistratos = useServerFn(listDistratos);
 
@@ -350,6 +351,11 @@ function ComissoesPage() {
     onSuccess: () => { toast.success("Pagamento confirmado. Processo finalizado."); qc.invalidateQueries({ queryKey: ["my-broker-sales"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const payNFMut = useMutation({
+    mutationFn: (id: string) => fnPayNF({ data: { id } }),
+    onSuccess: () => { toast.success("NF marcada como paga. Processo finalizado."); qc.invalidateQueries({ queryKey: ["my-broker-sales"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
 
   return (
@@ -632,11 +638,8 @@ function ComissoesPage() {
 
                       <td className="p-3">
                         <div className="space-y-1">
-                          {(reqs.length > 0 || sNfs.length > 0) && (
-                            <div className="flex flex-wrap gap-1 mb-1.5">
-                              <Badge variant="outline" className={`text-[10px] ${aReceberSale > 0 ? "bg-primary/10 text-primary border-primary/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"}`}>A receber: {BRL(aReceberSale)}</Badge>
-                            </div>
-                          )}
+                          {/* (removido) badge "A receber" no painel do corretor */}
+
                           {reqs.map((r) => {
                             return (
                             <div key={r.id} className="flex items-center gap-1 flex-wrap">
@@ -692,8 +695,23 @@ function ComissoesPage() {
                           })}
 
                           {sNfs.map((n) => (
-                            <div key={n.id} className="flex items-center gap-1">
+                            <div key={n.id} className="flex items-center gap-1 flex-wrap">
                               <NFPill n={n} />
+                              {n.status === "recebida" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 px-2 text-[11px]"
+                                  disabled={payNFMut.isPending}
+                                  onClick={() => {
+                                    if (confirm("Confirmar que a NF foi paga? Isso finaliza o processo.")) {
+                                      payNFMut.mutate(n.id);
+                                    }
+                                  }}
+                                >
+                                  <Wallet className="w-3 h-3 mr-1" />Pago
+                                </Button>
+                              )}
                               {isAdmin && (
                                 <button title="Excluir NF (admin)" onClick={() => {
                                   if (confirm("Excluir esta NF?")) delNFMut.mutate(n.id);
@@ -881,13 +899,13 @@ function ComissoesPage() {
             </div>
             <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Anexos da NF (até 2 arquivos)</Label>
+                <Label className="text-sm font-medium">Anexos (Nota Fiscal e Promissória)</Label>
                 <span className="text-[11px] text-muted-foreground">{(nfFile ? 1 : 0) + (nfFile2 ? 1 : 0)}/2</span>
               </div>
 
               <div className="space-y-1.5 rounded-md border border-border/40 bg-background/60 p-2.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Arquivo 1 *</Label>
+                  <Label className="text-xs text-muted-foreground">Nota fiscal *</Label>
                   {nfFile && (
                     <button type="button" className="text-[11px] text-destructive hover:underline" onClick={() => setNfFile(null)}>
                       Remover
@@ -908,7 +926,7 @@ function ComissoesPage() {
 
               <div className="space-y-1.5 rounded-md border border-border/40 bg-background/60 p-2.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Arquivo 2 (opcional)</Label>
+                  <Label className="text-xs text-muted-foreground">Promissória (opcional)</Label>
                   {nfFile2 && (
                     <button type="button" className="text-[11px] text-destructive hover:underline" onClick={() => setNfFile2(null)}>
                       Remover
@@ -928,7 +946,7 @@ function ComissoesPage() {
               </div>
 
               <p className="text-[11px] text-muted-foreground">
-                Formatos: PDF, XML ou imagem (máx. 15 MB cada). Os arquivos serão arquivados em uma pasta com o nome do cliente, unidade e empreendimento.
+                Formatos: PDF, XML ou imagem (máx. 15 MB cada). Arquivados em uma pasta com o nome do cliente, unidade e empreendimento.
               </p>
             </div>
             <div className="space-y-1.5">
@@ -988,11 +1006,13 @@ function NFPill({ n }: { n: { id: string; status: string; numero_nf: string | nu
     solicitada: "bg-amber-500/10 text-amber-500 border-amber-500/30",
     emitida: "bg-sky-500/10 text-sky-500 border-sky-500/30",
     recebida: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
+    paga: "bg-primary/10 text-primary border-primary/30",
     cancelada: "bg-destructive/10 text-destructive border-destructive/30",
   };
+  const label = n.status === "paga" ? "finalizado" : n.status;
   return (
     <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] rounded-full border ${map[n.status] ?? ""}`}>
-      <Receipt className="w-3 h-3" /> NF {n.numero_nf ? `#${n.numero_nf}` : ""} · {n.status}
+      <Receipt className="w-3 h-3" /> NF {n.numero_nf ? `#${n.numero_nf}` : ""} · {label}
     </div>
   );
 }

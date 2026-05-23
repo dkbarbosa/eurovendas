@@ -1,0 +1,5 @@
+ALTER TYPE nf_status ADD VALUE IF NOT EXISTS 'paga';
+
+ALTER TABLE public.nf_requests
+  ADD COLUMN IF NOT EXISTS paga_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS paga_por UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
