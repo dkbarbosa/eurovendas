@@ -640,19 +640,23 @@ function ComissoesPage() {
                         <div className="space-y-1">
                           {/* (removido) badge "A receber" no painel do corretor */}
 
-                          {reqs.map((r) => {
-                            return (
+                          {(() => {
+                            // Pago só pode ser marcado sob o valor solicitado
+                            // depois que a NF foi enviada (recebida) ou já paga.
+                            const nfEnviada = sNfs.find((n) => n.status === "recebida" || n.status === "paga");
+                            return reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1 flex-wrap">
                               <RequestPill r={r} />
-                              {r.status !== "pago" && r.status !== "negado" && (
+                              {r.status !== "pago" && r.status !== "negado" && nfEnviada && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="h-6 px-2 text-[11px]"
-                                  disabled={payMut.isPending}
+                                  disabled={payMut.isPending || payNFMut.isPending}
                                   onClick={() => {
-                                    if (confirm("Confirmar que o pagamento foi recebido?")) {
+                                    if (confirm("Confirmar que o pagamento foi recebido? Isso finaliza o processo.")) {
                                       payMut.mutate(r.id);
+                                      if (nfEnviada.status === "recebida") payNFMut.mutate(nfEnviada.id);
                                     }
                                   }}
                                 >
@@ -691,27 +695,12 @@ function ComissoesPage() {
                                 </button>
                               )}
                             </div>
-                            );
-                          })}
+                            ));
+                          })()}
 
                           {sNfs.map((n) => (
                             <div key={n.id} className="flex items-center gap-1 flex-wrap">
                               <NFPill n={n} />
-                              {n.status === "recebida" && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-6 px-2 text-[11px]"
-                                  disabled={payNFMut.isPending}
-                                  onClick={() => {
-                                    if (confirm("Confirmar que a NF foi paga? Isso finaliza o processo.")) {
-                                      payNFMut.mutate(n.id);
-                                    }
-                                  }}
-                                >
-                                  <Wallet className="w-3 h-3 mr-1" />Pago
-                                </Button>
-                              )}
                               {isAdmin && (
                                 <button title="Excluir NF (admin)" onClick={() => {
                                   if (confirm("Excluir esta NF?")) delNFMut.mutate(n.id);
@@ -721,6 +710,7 @@ function ComissoesPage() {
                               )}
                             </div>
                           ))}
+
                           {reqs.length === 0 && sNfs.length === 0 && (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
