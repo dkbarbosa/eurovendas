@@ -18,6 +18,7 @@ import { Loader2, CheckCircle2, XCircle, Wallet, Receipt, Clock, Search, FilePlu
 import { motion } from "framer-motion";
 import { DistratoButton } from "@/components/distratos/DistratoButton";
 import { DistratosPanel } from "@/components/distratos/DistratosPanel";
+import { AplicarDescontoButton } from "@/components/distratos/AplicarDescontoButton";
 
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
