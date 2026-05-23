@@ -610,6 +610,9 @@ function ComissoesPage() {
                   const aReceberSale = Math.max(0, money(comissaoLiq - totalPagoSale));
                   // Quando o saldo exibido em "A Receber" zera, o processo fica finalizado e não abre nova solicitação.
                   const isFinalizada = aReceberSale <= 0;
+                  // Pagamento antecipado: 100% pago e a venda está como "Caixa"
+                  // (corretor recebeu adiantamento antes de a venda virar Caixa).
+                  const isPagoAntecipado = isFinalizada && (s.status ?? "").trim().toUpperCase() === "CAIXA";
                   const historico = (paid?.items ?? []).slice().sort((a, b) =>
                     (b.data ?? "").localeCompare(a.data ?? ""),
                   );
@@ -688,9 +691,18 @@ function ComissoesPage() {
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
                         {isFinalizada ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
-                            <CheckCircle2 className="w-3.5 h-3.5" />100% pago
-                          </span>
+                          isPagoAntecipado ? (
+                            <span
+                              className="inline-flex items-center gap-1 text-sky-400 font-semibold"
+                              title="Comissão integralmente paga antes de a venda virar Caixa."
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />Pago antecipadamente
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                              <CheckCircle2 className="w-3.5 h-3.5" />100% pago
+                            </span>
+                          )
                         ) : (
                           <span className={aReceberSale > 0 ? "text-primary font-semibold" : "text-muted-foreground"}>
                             {BRL(aReceberSale)}
@@ -798,8 +810,12 @@ function ComissoesPage() {
                       <td className="p-3">
                         <div className="flex flex-col gap-1.5">
                           {isFinalizada ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold px-2 py-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" />Finalizado
+                            <span
+                              className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 ${isPagoAntecipado ? "text-sky-400" : "text-emerald-400"}`}
+                              title={isPagoAntecipado ? "Comissão integralmente paga antes de a venda virar Caixa." : undefined}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {isPagoAntecipado ? "Pago antecipadamente" : "Finalizado"}
                             </span>
                           ) : (
                             (() => {
