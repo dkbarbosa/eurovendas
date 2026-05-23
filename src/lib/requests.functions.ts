@@ -317,7 +317,7 @@ export const decideRequest = createServerFn({ method: "POST" })
         .select("tipo, valor_solicitado, sale_id, corretor_user_id")
         .eq("id", data.id)
         .single();
-      if (req?.tipo === "adiantamento" && req.sale_id) {
+      if (req?.sale_id) {
         const { data: sale } = await supabaseAdmin
           .from("sales")
           .select("data, empreendimento, unidade, comprador, valor_venda, corretor")
@@ -350,7 +350,7 @@ export const decideRequest = createServerFn({ method: "POST" })
                 corretor_user_id: corretorUserId,
                 solicitado_por: context.userId,
                 status: "solicitada",
-                observacao_financeiro: "NF solicitada automaticamente após aprovação de adiantamento.",
+                observacao_financeiro: `NF solicitada automaticamente após aprovação de ${req.tipo === "adiantamento" ? "adiantamento" : "comissão"}.`,
               });
             }
           }
@@ -399,13 +399,18 @@ export const markRequestPaid = createServerFn({ method: "POST" })
       .from("commission_requests").select("sale_id,status").eq("id", data.id).maybeSingle();
     if (!reqRow) throw new Error("Pedido não encontrado.");
     if (reqRow.sale_id) {
-      const { data: nfActive } = await supabaseAdmin
+      const { data: nfRows } = await supabaseAdmin
         .from("nf_requests")
-        .select("status")
+        .select("status,created_at")
         .eq("sale_id", reqRow.sale_id)
-        .in("status", ["solicitada", "emitida"])
-        .maybeSingle();
-      if (nfActive) {
+        .neq("status", "cancelada")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const nfActive = nfRows?.[0];
+      if (!nfActive) {
+        throw new Error("Pagamento só pode ser efetuado após o recebimento da NF do corretor.");
+      }
+      if (nfActive.status !== "recebida") {
         throw new Error(
           nfActive.status === "emitida"
             ? "Aguardando confirmação de recebimento da NF para liberar o pagamento."
