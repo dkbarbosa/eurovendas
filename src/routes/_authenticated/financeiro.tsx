@@ -457,36 +457,43 @@ function AdvancesTab() {
                 let saldoCorrente = comissaoLiq;
 
                 return (
-                  <div key={key} className="rounded-xl border border-border/60 bg-secondary/20 overflow-hidden">
+                  <div key={key} className="rounded-xl border border-border/60 bg-secondary/20 overflow-hidden shadow-[0_1px_0_0_hsl(var(--border)/0.4)_inset]">
                     {/* Cabeçalho da venda */}
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 p-4 bg-secondary/40">
-                      <div className="min-w-0">
-                        <div className="font-semibold truncate">{head.sale?.comprador ?? "—"}</div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {head.sale?.empreendimento} / {head.sale?.unidade} · Venda {BRL(head.sale?.valor_venda)} · Sinal {BRL(Number(head.sale?.valor_sinal_negocio) || 0)}
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 p-4 bg-gradient-to-br from-primary/[0.07] via-secondary/40 to-secondary/20 border-b border-border/60 relative">
+                      <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-primary/70 to-primary/20" />
+                      <div className="min-w-0 pl-2">
+                        <div className="font-display text-base md:text-lg font-semibold tracking-tight text-foreground truncate">{head.sale?.comprador ?? "—"}</div>
+                        <div className="text-xs text-foreground/80 truncate mt-0.5">
+                          <span className="text-foreground/95 font-medium">{head.sale?.empreendimento}</span>
+                          <span className="text-muted-foreground"> / </span>
+                          <span className="text-foreground/95 font-medium">{head.sale?.unidade}</span>
+                          <span className="text-muted-foreground"> · Venda </span>
+                          <span className="text-foreground font-semibold">{BRL(head.sale?.valor_venda)}</span>
+                          <span className="text-muted-foreground"> · Sinal </span>
+                          <span className="text-sky-300 font-semibold">{BRL(Number(head.sale?.valor_sinal_negocio) || 0)}</span>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          Corretor: <span className="text-foreground">{head.corretor_profile?.display_name ?? "—"}</span>
-                          <span className="ml-1">({head.corretor_profile?.email})</span>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Corretor: <span className="text-foreground font-medium">{head.corretor_profile?.display_name ?? "—"}</span>
+                          <span className="ml-1 text-muted-foreground/80">({head.corretor_profile?.email})</span>
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-3 text-xs">
                         <div className="text-right">
                           <div className="uppercase text-[10px] tracking-wider text-muted-foreground">Comissão Liq.</div>
-                          <div className="font-semibold">{BRL(comissaoLiq)}</div>
+                          <div className="font-semibold text-foreground">{BRL(comissaoLiq)}</div>
                         </div>
                         <div className="text-right">
                           <div className="uppercase text-[10px] tracking-wider text-muted-foreground">Adiantado</div>
-                          <div className={`font-semibold ${adiantadoTot > 0 ? "text-amber-400" : "text-muted-foreground"}`}>{BRL(adiantadoTot)}</div>
+                          <div className={`font-semibold ${adiantadoTot > 0 ? "text-amber-300" : "text-muted-foreground"}`}>{BRL(adiantadoTot)}</div>
                         </div>
                         <div className="text-right">
                           <div className="uppercase text-[10px] tracking-wider text-muted-foreground">Comissão Paga</div>
-                          <div className="font-semibold">{BRL(finalPago)}</div>
+                          <div className="font-semibold text-foreground">{BRL(finalPago)}</div>
                         </div>
                         <div className="text-right">
                           <div className="uppercase text-[10px] tracking-wider text-muted-foreground">A Receber</div>
                           {finalizado ? (
-                            <div className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                            <div className="inline-flex items-center gap-1 text-emerald-300 font-semibold">
                               <CheckCircle2 className="w-3.5 h-3.5" />100% pago
                             </div>
                           ) : (
@@ -505,15 +512,15 @@ function AdvancesTab() {
 
                     {/* Pedidos desta venda */}
                     <table className="w-full text-sm min-w-[900px]">
-                      <thead className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <thead className="text-[10px] uppercase tracking-[0.12em] text-foreground/70 bg-secondary/30 border-b border-border/60">
                         <tr>
-                          <th className="text-left px-3 py-2 w-24">Data</th>
-                          <th className="text-left px-3 py-2 w-24">Tipo</th>
-                          <th className="text-right px-3 py-2 w-32">Solicitado</th>
-                          <th className="text-right px-3 py-2 w-44">Restante após</th>
-                          <th className="text-left px-3 py-2 w-28">Status</th>
-                          <th className="text-left px-3 py-2">Obs</th>
-                          <th className="px-3 py-2 w-1"></th>
+                          <th className="text-left px-3 py-2.5 w-24 font-semibold">Data</th>
+                          <th className="text-left px-3 py-2.5 w-24 font-semibold">Tipo</th>
+                          <th className="text-right px-3 py-2.5 w-32 font-semibold">Solicitado</th>
+                          <th className="text-right px-3 py-2.5 w-44 font-semibold">Restante após</th>
+                          <th className="text-left px-3 py-2.5 w-28 font-semibold">Status</th>
+                          <th className="text-left px-3 py-2.5 font-semibold">Obs</th>
+                          <th className="px-3 py-2.5 w-1"></th>
                         </tr>
                       </thead>
                       <tbody>
