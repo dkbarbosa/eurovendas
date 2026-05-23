@@ -588,6 +588,17 @@ function AdvancesTab() {
                                       Bônus: {BRL(r.bonus_corretor)}
                                     </Badge>
                                   )}
+                                  {(r as { comprovante_sinal_url?: string | null }).comprovante_sinal_url && (
+                                    <a
+                                      href={(r as { comprovante_sinal_url?: string | null }).comprovante_sinal_url ?? "#"}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition"
+                                      title="Comprovante de sinal enviado pelo corretor"
+                                    >
+                                      <Paperclip className="w-3 h-3" /> Comprovante
+                                    </a>
+                                  )}
                                 </div>
                                 {r.observacao_corretor && <div className="text-xs"><b>C:</b> {r.observacao_corretor}</div>}
                                 {r.observacao_financeiro && <div className="text-xs text-muted-foreground"><b>F:</b> {r.observacao_financeiro}</div>}
