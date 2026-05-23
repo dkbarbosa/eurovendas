@@ -316,10 +316,11 @@ function ComissoesPage() {
           data: {
             id: nfDialog.nfId!,
             numero_nf: nfForm.numero_nf.trim(),
+            valor_nf: nfForm.valor_nf,
             file_base64: base64,
             file_name: nfFile.name,
             file_mime: nfFile.type || "application/octet-stream",
-            observacao: [nfForm.valor_nf > 0 ? `Valor da NF: ${BRL(nfForm.valor_nf)}` : "", nfForm.observacao].filter(Boolean).join(" — ") || undefined,
+            observacao: nfForm.observacao || undefined,
             file2,
           },
         });
