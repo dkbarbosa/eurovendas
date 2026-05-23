@@ -28,6 +28,26 @@ export const Route = createFileRoute("/_authenticated/comissoes")({
 const BRL = (n: number | null | undefined) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+type DescontoInfo = {
+  id: string;
+  commission_request_id: string;
+  distrato_id: string;
+  valor_desconto: number;
+  status: string;
+  aplicado_at: string | null;
+  observacao: string | null;
+  distrato: {
+    comprador: string | null;
+    empreendimento: string | null;
+    unidade: string | null;
+    valor_devolver: number | null;
+    valor_adiantamento: number | null;
+    valor_comissao_final: number | null;
+    data_venda: string | null;
+  } | null;
+};
+
+
 const money = (n: number | null | undefined) => Math.round((Number(n) || 0) * 100) / 100;
 
 // Formata "YYYY-MM-DD" (vindo do tipo date do Postgres) como DD/MM/YYYY
