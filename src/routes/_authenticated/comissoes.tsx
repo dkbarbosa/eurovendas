@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { listMyBrokerSales, listDistinctCorretores } from "@/lib/commissions.functions";
 import { createCommissionRequest, deleteCommissionRequest, markRequestPaid } from "@/lib/requests.functions";
 import { markNFEmitted, deleteNFRequest, markNFPaid } from "@/lib/nf.functions";
@@ -236,7 +236,9 @@ function ComissoesPage() {
       total += Number(s.comissao_liq_corretor) || 0;
       const p = paidBySale.get(s.id);
       if (p) {
-        adiantado += p.adiantado;
+        // Adiantamentos só permanecem visíveis enquanto a comissão final
+        // daquela venda ainda não foi paga.
+        if (p.finalPago <= 0) adiantado += p.adiantado;
         finalPago += p.finalPago;
       }
     }
@@ -527,8 +529,8 @@ function ComissoesPage() {
 
           <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 ${totalADevolver > 0 ? "xl:grid-cols-8" : "xl:grid-cols-7"}`}>
             <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.total)} />
-            <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantado" value={BRL(kpis.adiantado)} />
-            <Kpi icon={<CheckCircle2 className="w-4 h-4" />} label="Já Pago" value={BRL(kpis.pagas)} />
+            <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantamentos" value={BRL(kpis.adiantado)} />
+            <Kpi icon={<CheckCircle2 className="w-4 h-4" />} label="Recebidos" value={BRL(kpis.pagas)} />
             <Kpi icon={<Clock className="w-4 h-4" />} label="A Receber" value={BRL(kpis.aReceber)} accent />
             <Kpi
               icon={<Send className="w-4 h-4" />}
@@ -1217,14 +1219,28 @@ function Kpi({ icon, label, value, accent, danger, warn, premium, hint }: { icon
         : accent
           ? "text-primary"
           : "";
+  const bgTint = danger
+    ? "text-destructive/10"
+    : premium
+      ? "text-amber-300/10"
+      : warn
+        ? "text-amber-400/10"
+        : accent
+          ? "text-primary/10"
+          : "text-foreground/[0.06]";
   return (
-    <div className={`glass-card p-4 ${border}`}>
+    <div className={`glass-card p-4 relative overflow-hidden ${border}`}>
       {premium && (
         <div className="pointer-events-none absolute -top-8 -right-8 w-24 h-24 rounded-full bg-amber-400/10 blur-2xl" />
       )}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">{icon}{label}</div>
-      <div className={`mt-2 font-display text-2xl font-semibold ${valueColor}`}>{value}</div>
-      {hint && <div className="mt-1 text-[11px] text-muted-foreground/80">{hint}</div>}
+      <div className={`pointer-events-none absolute -bottom-4 -right-3 ${bgTint} transition-transform duration-500 group-hover:scale-110`}>
+        {React.isValidElement(icon)
+          ? React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "w-20 h-20" })
+          : null}
+      </div>
+      <div className="relative flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">{icon}{label}</div>
+      <div className={`relative mt-2 font-display text-2xl font-semibold ${valueColor}`}>{value}</div>
+      {hint && <div className="relative mt-1 text-[11px] text-muted-foreground/80">{hint}</div>}
     </div>
   );
 }
