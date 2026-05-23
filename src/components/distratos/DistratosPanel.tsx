@@ -25,6 +25,7 @@ export function DistratosPanel() {
   const fnList = useServerFn(listDistratos);
   const fnMark = useServerFn(markDistratoDevolvido);
   const fnCancel = useServerFn(cancelDistrato);
+  const fnDelete = useServerFn(deleteDistrato);
 
   const [status, setStatus] = useState<"todos" | "pendente_devolucao" | "devolvido" | "cancelado">("todos");
   const [corretorFilter, setCorretorFilter] = useState<string>("todos");
