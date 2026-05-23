@@ -800,6 +800,11 @@ function NFTab() {
     onSuccess: () => { toast.success("NF excluída."); qc.invalidateQueries({ queryKey: ["all-nfs"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const payMut = useMutation({
+    mutationFn: (id: string) => fnPayNF({ data: { id } }),
+    onSuccess: () => { toast.success("NF marcada como paga."); qc.invalidateQueries({ queryKey: ["all-nfs"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <>
