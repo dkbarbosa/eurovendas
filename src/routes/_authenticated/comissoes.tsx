@@ -870,15 +870,32 @@ function ComissoesPage() {
                             (() => {
                               const stUp = (s.status ?? "").trim().toUpperCase();
                               const isReservado = stUp === "RESERVADO";
+                              const isCaixa = stUp === "CAIXA";
+                              const finSolicitou = !!nfAberta;
+                              const allowed = isCaixa || finSolicitou;
+                              const blockReason = isReservado
+                                ? "Venda reservada não permite solicitação."
+                                : hasPending
+                                  ? "Já existe uma solicitação pendente para esta venda."
+                                  : !allowed
+                                    ? "Solicitação disponível apenas quando o Status for CAIXA ou quando o financeiro solicitar a NF."
+                                    : "";
+                              const label = isReservado
+                                ? "Reservado"
+                                : hasPending
+                                  ? "Pendente"
+                                  : !allowed
+                                    ? "Aguardando CAIXA"
+                                    : "Solicitar pagamento";
                               return (
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  disabled={hasPending || isReservado}
-                                  title={isReservado ? "Venda reservada não permite solicitação." : (hasPending ? "Já existe uma solicitação pendente para esta venda." : "")}
+                                  disabled={hasPending || isReservado || !allowed}
+                                  title={blockReason}
                                   onClick={() => openReq(s)}
                                 >
-                                  {isReservado ? "Reservado" : hasPending ? "Pendente" : "Solicitar pagamento"}
+                                  {label}
                                 </Button>
                               );
                             })()
