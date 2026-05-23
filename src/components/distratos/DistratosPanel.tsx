@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listDistratos, markDistratoDevolvido, cancelDistrato, createDistrato, listSalesForDistrato, deleteDistrato } from "@/lib/distratos.functions";
+import { listDistratos, markDistratoDevolvido, cancelDistrato, createDistrato, listSalesForDistrato, deleteDistrato, listDescontosByDistrato, estornarDescontoDistrato } from "@/lib/distratos.functions";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Ban, CheckCircle2, Trash2, Search, AlertTriangle, Plus } from "lucide-react";
+import { Loader2, Ban, CheckCircle2, Trash2, Search, AlertTriangle, Plus, ChevronDown, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
