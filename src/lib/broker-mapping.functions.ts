@@ -14,13 +14,14 @@ export const listBrokerMappings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
     const { data } = await supabaseAdmin
-      .from("broker_mapping").select("user_id,corretor_nome,ativo,updated_at");
+      .from("broker_mapping").select("user_id,corretor_nome,gerente_nome,ativo,updated_at");
     return data ?? [];
   });
 
 const SetMappingSchema = z.object({
   user_id: z.string().uuid(),
   corretor_nome: z.string().trim().min(1).max(200).nullable(),
+  gerente_nome: z.string().trim().min(1).max(200).nullable().optional(),
 });
 
 export const setBrokerMapping = createServerFn({ method: "POST" })
@@ -28,19 +29,33 @@ export const setBrokerMapping = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => SetMappingSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
-    if (!data.corretor_nome) {
+
+    const corretor = data.corretor_nome ?? null;
+    const gerente = data.gerente_nome ?? null;
+
+    // Se ambos nulos, remove a row.
+    if (!corretor && !gerente) {
       const { error } = await supabaseAdmin.from("broker_mapping").delete().eq("user_id", data.user_id);
       if (error) throw new Error(error.message);
       return { ok: true };
     }
-    // Garante unicidade: um corretor_nome só pode ter um usuário
-    const { data: existing } = await supabaseAdmin
-      .from("broker_mapping").select("user_id").eq("corretor_nome", data.corretor_nome).maybeSingle();
-    if (existing && existing.user_id !== data.user_id)
-      throw new Error("Este nome de corretor já está vinculado a outro usuário.");
+
+    // Garante unicidade do corretor_nome (um corretor → um usuário)
+    if (corretor) {
+      const { data: existing } = await supabaseAdmin
+        .from("broker_mapping").select("user_id").eq("corretor_nome", corretor).maybeSingle();
+      if (existing && existing.user_id !== data.user_id)
+        throw new Error("Este nome de corretor já está vinculado a outro usuário.");
+    }
+
     const { error } = await supabaseAdmin
       .from("broker_mapping")
-      .upsert({ user_id: data.user_id, corretor_nome: data.corretor_nome, ativo: true });
+      .upsert({
+        user_id: data.user_id,
+        corretor_nome: corretor,
+        gerente_nome: gerente,
+        ativo: true,
+      });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
