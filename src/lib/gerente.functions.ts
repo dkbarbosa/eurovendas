@@ -2,6 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Database } from "@/integrations/supabase/types";
+
+type SaleRow = Database["public"]["Tables"]["sales"]["Row"];
+type RequestRow = Database["public"]["Tables"]["commission_requests"]["Row"];
+type DistratoRow = Database["public"]["Tables"]["distratos"]["Row"];
+type DescontoRow = Database["public"]["Tables"]["distrato_descontos"]["Row"];
+
 
 async function getRoles(userId: string) {
   const { data } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId);
@@ -69,10 +76,10 @@ export const getGerenteOverview = createServerFn({ method: "POST" })
     const empty = {
       gerenteNome: null as string | null,
       gerenteUserId: null as string | null,
-      sales: [] as Array<Record<string, unknown>>,
-      requests: [] as Array<Record<string, unknown>>,
-      distratos: [] as Array<Record<string, unknown>>,
-      descontos: [] as Array<Record<string, unknown>>,
+      sales: [] as SaleRow[],
+      requests: [] as RequestRow[],
+      distratos: [] as DistratoRow[],
+      descontos: [] as DescontoRow[],
     };
 
     if (!gerenteNome) return empty;
@@ -86,11 +93,11 @@ export const getGerenteOverview = createServerFn({ method: "POST" })
       .order("data", { ascending: false })
       .limit(5000);
     if (salesErr) throw new Error(salesErr.message);
-    const sales = (salesData ?? []).filter(
+    const sales: SaleRow[] = (salesData ?? []).filter(
       (s) => (s.gerente ?? "").trim().toLowerCase() === nomeNorm,
     );
 
-    let requests: Array<Record<string, unknown>> = [];
+    let requests: RequestRow[] = [];
     if (gerenteUserId) {
       const { data: reqs } = await supabaseAdmin
         .from("commission_requests")
@@ -99,7 +106,7 @@ export const getGerenteOverview = createServerFn({ method: "POST" })
         .eq("requester_role", "gerente")
         .order("created_at", { ascending: false })
         .limit(2000);
-      requests = (reqs ?? []) as unknown as Array<Record<string, unknown>>;
+      requests = reqs ?? [];
     }
 
     const { data: dists } = await supabaseAdmin
@@ -109,29 +116,23 @@ export const getGerenteOverview = createServerFn({ method: "POST" })
       .neq("status", "cancelado")
       .order("created_at", { ascending: false })
       .limit(1000);
-    const distratos = (dists ?? []).filter(
+    const distratos: DistratoRow[] = (dists ?? []).filter(
       (d) => (d.gerente_nome ?? "").trim().toLowerCase() === nomeNorm,
-    ) as unknown as Array<Record<string, unknown>>;
+    );
 
-    const reqIds = requests.map((r) => r.id as string);
-    let descontos: Array<Record<string, unknown>> = [];
+    const reqIds = requests.map((r) => r.id);
+    let descontos: DescontoRow[] = [];
     if (reqIds.length > 0) {
       const { data: dRows } = await supabaseAdmin
         .from("distrato_descontos")
         .select("*")
         .in("commission_request_id", reqIds);
-      descontos = (dRows ?? []) as unknown as Array<Record<string, unknown>>;
+      descontos = dRows ?? [];
     }
 
-    return {
-      gerenteNome,
-      gerenteUserId,
-      sales: sales as unknown as Array<Record<string, unknown>>,
-      requests,
-      distratos,
-      descontos,
-    };
+    return { gerenteNome, gerenteUserId, sales, requests, distratos, descontos };
   });
+
 
 
 // --------- Criar pedido de comissão do gerente ----------
