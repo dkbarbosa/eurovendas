@@ -1,77 +1,74 @@
 
-# RBAC — remover "diretor" e isolar cada papel
+# Painel do Gerente — Plano de Implementação
 
-## Matriz de acesso final
+## Resumo
+Construir uma página `/gerentes` rica para o Gerente (e também acessível ao Admin com seletor de gerente), centralizando vendas da equipe, comissão própria, solicitações, distratos e métricas. Reaproveita as colunas já existentes na tabela `sales` (`comissao_liq_gerente`, `adiant_gerente`, `bonus_gerente`, `pct_gerente`, `gerente`) que já são populadas pelo sync com o Sheets.
 
-| Área / Rota | admin | gerente | corretor | financeiro |
-|---|---|---|---|---|
-| `/` Dashboard | ✓ tudo | ✓ filtrado no time | ✗ | ✗ |
-| `/vendas` | ✓ tudo | ✓ só do time | ✗ | ✗ |
-| `/agendamentos` | ✓ | ✓ | ✗ | ✗ |
-| `/corretores` | ✓ | ✓ só do time | ✗ | ✗ |
-| `/gerentes` | ✓ | ✗ | ✗ | ✗ |
-| `/empreendimentos` | ✓ | ✓ | ✗ | ✗ |
-| `/aprovacoes` | ✓ | ✓ time | ✗ | ✗ |
-| `/insights` | ✓ | ✓ time | ✗ | ✗ |
-| `/comissoes` | ✓ | ✓ próprias | ✓ próprias | ✗ |
-| `/financeiro` (aprovar/negar/solicitar) | ✓ | ✗ | ✗ | ✓ |
-| `/distratos` | ✓ | ✗ | ✗ | ✓ |
-| `/admin/*` | ✓ | ✗ | ✗ | ✗ |
+A sidebar atual fica preservada (decisão do usuário: itens separados). A entrada **Gerentes** passa a ser visível também para o gerente e vira a "casa" dele, com tudo organizado em abas.
 
-Financeiro fica 100% isolado da área comercial (não vê dashboard, vendas, gerentes, corretores, agendamentos, insights, empreendimentos, comissões de outros).
+## Etapa 1 — Banco de dados (migration)
 
-## Mapeamento de time para gerente
+**`commission_requests`** — habilitar pedidos do gerente:
+- `requester_role text` not null default `'corretor'` (valores: `corretor` | `gerente`)
+- `gerente_user_id uuid` nullable
+- Índices: `(gerente_user_id)`, `(requester_role)`
+- Atualizar RLS:
+  - INSERT: permite gerente inserir com `requester_role='gerente'` e `gerente_user_id=auth.uid()`
+  - SELECT: gerente vê os próprios + corretor já vê os dele + staff vê tudo
 
-A tabela `broker_mapping` hoje mapeia user → `corretor_nome`. Para o gerente enxergar o time, vou adicionar uma coluna `gerente_nome` (text, nullable) na mesma tabela. Regra:
-- Se `gerente_nome` preenchido **e** o usuário tem role `gerente` → ele vê `sales WHERE gerente = gerente_nome` (case-insensitive, trim) — mesma lógica usada hoje para corretor.
-- Mesma row pode ter `corretor_nome` e `gerente_nome` (admin que também atua).
-- Tela `/admin/usuarios` ganha campo para amarrar o gerente ao nome dele na planilha.
+**`distratos`** — refletir impacto no gerente:
+- `gerente_user_id uuid` nullable
+- `gerente_nome text` nullable
+- `valor_comissao_gerente numeric` default 0 (snapshot da comissão líquida do gerente naquela venda)
+- RLS SELECT acrescenta cláusula: `gerente_user_id = auth.uid()`
 
-## Mudanças no banco (migration)
+**`distrato_descontos`** — permitir desconto em pedido do gerente:
+- `gerente_user_id uuid` nullable (alternativa a `corretor_user_id`)
+- SELECT: ou corretor_user_id=auth.uid() ou gerente_user_id=auth.uid() ou staff
 
-1. Revogar todos os `user_roles` com `role='diretor'` (move pra `gerente` por padrão — admin pode reajustar depois).
-2. **Não removo o valor do enum** (`app_role`) porque PostgreSQL não suporta DROP VALUE em enum em uso histórico; deixo `diretor` no enum mas sem nenhum efeito prático no app (nenhum policy/função referencia mais). Linter não acusa.
-3. Reescrever policy `sales select own or staff` removendo `has_role(diretor)` e adicionando ramo gerente (sales.gerente = bm.gerente_nome).
-4. Adicionar coluna `broker_mapping.gerente_nome text`.
-5. Funções `app_private.is_admin` / `is_financeiro` permanecem; criar `app_private.is_gerente(uid)` e helper `app_private.gerente_nome_of(uid)`.
+## Etapa 2 — Server functions novas (`src/lib/gerente.functions.ts`)
 
-## Frontend
+- `getGerenteOverview({ from?, to?, gerente_nome? admin })` → retorna:
+  - `gerenteNome`, KPIs agregados (VGV equipe, nº vendas, comissão bruta/líquida gerente, adiantado, a receber, em andamento, distratos)
+  - Série mensal (vendas + comissão gerente)
+  - Breakdown por corretor da equipe (vendas, VGV, comissão corretor, comissão gerente)
+  - Lista de vendas (com saldo a receber por gerente)
+  - Lista de requests do gerente (`requester_role='gerente'`)
+  - Lista de distratos que impactam o gerente
+- `createGerenteCommissionRequest({ sale_id, tipo, valor_solicitado, observacao })` — replica regras do corretor mas usando `comissao_liq_gerente` como base e gravando `requester_role='gerente'`, `gerente_user_id=auth.uid()`.
+- Ajustar `aplicarDescontoDistrato` em `distratos.functions.ts` para aceitar pedido do gerente (matching por gerente_user_id em vez de corretor_user_id).
+- Ajustar `createDistrato` para snapshotar `valor_comissao_gerente`, `gerente_user_id`, `gerente_nome`.
+- Ajustar `listAllRequests` (financeiro) para retornar também pedidos do gerente com o profile correto.
 
-- `src/lib/auth.tsx`:
-  - Remover `isDiretor` e `isStaff` (conceito morto). Introduzir capabilities semânticas: `canManagement` (admin OR gerente), `canFinanceiro` (admin OR financeiro), `canAdmin` (admin), `canCorretor` (admin OR corretor OR gerente para próprias comissões).
-  - `corretorNome` continua; adicionar `gerenteNome` vindo de `getCurrentUserContext`.
-- `src/lib/auth.functions.ts`: retornar `gerenteNome` junto.
-- `src/components/AppShell.tsx`: reescrever blocos da sidebar conforme matriz. Financeiro vê apenas Painel Financeiro. Admin vê tudo. Gerente vê Gestão (sem `/gerentes`) + suas comissões. Corretor vê só Comissões.
-- Adicionar `beforeLoad` em cada route (`/vendas`, `/agendamentos`, `/corretores`, `/gerentes`, `/empreendimentos`, `/aprovacoes`, `/insights`, `/financeiro`, `/distratos`, `/admin/*`, `/comissoes`, `/`) que verifica a capability — se reprova, redireciona pra rota permitida do usuário (financeiro → `/financeiro`, corretor → `/comissoes`, gerente → `/`, sem role → `/login`).
-- Telas que já checam role (financeiro.tsx, comissoes.tsx, admin/*) — substituir `isStaff/isDiretor` pelas novas capabilities; em `comissoes.tsx` o gerente cai no mesmo fluxo do corretor (vê só as próprias).
-- `/admin/usuarios`: remover "diretor" da lista de roles atribuíveis; adicionar campo `gerente_nome` no mapeamento.
+## Etapa 3 — UI
 
-## Backend (server functions)
+**`src/routes/_authenticated/gerentes.tsx`** — substituir o stub por um dashboard com abas:
+1. **Visão Geral** — KPI cards + gráficos (vendas/mês, comissão/mês), filtros de período.
+2. **Vendas da Equipe** — tabela com filtros (corretor, cliente, empreendimento, período).
+3. **Minha Comissão** — tabela das vendas onde ele é gerente, com saldo a receber e botão "Solicitar".
+4. **Solicitações** — pedidos do gerente (pendente/aprovado/pago/negado) + descontos de distrato vinculados.
+5. **Distratos** — distratos que impactam comissão do gerente.
+6. **Equipe** — performance por corretor (ranking, comparativos), reaproveita `setTeamMember`.
 
-- `commissions.functions.ts` linha 44: tirar `diretor` do `isStaff`. Gerente NÃO é staff aqui — vê só dele.
-- `requests.functions.ts`, `nf.functions.ts`, `distratos.functions.ts`: mantêm staff = admin OR financeiro (já estava assim na maior parte). Garantir que gerente é tratado como "corretor comum" para comissões dele.
-- `sales.functions.ts` (caminho de listagem): adicionar branch gerente (filtra por `sales.gerente = gerenteNome`).
-- `agendamentos.functions.ts`: liberar para gerente.
-- Bloquear financeiro em todas as listagens comerciais (sales, agendamentos, insights, etc.) — adicionar assert no início.
+Componentes: `KPICard`, `ChartCard`, recharts (já em uso), filtros com `usePersistentState`.
 
-## Garantias
+**`src/lib/route-access.ts`** — `/gerentes` permitido para `isAdmin || isGerente`.
+**`src/components/AppShell.tsx`** — remove `adminOnly` do item Gerentes; passa a aparecer para o gerente.
+**Admin** — quando admin abre `/gerentes`, exibe `<Select>` com lista de gerentes (`gerente_nome` distintos) para "impersonar" e ver dados de cada um.
 
-- Sem role válido → redireciona pra `/login` (já existe).
-- Cada rota tem duplo gate: `beforeLoad` no router + checagem no server function (defense-in-depth).
-- RLS no banco continua sendo a backstop final.
-- Nenhuma regra de negócio existente é alterada: cálculos de comissão, sync Sheets, Drive, NF, distrato, auditoria — tudo intacto. Só muda **quem enxerga o quê**.
+**`src/routes/_authenticated/comissoes.tsx`** — sem mudança nesta fase; o gerente continua sem acesso por padrão (ele faz tudo dentro de `/gerentes`). Comissões individual dele fica na aba "Minha Comissão" do painel novo.
 
-## Etapas de execução (na ordem)
+**Distratos para Financeiro** — `src/routes/_authenticated/distratos.tsx` (não preciso mexer) já vai exibir o snapshot novo das colunas do gerente nas próximas listagens.
 
-1. Migration: revogar roles diretor → gerente, adicionar `broker_mapping.gerente_nome`, criar `is_gerente`/`gerente_nome_of`, atualizar policy `sales`.
-2. Backend: `auth.functions.ts`, `commissions/sales/agendamentos/requests/nf/distratos.functions.ts`.
-3. `src/lib/auth.tsx` — novas capabilities.
-4. `AppShell` — sidebar nova.
-5. `beforeLoad` em cada route file.
-6. Telas: comissoes.tsx, financeiro.tsx, admin/usuarios.tsx — substituir checks.
-7. Smoke test mental: para cada role, listar rotas visíveis e confirmar matriz.
+## Detalhes técnicos
+- Reaproveita coluna `sales.gerente` (já alimentada pela planilha) para casar com `broker_mapping.gerente_nome`.
+- Comissão do gerente vem da própria planilha (`comissao_liq_gerente` calculada lá); não precisa puxar novas células do Sheets.
+- Regras de adiantamento do gerente: mesma lógica do corretor (1k a cada 2999,99 de sinal; comissão final exige sinal ≥6% do VGV; CAIXA libera; RESERVADO bloqueia).
+- Distratos: snapshot da comissão do gerente é feito no momento da criação (mesmo padrão que já existe para corretor), e o financeiro pode aplicar desconto contra o pedido do gerente exatamente igual ao do corretor.
 
-## Pontos que preciso confirmar
+## O que NÃO entra nesta fase
+- Mudar visual da sidebar (decisão: manter itens separados).
+- Refazer a tela `/comissoes` para o gerente — fica isolado em `/gerentes` para evitar confusão.
+- Pull novo do Google Sheets (dados de gerente já estão sincronizados).
 
-- **OK migrar diretores existentes para `gerente` automaticamente?** Alternativa: deixar sem role (vão cair no /login). Recomendo migrar pra gerente — admin reajusta depois se quiser.
-- **Gerente vê `/aprovacoes` e `/insights` do time?** Plano diz sim. Se preferir só admin, removo.
+Posso iniciar a implementação?

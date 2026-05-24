@@ -39,7 +39,7 @@ export const createDistrato = createServerFn({ method: "POST" })
     // Carrega venda
     const { data: sale, error: saleErr } = await supabaseAdmin
       .from("sales")
-      .select("id,corretor,comprador,empreendimento,unidade,data,valor_venda")
+      .select("id,corretor,gerente,comprador,empreendimento,unidade,data,valor_venda,comissao_liq_gerente")
       .eq("id", data.sale_id)
       .maybeSingle();
     if (saleErr) throw new Error(saleErr.message);
@@ -48,15 +48,19 @@ export const createDistrato = createServerFn({ method: "POST" })
     // Soma de pedidos PAGOS desta venda (referência - não obrigatório)
     const { data: paidRows } = await supabaseAdmin
       .from("commission_requests")
-      .select("id,tipo,valor_solicitado,corretor_user_id")
+      .select("id,tipo,valor_solicitado,corretor_user_id,gerente_user_id,requester_role")
       .eq("sale_id", data.sale_id)
       .eq("status", "pago");
     const items = paidRows ?? [];
-    const valorAdiant = items.filter((r) => r.tipo === "adiantamento").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
-    const valorFinal = items.filter((r) => r.tipo === "comissao_final").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
+    const corretorItems = items.filter((r) => r.requester_role !== "gerente");
+    const gerenteItems = items.filter((r) => r.requester_role === "gerente");
+    const valorAdiant = corretorItems.filter((r) => r.tipo === "adiantamento").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
+    const valorFinal = corretorItems.filter((r) => r.tipo === "comissao_final").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
+    const valorAdiantGer = gerenteItems.filter((r) => r.tipo === "adiantamento").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
+    const valorFinalGer = gerenteItems.filter((r) => r.tipo === "comissao_final").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
 
     // Identifica corretor (do primeiro pedido pago, senão por mapeamento)
-    let corretorUserId: string | null = items.find((r) => r.corretor_user_id)?.corretor_user_id ?? null;
+    let corretorUserId: string | null = corretorItems.find((r) => r.corretor_user_id)?.corretor_user_id ?? null;
     if (!corretorUserId && sale.corretor) {
       const { data: map } = await supabaseAdmin
         .from("broker_mapping")
@@ -67,6 +71,19 @@ export const createDistrato = createServerFn({ method: "POST" })
       corretorUserId = map?.user_id ?? null;
     }
 
+    // Identifica gerente (do pedido pago ou pelo mapping por nome)
+    let gerenteUserId: string | null = gerenteItems.find((r) => r.gerente_user_id)?.gerente_user_id ?? null;
+    if (!gerenteUserId && sale.gerente) {
+      const { data: gmap } = await supabaseAdmin
+        .from("broker_mapping")
+        .select("user_id")
+        .eq("gerente_nome", sale.gerente)
+        .eq("ativo", true)
+        .limit(1)
+        .maybeSingle();
+      gerenteUserId = gmap?.user_id ?? null;
+    }
+
     // Insere o distrato
     const { data: ins, error: insErr } = await supabaseAdmin
       .from("distratos")
@@ -74,12 +91,17 @@ export const createDistrato = createServerFn({ method: "POST" })
         sale_id: sale.id,
         corretor_user_id: corretorUserId,
         corretor_nome: sale.corretor,
+        gerente_user_id: gerenteUserId,
+        gerente_nome: sale.gerente,
         comprador: sale.comprador,
         empreendimento: sale.empreendimento,
         unidade: sale.unidade,
         valor_devolver: data.valor_devolver,
         valor_adiantamento: valorAdiant,
         valor_comissao_final: valorFinal,
+        valor_adiantamento_gerente: valorAdiantGer,
+        valor_comissao_final_gerente: valorFinalGer,
+        valor_comissao_gerente: Number(sale.comissao_liq_gerente) || 0,
         motivo: data.motivo,
         observacao_financeiro: data.observacao_financeiro ?? null,
         created_by: context.userId,
@@ -88,6 +110,7 @@ export const createDistrato = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (insErr) throw new Error(insErr.message);
+
 
     // Marca pedidos pagos como 'distratado' para sair do "a receber"/saldos
     const ids = items.map((r) => r.id);
@@ -284,12 +307,12 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
     const [{ data: dist }, { data: req }] = await Promise.all([
       supabaseAdmin
         .from("distratos")
-        .select("id,corretor_user_id,valor_devolver,valor_devolvido,status")
+        .select("id,corretor_user_id,gerente_user_id,valor_devolver,valor_devolvido,status")
         .eq("id", data.distrato_id)
         .maybeSingle(),
       supabaseAdmin
         .from("commission_requests")
-        .select("id,corretor_user_id,valor_solicitado,desconto_distrato,status")
+        .select("id,corretor_user_id,gerente_user_id,requester_role,valor_solicitado,desconto_distrato,status,sale_id")
         .eq("id", data.commission_request_id)
         .maybeSingle(),
     ]);
@@ -298,8 +321,15 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
     if (dist.status === "cancelado") throw new Error("Distrato cancelado.");
     if (req.status !== "aprovado")
       throw new Error("Desconto só pode ser vinculado a pedidos APROVADOS (ainda não pagos).");
-    if (dist.corretor_user_id && req.corretor_user_id && dist.corretor_user_id !== req.corretor_user_id)
-      throw new Error("Distrato e pedido pertencem a corretores diferentes.");
+
+    const isGerReq = req.requester_role === "gerente";
+    if (isGerReq) {
+      if (dist.gerente_user_id && req.gerente_user_id && dist.gerente_user_id !== req.gerente_user_id)
+        throw new Error("Distrato e pedido pertencem a gerentes diferentes.");
+    } else {
+      if (dist.corretor_user_id && req.corretor_user_id && dist.corretor_user_id !== req.corretor_user_id)
+        throw new Error("Distrato e pedido pertencem a corretores diferentes.");
+    }
 
     const saldoDist = Math.max(0, Number(dist.valor_devolver) - Number(dist.valor_devolvido));
     const descontoAtual = Number(req.desconto_distrato) || 0;
@@ -312,7 +342,8 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
     const { error: insErr } = await supabaseAdmin.from("distrato_descontos").insert({
       distrato_id: data.distrato_id,
       commission_request_id: data.commission_request_id,
-      corretor_user_id: req.corretor_user_id,
+      corretor_user_id: isGerReq ? null : req.corretor_user_id,
+      gerente_user_id: isGerReq ? req.gerente_user_id : null,
       valor_desconto: data.valor_desconto,
       observacao: data.observacao ?? null,
       aplicado_por: context.userId,
@@ -337,6 +368,7 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
 
 // ---------- ESTORNAR DESCONTO ----------
 export const estornarDescontoDistrato = createServerFn({ method: "POST" })

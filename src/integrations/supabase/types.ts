@@ -62,11 +62,13 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           desconto_distrato: number
+          gerente_user_id: string | null
           id: string
           motivo_negacao: string | null
           observacao_corretor: string | null
           observacao_financeiro: string | null
           paid_at: string | null
+          requester_role: string
           sale_id: string
           status: Database["public"]["Enums"]["request_status"]
           tipo: Database["public"]["Enums"]["request_type"]
@@ -83,11 +85,13 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           desconto_distrato?: number
+          gerente_user_id?: string | null
           id?: string
           motivo_negacao?: string | null
           observacao_corretor?: string | null
           observacao_financeiro?: string | null
           paid_at?: string | null
+          requester_role?: string
           sale_id: string
           status?: Database["public"]["Enums"]["request_status"]
           tipo?: Database["public"]["Enums"]["request_type"]
@@ -104,11 +108,13 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           desconto_distrato?: number
+          gerente_user_id?: string | null
           id?: string
           motivo_negacao?: string | null
           observacao_corretor?: string | null
           observacao_financeiro?: string | null
           paid_at?: string | null
+          requester_role?: string
           sale_id?: string
           status?: Database["public"]["Enums"]["request_status"]
           tipo?: Database["public"]["Enums"]["request_type"]
@@ -168,6 +174,7 @@ export type Database = {
           distrato_id: string
           estornado_at: string | null
           estornado_por: string | null
+          gerente_user_id: string | null
           id: string
           observacao: string | null
           status: string
@@ -183,6 +190,7 @@ export type Database = {
           distrato_id: string
           estornado_at?: string | null
           estornado_por?: string | null
+          gerente_user_id?: string | null
           id?: string
           observacao?: string | null
           status?: string
@@ -198,6 +206,7 @@ export type Database = {
           distrato_id?: string
           estornado_at?: string | null
           estornado_por?: string | null
+          gerente_user_id?: string | null
           id?: string
           observacao?: string | null
           status?: string
@@ -216,6 +225,8 @@ export type Database = {
           devolvido_at: string | null
           devolvido_por: string | null
           empreendimento: string | null
+          gerente_nome: string | null
+          gerente_user_id: string | null
           id: string
           motivo: string | null
           observacao_financeiro: string | null
@@ -225,7 +236,10 @@ export type Database = {
           unidade: string | null
           updated_at: string
           valor_adiantamento: number
+          valor_adiantamento_gerente: number
           valor_comissao_final: number
+          valor_comissao_final_gerente: number
+          valor_comissao_gerente: number
           valor_devolver: number
           valor_devolvido: number
         }
@@ -238,6 +252,8 @@ export type Database = {
           devolvido_at?: string | null
           devolvido_por?: string | null
           empreendimento?: string | null
+          gerente_nome?: string | null
+          gerente_user_id?: string | null
           id?: string
           motivo?: string | null
           observacao_financeiro?: string | null
@@ -247,7 +263,10 @@ export type Database = {
           unidade?: string | null
           updated_at?: string
           valor_adiantamento?: number
+          valor_adiantamento_gerente?: number
           valor_comissao_final?: number
+          valor_comissao_final_gerente?: number
+          valor_comissao_gerente?: number
           valor_devolver?: number
           valor_devolvido?: number
         }
@@ -260,6 +279,8 @@ export type Database = {
           devolvido_at?: string | null
           devolvido_por?: string | null
           empreendimento?: string | null
+          gerente_nome?: string | null
+          gerente_user_id?: string | null
           id?: string
           motivo?: string | null
           observacao_financeiro?: string | null
@@ -269,7 +290,10 @@ export type Database = {
           unidade?: string | null
           updated_at?: string
           valor_adiantamento?: number
+          valor_adiantamento_gerente?: number
           valor_comissao_final?: number
+          valor_comissao_final_gerente?: number
+          valor_comissao_gerente?: number
           valor_devolver?: number
           valor_devolvido?: number
         }
