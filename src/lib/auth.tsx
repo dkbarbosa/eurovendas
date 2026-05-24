@@ -153,7 +153,7 @@ export function useAuth() {
  */
 export function homeRouteForRoles(roles: string[]): string {
   if (roles.includes("admin")) return "/";
-  if (roles.includes("gerente")) return "/";
+  if (roles.includes("gerente")) return "/gerentes";
   if (roles.includes("financeiro")) return "/financeiro";
   if (roles.includes("corretor")) return "/comissoes";
   return "/login";

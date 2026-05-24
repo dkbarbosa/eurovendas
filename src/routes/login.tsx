@@ -1,7 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Building2, Loader2, Mail, Lock, ArrowRight, ShieldCheck, TrendingUp, Sparkles } from "lucide-react";
+import {
+  Building2, Loader2, Mail, Lock, ArrowRight, ShieldCheck, Sparkles,
+  Crown, UserCog, Wallet, Receipt,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +15,28 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+type RoleKey = "admin" | "gerente" | "corretor" | "financeiro";
+
+const ROLES: Array<{
+  key: RoleKey;
+  label: string;
+  short: string;
+  icon: typeof Crown;
+  caption: string;
+}> = [
+  { key: "admin",      label: "Administrador", short: "Admin",      icon: Crown,   caption: "Controle total · mecanismo da empresa" },
+  { key: "gerente",    label: "Gerente",       short: "Gerência",   icon: UserCog, caption: "Painel da equipe · metas e comissões" },
+  { key: "corretor",   label: "Corretor",      short: "Corretor",   icon: Wallet,  caption: "Suas vendas e comissões em tempo real" },
+  { key: "financeiro", label: "Financeiro",    short: "Financeiro", icon: Receipt, caption: "Pagamentos, NFs e distratos" },
+];
+
 function LoginPage() {
   const { signIn, session, loading } = useAuth();
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [role, setRole] = useState<RoleKey>("admin");
 
   useEffect(() => {
     if (!loading && session) nav({ to: "/" });
@@ -29,11 +48,15 @@ function LoginPage() {
     try {
       const { error } = await signIn(email, password);
       if (error) toast.error(error);
+      // redireciono pra "/" — o AuthLayout vai mandar pra home certa da role
       else nav({ to: "/" });
     } finally {
       setSubmitting(false);
     }
   }
+
+  const active = ROLES.find((r) => r.key === role)!;
+  const ActiveIcon = active.icon;
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-background">
@@ -57,7 +80,7 @@ function LoginPage() {
         />
       </div>
 
-      <div className="min-h-screen grid lg:grid-cols-2">
+      <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
         {/* Brand panel */}
         <motion.div
           initial={{ opacity: 0, x: -16 }}
@@ -73,9 +96,9 @@ function LoginPage() {
               <Building2 className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <div className="font-display font-semibold text-lg leading-none">Gestão Comercial</div>
+              <div className="font-display font-semibold text-lg leading-none">Euro Empreendimentos</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-1.5">
-                Euro Empreendimentos
+                Sistema Premium · Topo de linha
               </div>
             </div>
           </div>
@@ -83,46 +106,54 @@ function LoginPage() {
           <div className="space-y-8 max-w-lg">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/60 bg-card/40 backdrop-blur text-xs text-muted-foreground">
               <Sparkles className="w-3.5 h-3.5" style={{ color: "hsl(var(--primary))" }} />
-              Plataforma executiva 2026
+              Plataforma exclusiva · 2026
             </div>
             <h2 className="font-display text-4xl xl:text-5xl font-semibold tracking-tight leading-[1.05]">
-              Inteligência comercial para
+              Informação e automação
               <span
                 className="block bg-clip-text text-transparent"
                 style={{ backgroundImage: "var(--gradient-primary)" }}
               >
-                decisões precisas.
+                em um só painel.
               </span>
             </h2>
             <p className="text-muted-foreground text-base leading-relaxed">
-              Acompanhe vendas, aprovações de crédito e a performance dos corretores em um único painel
-              corporativo, com dados em tempo real.
+              Cada perfil acessa o painel sincronizado com a planilha em tempo real —
+              decisões precisas, comissões automatizadas e total controle do mecanismo da empresa.
             </p>
 
-            <div className="grid grid-cols-1 gap-3 pt-2">
-              {[
-                { icon: TrendingUp, title: "Visão de portfólio", desc: "KPIs consolidados de vendas e funil." },
-                { icon: ShieldCheck, title: "Aprovações de crédito", desc: "Status, condições e taxa de conversão." },
-              ].map((f, i) => (
-                <motion.div
-                  key={f.title}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + i * 0.08, duration: 0.5 }}
-                  className="flex items-start gap-3 p-4 rounded-xl border border-border/60 bg-card/40 backdrop-blur"
-                >
-                  <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ background: "var(--gradient-primary)" }}
+            {/* roles preview cards */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              {ROLES.map((r, i) => {
+                const Icon = r.icon;
+                const isActive = r.key === role;
+                return (
+                  <motion.button
+                    key={r.key}
+                    type="button"
+                    onClick={() => setRole(r.key)}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 + i * 0.06, duration: 0.5 }}
+                    className={`text-left p-4 rounded-xl border backdrop-blur transition-all ${
+                      isActive
+                        ? "border-primary/40 bg-card/70"
+                        : "border-border/60 bg-card/30 hover:border-border hover:bg-card/50"
+                    }`}
                   >
-                    <f.icon className="w-4 h-4 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm">{f.title}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{f.desc}</div>
-                  </div>
-                </motion.div>
-              ))}
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                        style={{ background: isActive ? "var(--gradient-primary)" : "hsl(var(--secondary))" }}
+                      >
+                        <Icon className={`w-4 h-4 ${isActive ? "text-primary-foreground" : "text-foreground"}`} />
+                      </div>
+                      <div className="font-medium text-sm">{r.short}</div>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-2 leading-snug">{r.caption}</div>
+                  </motion.button>
+                );
+              })}
             </div>
           </div>
 
@@ -140,24 +171,63 @@ function LoginPage() {
             className="w-full max-w-md"
           >
             <div className="glass-card p-8 sm:p-10 relative">
-              {/* top accent bar */}
               <div
                 className="absolute top-0 left-8 right-8 h-px opacity-60"
                 style={{ background: "var(--gradient-primary)" }}
               />
 
-              <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-3">
-                Área restrita
+              {/* role tabs */}
+              <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-secondary/40 border border-border/60 mb-6">
+                {ROLES.map((r) => {
+                  const Icon = r.icon;
+                  const isActive = r.key === role;
+                  return (
+                    <button
+                      key={r.key}
+                      type="button"
+                      onClick={() => setRole(r.key)}
+                      className={`relative flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg text-[11px] font-medium transition-colors ${
+                        isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId="login-role-pill"
+                          className="absolute inset-0 rounded-lg"
+                          style={{ background: "var(--gradient-primary)" }}
+                          transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                        />
+                      )}
+                      <Icon className="w-3.5 h-3.5 relative z-10" />
+                      <span className="relative z-10">{r.short}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <h1 className="font-display text-3xl font-semibold tracking-tight">Gestão Comercial</h1>
-              <p className="text-sm text-muted-foreground mt-2">
-                Entre com suas credenciais corporativas para continuar.
-              </p>
 
-              <form onSubmit={handleSubmit} className="space-y-5 mt-8">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={role}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">
+                    <ActiveIcon className="w-3.5 h-3.5" />
+                    Acesso · {active.label}
+                  </div>
+                  <h1 className="font-display text-3xl font-semibold tracking-tight">
+                    Entrar na plataforma
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-2">{active.caption}.</p>
+                </motion.div>
+              </AnimatePresence>
+
+              <form onSubmit={handleSubmit} className="space-y-5 mt-7">
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-xs uppercase tracking-wider text-muted-foreground">
-                    E-mail
+                    E-mail corporativo
                   </Label>
                   <div className="relative">
                     <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -201,16 +271,16 @@ function LoginPage() {
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <span className="inline-flex items-center gap-2">
-                      Entrar
+                      Entrar como {active.short}
                       <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                     </span>
                   )}
                 </Button>
               </form>
 
-              <div className="flex items-center gap-2 mt-8 pt-6 border-t border-border/60 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 mt-7 pt-6 border-t border-border/60 text-xs text-muted-foreground">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                Conexão segura · Acesso somente para colaboradores autorizados.
+                Conexão segura · Seu perfil é validado automaticamente após o login.
               </div>
             </div>
           </motion.div>
