@@ -1465,10 +1465,11 @@ function RequestPill({ r, descontos = [] }: { r: { id: string; tipo: string; val
   const desc = Number(r.desconto_distrato) || 0;
   const liquido = Math.max(0, Number(r.valor_solicitado) - desc);
   const ativos = descontos.filter((d) => d.status === "aplicado");
+  const label = desc > 0 && (r.status === "aprovado" || r.status === "pago") ? `${s.l}/Reajustada` : s.l;
   return (
     <div className="inline-flex flex-col gap-0.5">
       <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] rounded-full border ${s.c}`} title={r.motivo_negacao ?? undefined}>
-        {s.i}<FileText className="w-3 h-3" /> {r.tipo === "adiantamento" ? "Adiant." : "Comiss."}: {BRL(r.valor_solicitado)} · {s.l}
+        {s.i}<FileText className="w-3 h-3" /> {r.tipo === "adiantamento" ? "Adiant." : "Comiss."}: {BRL(r.valor_solicitado)} · {label}
       </div>
       {desc > 0 && (
         <Popover>
