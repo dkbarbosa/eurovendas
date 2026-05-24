@@ -443,7 +443,7 @@ function GerentesPage() {
                 </thead>
                 <tbody>
                   {filteredSales.length === 0 && (
-                    <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
+                    <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
                   )}
                   {filteredSales.map((s) => {
                     const comLiq = Number(s.comissao_liq_gerente) || 0;
