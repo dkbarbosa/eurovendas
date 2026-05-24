@@ -28,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
-  Loader2, DollarSign, ShoppingBag, TrendingUp, Trophy, Building2, Award,
+  Loader2, DollarSign, ShoppingBag, TrendingUp, Trophy, Building2,
   CalendarDays, Filter, CircleDot, Users, UserPlus, UserMinus, Search,
 } from "lucide-react";
 
