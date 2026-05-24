@@ -675,6 +675,26 @@ function AdvancesTab() {
                                       <Paperclip className="w-3 h-3" /> Comprovante
                                     </a>
                                   )}
+                                  {(r as { nf_info?: { id: string; numero: string | null; hasFile1: boolean; hasFile2: boolean } | null }).nf_info?.hasFile1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadNF((r as { nf_info: { id: string } }).nf_info.id, "1")}
+                                      className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition"
+                                      title={`Baixar nota fiscal${(r as { nf_info?: { numero?: string | null } }).nf_info?.numero ? ` #${(r as { nf_info: { numero: string } }).nf_info.numero}` : ""}`}
+                                    >
+                                      <Download className="w-3 h-3" /> Nota fiscal
+                                    </button>
+                                  )}
+                                  {(r as { nf_info?: { id: string; hasFile2: boolean } | null }).nf_info?.hasFile2 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadNF((r as { nf_info: { id: string } }).nf_info.id, "2")}
+                                      className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition"
+                                      title="Baixar promissória"
+                                    >
+                                      <Download className="w-3 h-3" /> Promissória
+                                    </button>
+                                  )}
                                 </div>
                                 {r.observacao_corretor && (
                                   <div className="mt-2 rounded-md border border-sky-500/30 bg-sky-500/5 p-2">
