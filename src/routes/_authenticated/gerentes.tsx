@@ -297,12 +297,22 @@ function GerentesPage() {
                 <div className="text-sm font-medium mb-3">Comissão por mês</div>
                 <div className="h-64">
                   <ResponsiveContainer>
-                    <BarChart data={monthly}>
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                      <XAxis dataKey="mes" fontSize={11} />
-                      <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                      <Tooltip formatter={(v: number) => BRL(v)} />
-                      <Bar dataKey="comissao" fill="oklch(0.65 0.18 250)" radius={[4, 4, 0, 0]} />
+                    <BarChart data={monthly} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="grGerCom" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(var(--primary) / 0.95)" />
+                          <stop offset="100%" stopColor="hsl(var(--primary) / 0.35)" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} vertical={false} />
+                      <XAxis dataKey="mes" fontSize={11} stroke="hsl(var(--muted-foreground))" tickLine={false} axisLine={false} />
+                      <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                      <Tooltip
+                        cursor={{ fill: "hsl(var(--muted) / 0.4)" }}
+                        contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                        formatter={(v: number) => BRL(v)}
+                      />
+                      <Bar dataKey="comissao" fill="url(#grGerCom)" radius={[6, 6, 0, 0]} maxBarSize={48} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -311,12 +321,15 @@ function GerentesPage() {
                 <div className="text-sm font-medium mb-3">VGV por mês</div>
                 <div className="h-64">
                   <ResponsiveContainer>
-                    <LineChart data={monthly}>
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                      <XAxis dataKey="mes" fontSize={11} />
-                      <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                      <Tooltip formatter={(v: number) => BRL(v)} />
-                      <Line dataKey="vgv" stroke="oklch(0.72 0.16 160)" strokeWidth={2} dot={false} />
+                    <LineChart data={monthly} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} vertical={false} />
+                      <XAxis dataKey="mes" fontSize={11} stroke="hsl(var(--muted-foreground))" tickLine={false} axisLine={false} />
+                      <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                      <Tooltip
+                        contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                        formatter={(v: number) => BRL(v)}
+                      />
+                      <Line dataKey="vgv" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 3, fill: "hsl(var(--primary))" }} activeDot={{ r: 5 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
