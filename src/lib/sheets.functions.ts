@@ -51,6 +51,23 @@ export const syncFromSheets = createServerFn({ method: "POST" })
     await assertAdmin(context.userId);
 
     try {
+      // Idempotência: aborta se já há sync em andamento iniciado há < 5 minutos.
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: inFlight } = await supabaseAdmin
+        .from("sync_log")
+        .select("id, started_at")
+        .eq("status", "running")
+        .gte("started_at", fiveMinAgo)
+        .limit(1)
+        .maybeSingle();
+      if (inFlight) {
+        return {
+          ok: false,
+          rows: 0,
+          error: "Já existe uma sincronização em andamento. Aguarde a finalização.",
+        };
+      }
+
       const cfg = await readConfig();
       const spreadsheetIdRaw = (cfg.sheets_spreadsheet_id as string) || "";
       const range = (cfg.sheets_range as string) || "Equipe Maicon!A:U";
@@ -71,6 +88,7 @@ export const syncFromSheets = createServerFn({ method: "POST" })
         .select("id")
         .single();
       const logId = log?.id;
+
 
       try {
         const url = `${GATEWAY}/spreadsheets/${spreadsheetId}/values/${range}?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
