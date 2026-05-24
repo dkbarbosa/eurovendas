@@ -276,12 +276,15 @@ export type Database = {
           cancelada_at: string | null
           corretor_user_id: string | null
           created_at: string
+          desconto_distrato: number
+          distrato_id: string | null
           drive_file_id: string | null
           drive_file_id_2: string | null
           emitida_at: string | null
           id: string
           numero_nf: string | null
           observacao_corretor: string | null
+          observacao_distrato: string | null
           observacao_financeiro: string | null
           observacao_recebimento: string | null
           paga_at: string | null
@@ -299,12 +302,15 @@ export type Database = {
           cancelada_at?: string | null
           corretor_user_id?: string | null
           created_at?: string
+          desconto_distrato?: number
+          distrato_id?: string | null
           drive_file_id?: string | null
           drive_file_id_2?: string | null
           emitida_at?: string | null
           id?: string
           numero_nf?: string | null
           observacao_corretor?: string | null
+          observacao_distrato?: string | null
           observacao_financeiro?: string | null
           observacao_recebimento?: string | null
           paga_at?: string | null
@@ -322,12 +328,15 @@ export type Database = {
           cancelada_at?: string | null
           corretor_user_id?: string | null
           created_at?: string
+          desconto_distrato?: number
+          distrato_id?: string | null
           drive_file_id?: string | null
           drive_file_id_2?: string | null
           emitida_at?: string | null
           id?: string
           numero_nf?: string | null
           observacao_corretor?: string | null
+          observacao_distrato?: string | null
           observacao_financeiro?: string | null
           observacao_recebimento?: string | null
           paga_at?: string | null
@@ -345,6 +354,13 @@ export type Database = {
             columns: ["corretor_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nf_requests_distrato_id_fkey"
+            columns: ["distrato_id"]
+            isOneToOne: false
+            referencedRelation: "distratos"
             referencedColumns: ["id"]
           },
           {
