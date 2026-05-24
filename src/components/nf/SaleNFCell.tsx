@@ -200,10 +200,18 @@ export function NFEmitDialog({
               <Input value={form.numero_nf} onChange={(e) => setForm({ ...form, numero_nf: e.target.value })} maxLength={80} />
             </div>
             <div className="space-y-1.5">
-              <Label>Valor da NF (R$) *</Label>
-              <CurrencyInput value={form.valor_nf} onValueChange={(v) => setForm({ ...form, valor_nf: v ?? 0 })} />
+              <Label>Valor da NF (R$) · aprovado</Label>
+              <Input
+                value={BRL(form.valor_nf || 0)}
+                readOnly
+                disabled
+                className="bg-muted/40 text-foreground font-medium cursor-not-allowed"
+              />
             </div>
           </div>
+
+          {nf?.requester_role && <RoleRulesBlock role={nf.requester_role} />}
+
 
           <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5">
             <div className="flex items-center justify-between mb-2">
