@@ -37,6 +37,50 @@ export async function getOrCreateDriveFolder(name: string, parentId: string = NF
   return created.id;
 }
 
+// Tipos fixos de subpasta por corretor
+export type CorretorDocTipo = "NF" | "Promissórias" | "Contratos" | "Documentos Pessoais" | "Outros";
+
+// Subpastas que organizam por Empreendimento → Cliente
+const NESTED_TIPOS: ReadonlySet<CorretorDocTipo> = new Set(["NF", "Promissórias", "Contratos"]);
+
+function sanitizeSegment(s: string | null | undefined): string {
+  return (s ?? "")
+    .toString()
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 200) || "sem-nome";
+}
+
+/**
+ * Garante a árvore de pastas no Drive para um corretor e retorna o folderId final.
+ *
+ * Estrutura:
+ *   📁 NFs (raiz)
+ *      └── 📁 {Corretor}
+ *           ├── 📁 NF                  → /{Empreendimento}/{Cliente}
+ *           ├── 📁 Promissórias        → /{Empreendimento}/{Cliente}
+ *           ├── 📁 Contratos           → /{Empreendimento}/{Cliente}
+ *           ├── 📁 Documentos Pessoais
+ *           └── 📁 Outros
+ *
+ * É idempotente: reutiliza pastas existentes com mesmo nome (não duplica).
+ */
+export async function getCorretorDocFolder(opts: {
+  corretor: string;
+  tipo: CorretorDocTipo;
+  empreendimento?: string | null;
+  cliente?: string | null;
+}): Promise<string> {
+  const corretorFolder = await getOrCreateDriveFolder(sanitizeSegment(opts.corretor), NF_DRIVE_FOLDER_ID);
+  const tipoFolder = await getOrCreateDriveFolder(opts.tipo, corretorFolder);
+  if (!NESTED_TIPOS.has(opts.tipo)) return tipoFolder;
+  if (!opts.empreendimento) return tipoFolder;
+  const empFolder = await getOrCreateDriveFolder(sanitizeSegment(opts.empreendimento), tipoFolder);
+  if (!opts.cliente) return empFolder;
+  return getOrCreateDriveFolder(sanitizeSegment(opts.cliente), empFolder);
+}
+
 export async function uploadFileToDriveFolder(opts: {
   buffer: Uint8Array;
   filename: string;
