@@ -612,17 +612,46 @@ function AdvancesTab() {
                             <tr key={r.id} className="border-t border-border/40 align-top">
                               <td className="px-3 py-2 whitespace-nowrap text-xs">{new Date(r.created_at).toLocaleDateString("pt-BR")}</td>
                               <td className="px-3 py-2">
-                                {r.tipo === "adiantamento" ? (
-                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-amber-300">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_currentColor]" />
-                                    Adiant.
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-300">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_currentColor]" />
-                                    Comiss.
-                                  </span>
-                                )}
+                                <div className="flex flex-col gap-1.5">
+                                  {r.tipo === "adiantamento" ? (
+                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-amber-300 w-fit">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_currentColor]" />
+                                      Adiant.
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-300 w-fit">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_currentColor]" />
+                                      Comiss.
+                                    </span>
+                                  )}
+                                  {(() => {
+                                    const role = (r as { requester_role?: string }).requester_role;
+                                    const gerProf = (r as { gerente_profile?: { display_name?: string | null; email?: string | null } | null }).gerente_profile;
+                                    const corProf = (r as { corretor_profile?: { display_name?: string | null; email?: string | null } | null }).corretor_profile;
+                                    if (role === "gerente") {
+                                      const nome = gerProf?.display_name ?? gerProf?.email ?? head.sale?.gerente ?? "Gerente";
+                                      return (
+                                        <span
+                                          className="inline-flex items-center gap-1 rounded-md border border-violet-400/50 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 px-2 py-1 text-[10px] font-semibold text-violet-200 w-fit shadow-[0_0_12px_-4px_hsl(280_80%_60%/0.4)]"
+                                          title={`Solicitado pelo gerente ${nome}`}
+                                        >
+                                          <span className="uppercase tracking-wider text-[9px] opacity-80">Pedido do Gerente</span>
+                                          <span className="text-violet-50">· {nome}</span>
+                                        </span>
+                                      );
+                                    }
+                                    const nome = corProf?.display_name ?? corProf?.email ?? head.sale?.corretor ?? "Corretor";
+                                    return (
+                                      <span
+                                        className="inline-flex items-center gap-1 rounded-md border border-sky-400/50 bg-gradient-to-br from-sky-500/20 to-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-sky-200 w-fit shadow-[0_0_12px_-4px_hsl(200_80%_60%/0.4)]"
+                                        title={`Solicitado pelo corretor ${nome}`}
+                                      >
+                                        <span className="uppercase tracking-wider text-[9px] opacity-80">Pedido do Corretor</span>
+                                        <span className="text-sky-50">· {nome}</span>
+                                      </span>
+                                    );
+                                  })()}
+                                </div>
                               </td>
                               <td className="px-3 py-2 text-right whitespace-nowrap font-semibold">{BRL(valor)}</td>
                               <td className="px-3 py-2 text-right whitespace-nowrap text-xs">
