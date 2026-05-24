@@ -524,7 +524,7 @@ function AdvancesTab() {
                         </div>
                         {/* Bloco de identificação: status da venda + sinal de negócio */}
                         <div className="mt-2 inline-flex flex-wrap items-center gap-x-4 gap-y-2">
-                          <SaleStatusEditor saleId={head.sale?.id ?? null} status={head.sale?.status ?? null} canEdit={allowed} />
+                          <SaleStatusEditor saleId={head.sale?.id ?? null} status={head.sale?.status ?? null} canEdit />
 
                           <div className="inline-flex items-center gap-2">
                             <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Sinal de negócio</span>
