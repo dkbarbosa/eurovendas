@@ -30,8 +30,9 @@ const RULES: Rule[] = [
   // Minha Equipe — admin OU gerente
   { match: (p) => p === "/equipe" || p.startsWith("/equipe/"), allow: (c) => c.isAdmin || c.isGerente },
 
-  // Gerentes (cadastro/lista) — só admin
-  { match: (p) => p === "/gerentes" || p.startsWith("/gerentes/"), allow: (c) => c.isAdmin },
+  // Painel do Gerente — admin OU gerente
+  { match: (p) => p === "/gerentes" || p.startsWith("/gerentes/"), allow: (c) => c.isAdmin || c.isGerente },
+
 
   // Área comercial (dashboard, vendas, agendamentos, corretores, empreendimentos,
   // aprovações, insights) — admin OU gerente

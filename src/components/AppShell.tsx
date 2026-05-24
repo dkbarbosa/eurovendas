@@ -32,7 +32,7 @@ const MANAGEMENT_NAV = [
   { to: "/vendas", label: "Vendas", icon: Table2, adminOnly: false },
   { to: "/agendamentos", label: "Agendamentos", icon: CalendarDays, adminOnly: false },
   { to: "/corretores", label: "Corretores", icon: Users, adminOnly: false },
-  { to: "/gerentes", label: "Gerentes", icon: UserCog, adminOnly: true },
+  { to: "/gerentes", label: "Gerentes", icon: UserCog, adminOnly: false },
   { to: "/empreendimentos", label: "Empreendimentos", icon: Building2, adminOnly: false },
   { to: "/aprovacoes", label: "Aprovações", icon: ClipboardCheck, adminOnly: false },
   { to: "/insights", label: "Insights", icon: Sparkles, adminOnly: false },
