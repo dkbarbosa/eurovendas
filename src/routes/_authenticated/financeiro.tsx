@@ -548,9 +548,16 @@ function AdvancesTab() {
                             <span className="inline-flex items-center rounded-full border border-sky-400/40 bg-sky-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-sky-300">{BRL(Number(head.sale?.valor_sinal_negocio) || 0)}</span>
                           </div>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-2">
-                          Corretor: <span className="text-foreground font-medium">{head.corretor_profile?.display_name ?? "—"}</span>
-                          <span className="ml-1 text-muted-foreground/80">({head.corretor_profile?.email})</span>
+                        <div className="text-xs text-muted-foreground mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                          <span>
+                            Corretor: <span className="text-foreground font-medium">{head.corretor_profile?.display_name ?? head.sale?.corretor ?? "—"}</span>
+                            {head.corretor_profile?.email && <span className="ml-1 text-muted-foreground/80">({head.corretor_profile.email})</span>}
+                          </span>
+                          {head.sale?.gerente && (
+                            <span>
+                              Gerente: <span className="text-foreground font-medium">{head.sale.gerente}</span>
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-3 text-xs">
