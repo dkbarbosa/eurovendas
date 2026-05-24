@@ -28,6 +28,11 @@ const DeleteUserSchema = z.object({
   userId: z.string().uuid("ID de usuário inválido"),
 });
 
+const ChangePwSchema = z.object({
+  userId: z.string().uuid("ID de usuário inválido"),
+  password: z.string().min(8, "Senha precisa de no mínimo 8 caracteres").max(128),
+});
+
 
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
@@ -72,7 +77,6 @@ export const inviteUser = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     const uid = created.user!.id;
-    // ensure profile exists (trigger may run async)
     await supabaseAdmin
       .from("profiles")
       .upsert({ id: uid, email: data.email, display_name: data.displayName });
@@ -108,6 +112,19 @@ export const deleteUser = createServerFn({ method: "POST" })
     await assertAdmin(context.userId);
     if (data.userId === context.userId) throw new Error("Você não pode remover a si mesmo.");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Admin altera a senha de qualquer usuário, sem enviar e-mail. */
+export const adminChangeUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string; password: string }) => ChangePwSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      password: data.password,
+    });
     if (error) throw new Error(error.message);
     return { ok: true };
   });

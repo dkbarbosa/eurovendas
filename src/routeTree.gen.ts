@@ -16,9 +16,11 @@ import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
 import { Route as AuthenticatedGerentesRouteImport } from './routes/_authenticated/gerentes'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
+import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedEmpreendimentosRouteImport } from './routes/_authenticated/empreendimentos'
 import { Route as AuthenticatedDistratosRouteImport } from './routes/_authenticated/distratos'
 import { Route as AuthenticatedCorretoresRouteImport } from './routes/_authenticated/corretores'
+import { Route as AuthenticatedContaRouteImport } from './routes/_authenticated/conta'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
@@ -60,6 +62,11 @@ const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
   path: '/financeiro',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedEmpreendimentosRoute =
   AuthenticatedEmpreendimentosRouteImport.update({
     id: '/empreendimentos',
@@ -74,6 +81,11 @@ const AuthenticatedDistratosRoute = AuthenticatedDistratosRouteImport.update({
 const AuthenticatedCorretoresRoute = AuthenticatedCorretoresRouteImport.update({
   id: '/corretores',
   path: '/corretores',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedContaRoute = AuthenticatedContaRouteImport.update({
+  id: '/conta',
+  path: '/conta',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedComissoesRoute = AuthenticatedComissoesRouteImport.update({
@@ -117,9 +129,11 @@ export interface FileRoutesByFullPath {
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
+  '/conta': typeof AuthenticatedContaRoute
   '/corretores': typeof AuthenticatedCorretoresRoute
   '/distratos': typeof AuthenticatedDistratosRoute
   '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/gerentes': typeof AuthenticatedGerentesRoute
   '/insights': typeof AuthenticatedInsightsRoute
@@ -133,9 +147,11 @@ export interface FileRoutesByTo {
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
+  '/conta': typeof AuthenticatedContaRoute
   '/corretores': typeof AuthenticatedCorretoresRoute
   '/distratos': typeof AuthenticatedDistratosRoute
   '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/gerentes': typeof AuthenticatedGerentesRoute
   '/insights': typeof AuthenticatedInsightsRoute
@@ -152,9 +168,11 @@ export interface FileRoutesById {
   '/_authenticated/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
+  '/_authenticated/conta': typeof AuthenticatedContaRoute
   '/_authenticated/corretores': typeof AuthenticatedCorretoresRoute
   '/_authenticated/distratos': typeof AuthenticatedDistratosRoute
   '/_authenticated/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
+  '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/gerentes': typeof AuthenticatedGerentesRoute
   '/_authenticated/insights': typeof AuthenticatedInsightsRoute
@@ -172,9 +190,11 @@ export interface FileRouteTypes {
     | '/agendamentos'
     | '/aprovacoes'
     | '/comissoes'
+    | '/conta'
     | '/corretores'
     | '/distratos'
     | '/empreendimentos'
+    | '/equipe'
     | '/financeiro'
     | '/gerentes'
     | '/insights'
@@ -188,9 +208,11 @@ export interface FileRouteTypes {
     | '/agendamentos'
     | '/aprovacoes'
     | '/comissoes'
+    | '/conta'
     | '/corretores'
     | '/distratos'
     | '/empreendimentos'
+    | '/equipe'
     | '/financeiro'
     | '/gerentes'
     | '/insights'
@@ -206,9 +228,11 @@ export interface FileRouteTypes {
     | '/_authenticated/agendamentos'
     | '/_authenticated/aprovacoes'
     | '/_authenticated/comissoes'
+    | '/_authenticated/conta'
     | '/_authenticated/corretores'
     | '/_authenticated/distratos'
     | '/_authenticated/empreendimentos'
+    | '/_authenticated/equipe'
     | '/_authenticated/financeiro'
     | '/_authenticated/gerentes'
     | '/_authenticated/insights'
@@ -276,6 +300,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/equipe': {
+      id: '/_authenticated/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/empreendimentos': {
       id: '/_authenticated/empreendimentos'
       path: '/empreendimentos'
@@ -295,6 +326,13 @@ declare module '@tanstack/react-router' {
       path: '/corretores'
       fullPath: '/corretores'
       preLoaderRoute: typeof AuthenticatedCorretoresRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/conta': {
+      id: '/_authenticated/conta'
+      path: '/conta'
+      fullPath: '/conta'
+      preLoaderRoute: typeof AuthenticatedContaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/comissoes': {
@@ -346,9 +384,11 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
+  AuthenticatedContaRoute: typeof AuthenticatedContaRoute
   AuthenticatedCorretoresRoute: typeof AuthenticatedCorretoresRoute
   AuthenticatedDistratosRoute: typeof AuthenticatedDistratosRoute
   AuthenticatedEmpreendimentosRoute: typeof AuthenticatedEmpreendimentosRoute
+  AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedGerentesRoute: typeof AuthenticatedGerentesRoute
   AuthenticatedInsightsRoute: typeof AuthenticatedInsightsRoute
@@ -362,9 +402,11 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAgendamentosRoute: AuthenticatedAgendamentosRoute,
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
+  AuthenticatedContaRoute: AuthenticatedContaRoute,
   AuthenticatedCorretoresRoute: AuthenticatedCorretoresRoute,
   AuthenticatedDistratosRoute: AuthenticatedDistratosRoute,
   AuthenticatedEmpreendimentosRoute: AuthenticatedEmpreendimentosRoute,
+  AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedGerentesRoute: AuthenticatedGerentesRoute,
   AuthenticatedInsightsRoute: AuthenticatedInsightsRoute,
