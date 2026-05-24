@@ -113,7 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </>
         )}
 
-        {(isAdmin || isGerente || isCorretor) && (
+        {(isAdmin || isCorretor) && (
           <>
             <SectionLabel className="mt-6">Painel Corretor</SectionLabel>
             <NavLink to="/comissoes" label="Comissões" icon={Wallet}
