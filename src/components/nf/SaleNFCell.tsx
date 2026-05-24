@@ -298,7 +298,6 @@ export function NFEmitDialog({
 export function SaleNFCell({ saleId }: { saleId: string }) {
   const qc = useQueryClient();
   const fnPay = useServerFn(markNFPaid);
-  const fnDownload = useServerFn(downloadNFFile);
   const { data: nfs = [] } = useMyNFs();
   const sNfs = useMemo(() => nfs.filter((n) => n.sale_id === saleId), [nfs, saleId]);
   const nfAberta = useMemo(() => sNfs.find((n) => n.status === "solicitada"), [sNfs]);
@@ -314,20 +313,6 @@ export function SaleNFCell({ saleId }: { saleId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const downloadFile = async (id: string, which: "1" | "2") => {
-    try {
-      const r = await fnDownload({ data: { id, which } }) as { base64: string; contentType: string; filename: string };
-      const bin = atob(r.base64);
-      const buf = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-      const blob = new Blob([buf], { type: r.contentType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = r.filename;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    } catch (e) { toast.error((e as Error).message); }
-  };
 
   if (sNfs.length === 0) return null;
 
