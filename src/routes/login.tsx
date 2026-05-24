@@ -17,7 +17,7 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-type RoleKey = "admin" | "gerente" | "corretor" | "financeiro";
+type RoleKey = "admin" | "diretor" | "gerente" | "corretor" | "financeiro";
 
 const ROLES: Array<{
   key: RoleKey;
@@ -27,6 +27,7 @@ const ROLES: Array<{
   caption: string;
 }> = [
   { key: "admin",      label: "Administrador", short: "Admin",      icon: Crown,   caption: "Controle total · mecanismo da empresa" },
+  { key: "diretor",    label: "Gerente Geral", short: "Ger. Geral", icon: ShieldCheck, caption: "Visão completa · comissão sobre todas as vendas" },
   { key: "gerente",    label: "Gerente",       short: "Gerência",   icon: UserCog, caption: "Painel da equipe · metas e comissões" },
   { key: "corretor",   label: "Corretor",      short: "Corretor",   icon: Wallet,  caption: "Suas vendas e comissões em tempo real" },
   { key: "financeiro", label: "Financeiro",    short: "Financeiro", icon: Receipt, caption: "Pagamentos, NFs e distratos" },
