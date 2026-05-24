@@ -50,23 +50,19 @@ const ROLE_LABEL: Record<string, string> = {
   diretor: "Gestão",
 };
 
+const ROLE_ADIANT: Record<string, string> = {
+  corretor: "R$ 1.000,00",
+  gerente: "R$ 500,00",
+  diretor: "R$ 300,00",
+};
+
 function RoleRulesBlock({ role }: { role: string }) {
-  const rules =
-    role === "gerente"
-      ? [
-          "Adiantamento: sinal mínimo R$ 2.999,99 — R$ 500 a cada R$ 2.999,99 de sinal.",
-          "Comissão final: sinal ≥ 6% do VGV.",
-        ]
-      : role === "diretor"
-        ? [
-            "Comissão de 0,4% sobre o VGV (4,5% de desconto quando COAPHAR = Sim).",
-            "Adiantamento: sinal mínimo R$ 300,00.",
-            "Comissão final: sinal ≥ 6% do VGV.",
-          ]
-        : [
-            "Adiantamento: sinal mínimo R$ 300,00.",
-            "Comissão final: sinal ≥ 6% do VGV.",
-          ];
+  const adiant = ROLE_ADIANT[role] ?? "R$ 1.000,00";
+  const rules = [
+    `Adiantamento (${ROLE_LABEL[role] ?? "Corretor"}): ${adiant} a cada R$ 2.999,99 de sinal (mínimo R$ 2.999,99).`,
+    "Comissão final: sinal ≥ 6% do VGV.",
+    "Comissão cheia: quando o status da venda estiver em Caixa.",
+  ];
   return (
     <div className="rounded-lg border border-amber-400/30 bg-amber-500/5 p-3 text-xs space-y-1.5">
       <div className="font-medium text-amber-300 inline-flex items-center gap-1.5">
