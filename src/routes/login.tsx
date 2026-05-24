@@ -26,9 +26,9 @@ const ROLES: Array<{
   icon: typeof Crown;
   caption: string;
 }> = [
-  { key: "admin",      label: "Administrador", short: "Admin",      icon: Crown,   caption: "Controle total · mecanismo da empresa" },
-  { key: "diretor",    label: "Gerente Geral", short: "Ger. Geral", icon: ShieldCheck, caption: "Visão completa · comissão sobre todas as vendas" },
-  { key: "gerente",    label: "Gerente",       short: "Gerência",   icon: UserCog, caption: "Painel da equipe · metas e comissões" },
+  { key: "admin",      label: "Desenvolvedor", short: "Dev",        icon: Crown,   caption: "Controle total · mecanismo da empresa" },
+  { key: "diretor",    label: "Diretoria",     short: "Diretoria",  icon: ShieldCheck, caption: "Visão completa · comissão sobre todas as vendas" },
+  { key: "gerente",    label: "Gerencia",      short: "Gerencia",   icon: UserCog, caption: "Painel da equipe · metas e comissões" },
   { key: "corretor",   label: "Corretor",      short: "Corretor",   icon: Wallet,  caption: "Suas vendas e comissões em tempo real" },
   { key: "financeiro", label: "Financeiro",    short: "Financeiro", icon: Receipt, caption: "Pagamentos, NFs e distratos" },
 ];
