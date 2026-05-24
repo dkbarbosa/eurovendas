@@ -1098,11 +1098,15 @@ function RequestNFTab() {
       <Dialog open={dialog.open} onOpenChange={(o) => setDialog({ ...dialog, open: o })}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Solicitar emissão de NF</DialogTitle>
+            <DialogTitle>
+              Solicitar emissão de NF — {dialog.requesterRole === "corretor" ? "Corretor" : dialog.requesterRole === "gerente" ? "Gerente" : "Gestão"}
+            </DialogTitle>
             <DialogDescription>
               {dialog.sale && (
                 <span>
-                  <b>{dialog.sale.comprador}</b> · {dialog.sale.empreendimento} / {dialog.sale.unidade} · Corretor: <b>{dialog.sale.corretor}</b>
+                  <b>{dialog.sale.comprador}</b> · {dialog.sale.empreendimento} / {dialog.sale.unidade}
+                  {dialog.requesterRole === "corretor" && <> · Corretor: <b>{dialog.sale.corretor}</b></>}
+                  {dialog.requesterRole === "gerente" && <> · Gerente: <b>{dialog.sale.gerente}</b></>}
                 </span>
               )}
             </DialogDescription>
