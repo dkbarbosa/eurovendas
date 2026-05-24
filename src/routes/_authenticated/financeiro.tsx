@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { listAllRequests, decideRequest, markRequestPaid, deleteCommissionRequest, removeBonusFromRequest } from "@/lib/requests.functions";
 import { listAllNFs, listEligibleSalesForNF, requestNF, confirmNFReceived, cancelNF, deleteNFRequest, downloadNFFile, markNFPaid, listDistratosForSale } from "@/lib/nf.functions";
 import { listPendenciasDistrato, aplicarDescontoDistrato } from "@/lib/distratos.functions";
+import { setSaleStatus } from "@/lib/sales.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -524,28 +525,8 @@ function AdvancesTab() {
                         </div>
                         {/* Bloco de identificação: status da venda + sinal de negócio */}
                         <div className="mt-2 inline-flex flex-wrap items-center gap-x-4 gap-y-2">
-                          {(() => {
-                            const raw = (head.sale?.status ?? "").trim();
-                            const up = raw.toUpperCase();
-                            const cfg: Record<string, { text: string; border: string; bg: string; dot: string }> = {
-                              CAIXA:     { text: "text-emerald-300", border: "border-emerald-400/40", bg: "bg-emerald-500/10", dot: "bg-emerald-400" },
-                              PAGO:      { text: "text-emerald-300", border: "border-emerald-400/40", bg: "bg-emerald-500/10", dot: "bg-emerald-400" },
-                              ASSINADO:  { text: "text-amber-300",   border: "border-amber-400/40",   bg: "bg-amber-500/10",   dot: "bg-amber-400" },
-                              ASSINADA:  { text: "text-amber-300",   border: "border-amber-400/40",   bg: "bg-amber-500/10",   dot: "bg-amber-400" },
-                              RESERVADO: { text: "text-amber-300",   border: "border-amber-400/40",   bg: "bg-amber-500/10",   dot: "bg-amber-400" },
-                              DISTRATO:  { text: "text-rose-300",    border: "border-rose-400/40",    bg: "bg-rose-500/10",    dot: "bg-rose-400" },
-                            };
-                            const s = cfg[up] ?? { text: "text-foreground", border: "border-border/60", bg: "bg-secondary/40", dot: "bg-muted-foreground" };
-                            return (
-                              <div className="inline-flex items-center gap-2">
-                                <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Status venda</span>
-                                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${s.text} ${s.border} ${s.bg}`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full ${s.dot} shadow-[0_0_8px_currentColor]`} />
-                                  {raw || "—"}
-                                </span>
-                              </div>
-                            );
-                          })()}
+                          <SaleStatusEditor saleId={head.sale?.id ?? null} status={head.sale?.status ?? null} canEdit />
+
                           <div className="inline-flex items-center gap-2">
                             <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Sinal de negócio</span>
                             <span className="inline-flex items-center rounded-full border border-sky-400/40 bg-sky-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-sky-300">{BRL(Number(head.sale?.valor_sinal_negocio) || 0)}</span>
@@ -1413,4 +1394,96 @@ function NFStatusBadge({ status }: { status: string }) {
   };
   const label = status === "paga" ? "finalizada" : status;
   return <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border capitalize ${map[status] ?? ""}`}><Receipt className="w-3 h-3" />{label}</span>;
+}
+
+const SALE_STATUS_OPTIONS = ["RESERVADO", "ASSINADO", "CAIXA", "PAGO", "DISTRATO"] as const;
+const SALE_STATUS_STYLES: Record<string, { text: string; border: string; bg: string; dot: string }> = {
+  CAIXA:     { text: "text-emerald-300", border: "border-emerald-400/40", bg: "bg-emerald-500/10", dot: "bg-emerald-400" },
+  PAGO:      { text: "text-emerald-300", border: "border-emerald-400/40", bg: "bg-emerald-500/10", dot: "bg-emerald-400" },
+  ASSINADO:  { text: "text-amber-300",   border: "border-amber-400/40",   bg: "bg-amber-500/10",   dot: "bg-amber-400" },
+  ASSINADA:  { text: "text-amber-300",   border: "border-amber-400/40",   bg: "bg-amber-500/10",   dot: "bg-amber-400" },
+  RESERVADO: { text: "text-amber-300",   border: "border-amber-400/40",   bg: "bg-amber-500/10",   dot: "bg-amber-400" },
+  DISTRATO:  { text: "text-rose-300",    border: "border-rose-400/40",    bg: "bg-rose-500/10",    dot: "bg-rose-400" },
+};
+
+function SaleStatusEditor({ saleId, status, canEdit }: { saleId: string | null; status: string | null; canEdit?: boolean }) {
+  const qc = useQueryClient();
+  const fn = useServerFn(setSaleStatus);
+  const [open, setOpen] = useState(false);
+  const raw = (status ?? "").trim();
+  const up = raw.toUpperCase();
+  const s = SALE_STATUS_STYLES[up] ?? { text: "text-foreground", border: "border-border/60", bg: "bg-secondary/40", dot: "bg-muted-foreground" };
+
+  const mut = useMutation({
+    mutationFn: (next: typeof SALE_STATUS_OPTIONS[number]) =>
+      fn({ data: { sale_id: saleId!, status: next } }),
+    onSuccess: (res) => {
+      toast.success("Status da venda atualizado.");
+      if (res?.sheetWarning) toast.warning(`Planilha: ${res.sheetWarning}`);
+      qc.invalidateQueries({ queryKey: ["all-requests"] });
+      qc.invalidateQueries({ queryKey: ["eligible-sales-nf"] });
+      qc.invalidateQueries({ queryKey: ["all-nfs"] });
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const badge = (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${s.text} ${s.border} ${s.bg} ${canEdit && saleId ? "cursor-pointer hover:brightness-125 transition" : ""}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${s.dot} shadow-[0_0_8px_currentColor]`} />
+      {raw || "—"}
+      {canEdit && saleId ? <span className="text-[9px] opacity-60 ml-0.5">▾</span> : null}
+    </span>
+  );
+
+  if (!canEdit || !saleId) {
+    return (
+      <div className="inline-flex items-center gap-2">
+        <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Status venda</span>
+        {badge}
+      </div>
+    );
+  }
+
+  return (
+    <div className="inline-flex items-center gap-2">
+      <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Status venda</span>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button type="button" disabled={mut.isPending} className="inline-flex">
+            {mut.isPending ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-secondary/40 px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                <Loader2 className="w-3 h-3 animate-spin" /> atualizando…
+              </span>
+            ) : badge}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-48 p-2">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-1 pb-1">Alterar status</div>
+          <div className="flex flex-col gap-1">
+            {SALE_STATUS_OPTIONS.map((opt) => {
+              const cfg = SALE_STATUS_STYLES[opt];
+              const active = opt === up;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  disabled={active || mut.isPending}
+                  onClick={() => mut.mutate(opt)}
+                  className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs transition ${active ? "bg-secondary/60 text-foreground cursor-default" : "hover:bg-secondary/40 text-foreground/90"}`}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                    {opt}
+                  </span>
+                  {active ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : null}
+                </button>
+              );
+            })}
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-2 px-1">Sincroniza com a planilha.</div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
 }
