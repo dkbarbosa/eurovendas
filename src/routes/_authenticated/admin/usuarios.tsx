@@ -32,6 +32,7 @@ function Page() {
   const listMaps = useServerFn(listBrokerMappings);
   const setMap = useServerFn(setBrokerMapping);
   const listBrokers = useServerFn(listDistinctCorretores);
+  const listGerentesSheet = useServerFn(listDistinctGerentes);
   const changePw = useServerFn(adminChangeUserPassword);
   const updateProfile = useServerFn(adminUpdateUserProfile);
   const setCorretorGer = useServerFn(adminSetCorretorGerente);
@@ -39,6 +40,7 @@ function Page() {
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: () => list({}), enabled: isAdmin });
   const { data: maps = [] } = useQuery({ queryKey: ["broker-mappings"], queryFn: () => listMaps(), enabled: isAdmin });
   const { data: brokers = [] } = useQuery({ queryKey: ["distinct-corretores"], queryFn: () => listBrokers(), enabled: isAdmin });
+  const { data: gerentesSheet = [] } = useQuery({ queryKey: ["distinct-gerentes"], queryFn: () => listGerentesSheet(), enabled: isAdmin });
 
   const mapByUser = useMemo(() => new Map(maps.map((m) => [m.user_id, m])), [maps]);
   const gerentes = useMemo(() => users.filter((u) => u.roles.includes("gerente")), [users]);
@@ -60,7 +62,7 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
   const mapMut = useMutation({
-    mutationFn: (v: { user_id: string; corretor_nome: string | null }) => setMap({ data: v }),
+    mutationFn: (v: { user_id: string; corretor_nome: string | null; gerente_nome?: string | null }) => setMap({ data: v }),
     onSuccess: () => { toast.success("Vínculo atualizado."); qc.invalidateQueries({ queryKey: ["broker-mappings"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
