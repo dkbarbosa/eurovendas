@@ -457,7 +457,7 @@ function DiretorPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Valor solicitado</Label>
-                <CurrencyInput value={reqForm.valor} onChange={(v) => setReqForm((f) => ({ ...f, valor: v }))} />
+                <CurrencyInput value={reqForm.valor} onValueChange={(v) => setReqForm((f) => ({ ...f, valor: v }))} />
               </div>
               <div className="space-y-1.5">
                 <Label>Observação</Label>
