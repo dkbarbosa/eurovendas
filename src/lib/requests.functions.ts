@@ -276,6 +276,7 @@ export const listAllRequests = createServerFn({ method: "POST" })
         ...r,
         sale,
         corretor_profile: r.corretor_user_id ? pMap.get(r.corretor_user_id) ?? null : null,
+        gerente_profile: r.gerente_user_id ? pMap.get(r.gerente_user_id) ?? null : null,
         comissao_liq: comissaoLiq,
         adiantado_pago: p.adiantado,
         final_pago: p.final,
