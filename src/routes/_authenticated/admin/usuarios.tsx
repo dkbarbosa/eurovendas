@@ -120,8 +120,10 @@ function Page() {
             {users.map((u) => {
               const map = mapByUser.get(u.id);
               const current = map?.corretor_nome ?? "";
+              const currentGer = map?.gerente_nome ?? "";
               const currentTeam = map?.team_gerente_user_id ?? "";
               const isCorretor = u.roles.includes("corretor");
+              const isGer = u.roles.includes("gerente");
               return (
                 <tr key={u.id} className="border-t border-border">
                   <td className="p-3 font-medium">{u.display_name ?? "—"}</td>
