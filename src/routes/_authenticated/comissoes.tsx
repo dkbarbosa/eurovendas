@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import React, { useMemo, useState } from "react";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 import { listMyBrokerSales, listDistinctCorretores } from "@/lib/commissions.functions";
 import { createCommissionRequest, deleteCommissionRequest, markRequestPaid } from "@/lib/requests.functions";
 import { markNFEmitted, deleteNFRequest, markNFPaid } from "@/lib/nf.functions";
@@ -84,13 +85,16 @@ function ComissoesPage() {
   const fnDistratos = useServerFn(listDistratos);
 
 
-  const [staffSelectedBroker, setStaffSelectedBroker] = useState<string | undefined>(undefined);
+  const [staffSelectedBroker, setStaffSelectedBroker] = usePersistentState<string | undefined>(
+    "comissoes:staffSelectedBroker",
+    undefined,
+  );
   const activeBrokerArg = isStaff ? staffSelectedBroker : undefined;
 
   // ---- Filtros ----
-  const [dateFrom, setDateFrom] = useState<string>(firstDayOfMonth());
-  const [dateTo, setDateTo] = useState<string>(lastDayOfMonth());
-  const [clientSearch, setClientSearch] = useState<string>("");
+  const [dateFrom, setDateFrom] = usePersistentState<string>("comissoes:dateFrom", firstDayOfMonth());
+  const [dateTo, setDateTo] = usePersistentState<string>("comissoes:dateTo", lastDayOfMonth());
+  const [clientSearch, setClientSearch] = usePersistentState<string>("comissoes:clientSearch", "");
 
   const { data: brokers = [] } = useQuery({
     queryKey: ["distinct-corretores"],
@@ -101,10 +105,12 @@ function ComissoesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["my-broker-sales", activeBrokerArg ?? myName],
     queryFn: () => fnSales({ data: activeBrokerArg ? { corretorNome: activeBrokerArg } : undefined }),
-    refetchInterval: 10_000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: "always",
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
+
 
   const allSales = data?.sales ?? [];
   const requests = data?.requests ?? [];
@@ -242,9 +248,12 @@ function ComissoesPage() {
     queryKey: ["distratos-broker", displayName],
     queryFn: () => fnDistratos({ data: {} }),
     enabled: !!displayName,
-    refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
+
   const distratos = useMemo(() => {
     if (!displayName) return [];
     // Para staff impersonando um corretor, filtrar pelo nome; corretor já vê só os seus pelo RLS.
