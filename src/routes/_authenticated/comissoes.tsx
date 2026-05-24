@@ -913,13 +913,18 @@ function ComissoesPage() {
                               const isReservado = stUp === "RESERVADO";
                               const isCaixa = stUp === "CAIXA";
                               const finSolicitou = !!nfAberta;
-                              const allowed = isCaixa || finSolicitou;
+                              // Fluxo: ASSINADO → solicita → aprovado → NF → Pago → Aguardando CAIXA.
+                              // Antes de qualquer pagamento confirmado, o corretor pode solicitar livremente.
+                              // Após um pagamento confirmado, só libera nova solicitação se Status = CAIXA
+                              // ou se o financeiro tiver solicitado a NF.
+                              const jaTevePagamento = totalPagoSale > 0;
+                              const allowed = !isReservado && (!jaTevePagamento || isCaixa || finSolicitou);
                               const blockReason = isReservado
                                 ? "Venda reservada não permite solicitação."
                                 : hasPending
                                   ? "Já existe uma solicitação pendente para esta venda."
                                   : !allowed
-                                    ? "Solicitação disponível apenas quando o Status for CAIXA ou quando o financeiro solicitar a NF."
+                                    ? "Aguardando o Status da venda virar CAIXA (ou o financeiro solicitar a NF) para liberar nova solicitação."
                                     : "";
                               const label = isReservado
                                 ? "Reservado"
@@ -940,6 +945,7 @@ function ComissoesPage() {
                                 </Button>
                               );
                             })()
+
                           )}
 
                           {nfAberta && aReceberSale > 0 && (
