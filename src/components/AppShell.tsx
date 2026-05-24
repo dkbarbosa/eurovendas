@@ -106,10 +106,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {(isAdmin || isGerente) && (
           <>
             <SectionLabel className="mt-6">Painel Gerência</SectionLabel>
-            <NavLink to="/gerentes" label="Painel do Gerente" icon={UserCog}
-              active={loc.pathname === "/gerentes"} onNavigate={() => setMobileOpen(false)} />
-            <NavLink to="/equipe" label="Minha Equipe" icon={Users2}
+            <NavLink to="/equipe" label="Dashboard Gerência" icon={LayoutDashboard}
               active={loc.pathname === "/equipe"} onNavigate={() => setMobileOpen(false)} />
+            <NavLink to="/gerentes" label="Painel Financeiro" icon={Wallet}
+              active={loc.pathname === "/gerentes"} onNavigate={() => setMobileOpen(false)} />
           </>
         )}
 

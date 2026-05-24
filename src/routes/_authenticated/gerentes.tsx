@@ -9,7 +9,6 @@ import {
   listDistinctGerentes,
   createGerenteCommissionRequest,
 } from "@/lib/gerente.functions";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -20,8 +19,8 @@ import { CurrencyInput } from "@/components/CurrencyInput";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  Loader2, Wallet, TrendingUp, Users, Receipt, Ban, Send, Search,
-  CircleDollarSign, Trophy, Clock, FileText, CheckCircle2, Timer,
+  Loader2, Wallet, TrendingUp, Receipt, Ban, Send, Search,
+  CircleDollarSign, Clock, FileText, CheckCircle2, Timer,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -186,19 +185,8 @@ function GerentesPage() {
     return Array.from(map.values()).sort((a, b) => a.mes.localeCompare(b.mes));
   }, [filteredSales]);
 
-  const equipeStats = useMemo(() => {
-    const m = new Map<string, { corretor: string; vendas: number; vgv: number; comCorr: number; comGer: number }>();
-    for (const s of filteredSales) {
-      const nome = s.corretor ?? "—";
-      const cur = m.get(nome) ?? { corretor: nome, vendas: 0, vgv: 0, comCorr: 0, comGer: 0 };
-      cur.vendas += 1;
-      cur.vgv += Number(s.valor_venda) || 0;
-      cur.comCorr += Number(s.comissao_liq_corretor) || 0;
-      cur.comGer += Number(s.comissao_liq_gerente) || 0;
-      m.set(nome, cur);
-    }
-    return Array.from(m.values()).sort((a, b) => b.vgv - a.vgv);
-  }, [filteredSales]);
+
+
 
   // diálogo de solicitação
   const [reqDialog, setReqDialog] = useState<{ open: boolean; sale: (typeof sales)[number] | null }>(
@@ -239,10 +227,10 @@ function GerentesPage() {
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-2">
-        <div className="text-xs uppercase tracking-widest text-muted-foreground">Painel do Gerente</div>
+        <div className="text-xs uppercase tracking-widest text-muted-foreground">Painel Gerência</div>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-display text-3xl font-semibold tracking-tight">Comissões</h1>
+            <h1 className="font-display text-3xl font-semibold tracking-tight">Painel Financeiro</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Visualizando: <b className="text-foreground">{gerenteNome ?? (isAdmin ? "—" : "Sem vínculo")}</b>
             </p>
@@ -315,7 +303,7 @@ function GerentesPage() {
         </div>
       ) : (
         <>
-          {/* KPIs — mesmo padrão do corretor */}
+          {/* KPIs financeiros */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.comGerente)} />
             <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantamentos" value={BRL(kpis.adiantPago)} />
@@ -390,190 +378,165 @@ function GerentesPage() {
             </div>
           </div>
 
+          {/* Solicitações — logo abaixo dos gráficos */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Send className="w-4 h-4 text-primary" />
+              <h2 className="font-display text-xl">Solicitações ao financeiro</h2>
+              <span className="text-xs text-muted-foreground ml-2">
+                {requests.length} no total · {kpis.pendCount} pendente(s)
+              </span>
+            </div>
+            <div className="glass-card p-2 overflow-x-auto">
+              <table className="w-full text-sm min-w-[700px]">
+                <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="text-left p-3">Criado</th>
+                    <th className="text-left p-3">Tipo</th>
+                    <th className="text-right p-3">Valor</th>
+                    <th className="p-3">Status</th>
+                    <th className="text-left p-3">Motivo / Obs.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map((r) => (
+                    <tr key={r.id} className="border-t border-border">
+                      <td className="p-3">{fmtBR(r.created_at)}</td>
+                      <td className="p-3">{r.tipo === "adiantamento" ? "Adiantamento" : "Comissão final"}</td>
+                      <td className="p-3 text-right tabular-nums">{BRL(r.valor_solicitado)}</td>
+                      <td className="p-3"><StatusBadge status={r.status} /></td>
+                      <td className="p-3 text-muted-foreground text-xs">
+                        {r.motivo_negacao ?? r.observacao_financeiro ?? r.observacao_corretor ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                  {requests.length === 0 && (
+                    <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhuma solicitação ainda.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
           {/* Tabela principal de comissão */}
-          <div className="glass-card p-2 overflow-x-auto">
-            <table className="w-full text-sm min-w-[1040px]">
-              <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="text-left p-3">Data</th>
-                  <th className="text-left p-3">Comprador</th>
-                  <th className="text-left p-3">Empreend. / Un.</th>
-                  <th className="text-left p-3">Corretor</th>
-                  <th className="text-right p-3">Venda</th>
-                  <th className="text-right p-3">Comissão Liq.</th>
-                  <th className="text-right p-3">Adiantado</th>
-                  <th className="text-right p-3">A Receber</th>
-                  <th className="text-left p-3">Status</th>
-                  <th className="p-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSales.length === 0 && (
-                  <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
-                )}
-                {filteredSales.map((s) => {
-                  const comLiq = Number(s.comissao_liq_gerente) || 0;
-                  const pago = paidByReq.get(s.id) ?? 0;
-                  const aReceber = Math.max(0, comLiq - pago);
-                  const stUp = (s.status ?? "").trim().toUpperCase();
-                  const blocked = stUp === "RESERVADO" || stUp === "DISTRATO";
-                  const isFinalizada = aReceber <= 0 && comLiq > 0;
-                  return (
-                    <tr key={s.id} className="border-t border-border align-top">
-                      <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
-                      <td className="p-3 font-medium">{s.comprador ?? "—"}</td>
-                      <td className="p-3 text-muted-foreground">
-                        <div>{s.empreendimento ?? "—"}</div>
-                        <div className="text-xs">Unid: {s.unidade ?? "—"}</div>
-                      </td>
-                      <td className="p-3">{s.corretor ?? "—"}</td>
-                      <td className="p-3 text-right tabular-nums whitespace-nowrap">{BRL(s.valor_venda)}</td>
-                      <td className="p-3 text-right tabular-nums whitespace-nowrap font-medium">{BRL(comLiq)}</td>
-                      <td className="p-3 text-right tabular-nums whitespace-nowrap">
-                        <span className={pago > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}>{BRL(pago)}</span>
-                      </td>
-                      <td className="p-3 text-right tabular-nums whitespace-nowrap">
-                        {isFinalizada ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
-                            <CheckCircle2 className="w-3.5 h-3.5" />100% pago
-                          </span>
-                        ) : (
-                          <span className={aReceber > 0 ? "text-primary font-semibold" : "text-muted-foreground"}>{BRL(aReceber)}</span>
-                        )}
-                      </td>
-                      <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
-                      <td className="p-3 text-right">
-                        <Button
-                          size="sm"
-                          disabled={blocked || aReceber <= 0}
-                          onClick={() => openReq(s)}
-                          style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
-                        >
-                          <Send className="w-3 h-3 mr-1" /> Solicitar
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Seções complementares */}
-          <Tabs defaultValue="pedidos" className="w-full">
-            <TabsList className="grid grid-cols-3 w-full md:w-auto">
-              <TabsTrigger value="pedidos">Solicitações</TabsTrigger>
-              <TabsTrigger value="equipe">Equipe</TabsTrigger>
-              <TabsTrigger value="distratos">Distratos</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="pedidos" className="space-y-3 mt-4">
-              <div className="glass-card p-2 overflow-x-auto">
-                <table className="w-full text-sm min-w-[700px]">
-                  <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-                    <tr>
-                      <th className="text-left p-3">Criado</th>
-                      <th className="text-left p-3">Tipo</th>
-                      <th className="text-right p-3">Valor</th>
-                      <th className="p-3">Status</th>
-                      <th className="text-left p-3">Motivo / Obs.</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {requests.map((r) => (
-                      <tr key={r.id} className="border-t border-border">
-                        <td className="p-3">{fmtBR(r.created_at)}</td>
-                        <td className="p-3">{r.tipo === "adiantamento" ? "Adiantamento" : "Comissão final"}</td>
-                        <td className="p-3 text-right tabular-nums">{BRL(r.valor_solicitado)}</td>
-                        <td className="p-3"><StatusBadge status={r.status} /></td>
-                        <td className="p-3 text-muted-foreground text-xs">
-                          {r.motivo_negacao ?? r.observacao_financeiro ?? r.observacao_corretor ?? "—"}
-                        </td>
-                      </tr>
-                    ))}
-                    {requests.length === 0 && (
-                      <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhuma solicitação ainda.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="equipe" className="space-y-3 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Kpi icon={<Users className="w-4 h-4" />} label="Corretores" value={String(equipeStats.length)} />
-                <Kpi icon={<Trophy className="w-4 h-4" />} label="Top VGV" value={equipeStats[0]?.corretor ?? "—"} hint={equipeStats[0] ? BRL(equipeStats[0].vgv) : ""} />
-                <Kpi icon={<Receipt className="w-4 h-4" />} label="Comissão total equipe" value={BRL(equipeStats.reduce((s, e) => s + e.comCorr, 0))} />
-              </div>
-              <div className="glass-card p-2 overflow-x-auto">
-                <table className="w-full text-sm min-w-[700px]">
-                  <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-                    <tr>
-                      <th className="text-left p-3">Corretor</th>
-                      <th className="text-right p-3">Vendas</th>
-                      <th className="text-right p-3">VGV</th>
-                      <th className="text-right p-3">Com. Corretor</th>
-                      <th className="text-right p-3">Com. Gerente</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {equipeStats.map((e) => (
-                      <tr key={e.corretor} className="border-t border-border">
-                        <td className="p-3 font-medium">{e.corretor}</td>
-                        <td className="p-3 text-right tabular-nums">{e.vendas}</td>
-                        <td className="p-3 text-right tabular-nums">{BRL(e.vgv)}</td>
-                        <td className="p-3 text-right tabular-nums">{BRL(e.comCorr)}</td>
-                        <td className="p-3 text-right tabular-nums font-medium">{BRL(e.comGer)}</td>
-                      </tr>
-                    ))}
-                    {equipeStats.length === 0 && (
-                      <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Sem dados de equipe no período.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="distratos" className="space-y-3 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Kpi icon={<Ban className="w-4 h-4" />} label="Distratos ativos" value={String(kpis.distratosCount)} />
-                <Kpi icon={<CircleDollarSign className="w-4 h-4" />} label="Impacto na sua comissão" value={BRL(kpis.distratosImpacto)} />
-              </div>
-              <div className="glass-card p-2 overflow-x-auto">
-                <table className="w-full text-sm min-w-[800px]">
-                  <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-                    <tr>
-                      <th className="text-left p-3">Criado</th>
-                      <th className="text-left p-3">Cliente</th>
-                      <th className="text-left p-3">Empreend./Un.</th>
-                      <th className="text-left p-3">Corretor</th>
-                      <th className="text-right p-3">Devolver</th>
-                      <th className="text-right p-3">Sua comissão</th>
-                      <th className="p-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {distratos.map((d) => (
-                      <tr key={d.id} className="border-t border-border">
-                        <td className="p-3">{fmtBR(d.created_at)}</td>
-                        <td className="p-3 font-medium">{d.comprador ?? "—"}</td>
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-primary" />
+              <h2 className="font-display text-xl">Comissões por venda</h2>
+            </div>
+            <div className="glass-card p-2 overflow-x-auto">
+              <table className="w-full text-sm min-w-[1040px]">
+                <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="text-left p-3">Data</th>
+                    <th className="text-left p-3">Comprador</th>
+                    <th className="text-left p-3">Empreend. / Un.</th>
+                    <th className="text-left p-3">Corretor</th>
+                    <th className="text-right p-3">Venda</th>
+                    <th className="text-right p-3">Comissão Liq.</th>
+                    <th className="text-right p-3">Adiantado</th>
+                    <th className="text-right p-3">A Receber</th>
+                    <th className="text-left p-3">Status</th>
+                    <th className="p-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSales.length === 0 && (
+                    <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
+                  )}
+                  {filteredSales.map((s) => {
+                    const comLiq = Number(s.comissao_liq_gerente) || 0;
+                    const pago = paidByReq.get(s.id) ?? 0;
+                    const aReceber = Math.max(0, comLiq - pago);
+                    const stUp = (s.status ?? "").trim().toUpperCase();
+                    const blocked = stUp === "RESERVADO" || stUp === "DISTRATO";
+                    const isFinalizada = aReceber <= 0 && comLiq > 0;
+                    return (
+                      <tr key={s.id} className="border-t border-border align-top">
+                        <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
+                        <td className="p-3 font-medium">{s.comprador ?? "—"}</td>
                         <td className="p-3 text-muted-foreground">
-                          {d.empreendimento ?? "—"} {d.unidade ? `· ${d.unidade}` : ""}
+                          <div>{s.empreendimento ?? "—"}</div>
+                          <div className="text-xs">Unid: {s.unidade ?? "—"}</div>
                         </td>
-                        <td className="p-3">{d.corretor_nome ?? "—"}</td>
-                        <td className="p-3 text-right tabular-nums">{BRL(d.valor_devolver)}</td>
-                        <td className="p-3 text-right tabular-nums">{BRL(d.valor_comissao_gerente)}</td>
-                        <td className="p-3"><Badge variant="outline">{d.status}</Badge></td>
+                        <td className="p-3">{s.corretor ?? "—"}</td>
+                        <td className="p-3 text-right tabular-nums whitespace-nowrap">{BRL(s.valor_venda)}</td>
+                        <td className="p-3 text-right tabular-nums whitespace-nowrap font-medium">{BRL(comLiq)}</td>
+                        <td className="p-3 text-right tabular-nums whitespace-nowrap">
+                          <span className={pago > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}>{BRL(pago)}</span>
+                        </td>
+                        <td className="p-3 text-right tabular-nums whitespace-nowrap">
+                          {isFinalizada ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                              <CheckCircle2 className="w-3.5 h-3.5" />100% pago
+                            </span>
+                          ) : (
+                            <span className={aReceber > 0 ? "text-primary font-semibold" : "text-muted-foreground"}>{BRL(aReceber)}</span>
+                          )}
+                        </td>
+                        <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
+                        <td className="p-3 text-right">
+                          <Button
+                            size="sm"
+                            disabled={blocked || aReceber <= 0}
+                            onClick={() => openReq(s)}
+                            style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+                          >
+                            <Send className="w-3 h-3 mr-1" /> Solicitar
+                          </Button>
+                        </td>
                       </tr>
-                    ))}
-                    {distratos.length === 0 && (
-                      <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhum distrato impactando sua comissão.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </TabsContent>
-          </Tabs>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Distratos que impactam a comissão */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Ban className="w-4 h-4 text-destructive" />
+              <h2 className="font-display text-xl">Distratos</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Kpi icon={<Ban className="w-4 h-4" />} label="Distratos ativos" value={String(kpis.distratosCount)} />
+              <Kpi icon={<CircleDollarSign className="w-4 h-4" />} label="Impacto na sua comissão" value={BRL(kpis.distratosImpacto)} />
+            </div>
+            <div className="glass-card p-2 overflow-x-auto">
+              <table className="w-full text-sm min-w-[800px]">
+                <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="text-left p-3">Criado</th>
+                    <th className="text-left p-3">Cliente</th>
+                    <th className="text-left p-3">Empreend./Un.</th>
+                    <th className="text-left p-3">Corretor</th>
+                    <th className="text-right p-3">Devolver</th>
+                    <th className="text-right p-3">Sua comissão</th>
+                    <th className="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {distratos.map((d) => (
+                    <tr key={d.id} className="border-t border-border">
+                      <td className="p-3">{fmtBR(d.created_at)}</td>
+                      <td className="p-3 font-medium">{d.comprador ?? "—"}</td>
+                      <td className="p-3 text-muted-foreground">
+                        {d.empreendimento ?? "—"} {d.unidade ? `· ${d.unidade}` : ""}
+                      </td>
+                      <td className="p-3">{d.corretor_nome ?? "—"}</td>
+                      <td className="p-3 text-right tabular-nums">{BRL(d.valor_devolver)}</td>
+                      <td className="p-3 text-right tabular-nums">{BRL(d.valor_comissao_gerente)}</td>
+                      <td className="p-3"><Badge variant="outline">{d.status}</Badge></td>
+                    </tr>
+                  ))}
+                  {distratos.length === 0 && (
+                    <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhum distrato impactando sua comissão.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </>
       )}
 

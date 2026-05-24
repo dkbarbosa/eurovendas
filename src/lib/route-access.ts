@@ -53,7 +53,7 @@ export function canAccess(pathname: string, caps: Caps): boolean {
 /** Rota "home" da role (para onde redirecionar quando a rota atual é proibida). */
 export function homeRouteFor(caps: Caps): string {
   if (caps.isAdmin) return "/";
-  if (caps.isGerente) return "/gerentes";
+  if (caps.isGerente) return "/equipe";
   if (caps.isFinanceiro) return "/financeiro";
   if (caps.isCorretor) return "/comissoes";
   return "/login";
