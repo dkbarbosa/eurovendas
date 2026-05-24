@@ -592,11 +592,15 @@ export const markNFPaid = createServerFn({ method: "POST" })
     const isStaff = roles.includes("financeiro") || roles.includes("admin");
     const { data: nf } = await supabaseAdmin
       .from("nf_requests")
-      .select("id,status,corretor_user_id,sale_id")
+      .select("id,status,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,sale_id")
       .eq("id", data.id)
       .maybeSingle();
     if (!nf) throw new Error("NF não encontrada.");
-    if (!isStaff && nf.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
+    const isOwner =
+      nf.corretor_user_id === context.userId ||
+      nf.gerente_user_id === context.userId ||
+      nf.diretor_user_id === context.userId;
+    if (!isStaff && !isOwner) throw new Error("Acesso negado.");
     if (nf.status !== "paga" && nf.status !== "recebida")
       throw new Error("NF precisa estar recebida para ser marcada como paga.");
 
@@ -609,14 +613,15 @@ export const markNFPaid = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
-    // Cascata: marcar pedidos vinculados (aprovado/pendente) como pagos para sinalizar
-    // no painel do corretor que o processo foi finalizado.
+    // Cascata: marcar como pago apenas os pedidos do MESMO papel para esta venda.
+    // (Pagamento de NF do gerente não fecha pedidos do corretor e vice-versa.)
     if (nf.sale_id) {
       try {
         await supabaseAdmin
           .from("commission_requests")
           .update({ status: "pago", paid_at: new Date().toISOString() })
           .eq("sale_id", nf.sale_id)
+          .eq("requester_role", nf.requester_role ?? "corretor")
           .in("status", ["aprovado", "pendente"]);
       } catch (e) {
         console.error("cascade markRequestPaid from NF:", e);
