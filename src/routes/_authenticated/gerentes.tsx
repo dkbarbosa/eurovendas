@@ -517,7 +517,7 @@ function GerentesPage() {
               </div>
               <div>
                 <Label>Valor solicitado</Label>
-                <CurrencyInput value={reqForm.valor ?? 0} onChange={(v) => setReqForm((f) => ({ ...f, valor: v }))} />
+                <CurrencyInput value={reqForm.valor ?? 0} onValueChange={(v) => setReqForm((f) => ({ ...f, valor: v ?? 0 }))} />
               </div>
               <div>
                 <Label>Observação (opcional)</Label>
