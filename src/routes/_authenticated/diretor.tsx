@@ -414,6 +414,10 @@ function DiretorPage() {
         </>
       )}
 
+      <MinhasNFsSection title="Minhas Notas Fiscais" />
+
+
+
       <Dialog open={reqDialog.open} onOpenChange={(o) => setReqDialog({ open: o, sale: o ? reqDialog.sale : null })}>
         <DialogContent className="max-w-md">
           <DialogHeader>
