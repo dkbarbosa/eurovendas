@@ -366,12 +366,13 @@ function DiretorPage() {
                     <th className="text-right p-3">Sinal</th>
                     <th className="text-right p-3">Comissão (0,4%)</th>
                     <th className="text-right p-3">Recebido</th>
+                    <th className="text-left p-3">Pedidos / NF</th>
                     <th className="p-3">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSales.length === 0 ? (
-                    <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
+                    <tr><td colSpan={12} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
                   ) : filteredSales.map((s) => {
                     const pago = paidBySale.get(s.id) ?? 0;
                     const pend = pendBySale.get(s.id) ?? false;
