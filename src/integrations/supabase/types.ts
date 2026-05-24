@@ -19,6 +19,7 @@ export type Database = {
           ativo: boolean
           corretor_nome: string
           created_at: string
+          gerente_nome: string | null
           updated_at: string
           user_id: string
         }
@@ -26,6 +27,7 @@ export type Database = {
           ativo?: boolean
           corretor_nome: string
           created_at?: string
+          gerente_nome?: string | null
           updated_at?: string
           user_id: string
         }
@@ -33,6 +35,7 @@ export type Database = {
           ativo?: boolean
           corretor_nome?: string
           created_at?: string
+          gerente_nome?: string | null
           updated_at?: string
           user_id?: string
         }
