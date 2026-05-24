@@ -84,13 +84,16 @@ function ComissoesPage() {
   const fnDistratos = useServerFn(listDistratos);
 
 
-  const [staffSelectedBroker, setStaffSelectedBroker] = useState<string | undefined>(undefined);
+  const [staffSelectedBroker, setStaffSelectedBroker] = usePersistentState<string | undefined>(
+    "comissoes:staffSelectedBroker",
+    undefined,
+  );
   const activeBrokerArg = isStaff ? staffSelectedBroker : undefined;
 
   // ---- Filtros ----
-  const [dateFrom, setDateFrom] = useState<string>(firstDayOfMonth());
-  const [dateTo, setDateTo] = useState<string>(lastDayOfMonth());
-  const [clientSearch, setClientSearch] = useState<string>("");
+  const [dateFrom, setDateFrom] = usePersistentState<string>("comissoes:dateFrom", firstDayOfMonth());
+  const [dateTo, setDateTo] = usePersistentState<string>("comissoes:dateTo", lastDayOfMonth());
+  const [clientSearch, setClientSearch] = usePersistentState<string>("comissoes:clientSearch", "");
 
   const { data: brokers = [] } = useQuery({
     queryKey: ["distinct-corretores"],
@@ -101,10 +104,12 @@ function ComissoesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["my-broker-sales", activeBrokerArg ?? myName],
     queryFn: () => fnSales({ data: activeBrokerArg ? { corretorNome: activeBrokerArg } : undefined }),
-    refetchInterval: 10_000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: "always",
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
+
 
   const allSales = data?.sales ?? [];
   const requests = data?.requests ?? [];
