@@ -227,3 +227,57 @@ function ChangePasswordButton({
     </Dialog>
   );
 }
+
+function EditProfileButton({
+  userId, currentName, currentEmail, updateProfile,
+}: {
+  userId: string; currentName: string; currentEmail: string;
+  updateProfile: (args: { data: { userId: string; email: string; displayName: string } }) => Promise<unknown>;
+}) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(currentName);
+  const [email, setEmail] = useState(currentEmail);
+  const mut = useMutation({
+    mutationFn: () => updateProfile({ data: { userId, email, displayName: name } }),
+    onSuccess: () => {
+      toast.success("Usuário atualizado.");
+      setOpen(false);
+      qc.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) { setName(currentName); setEmail(currentEmail); } }}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" title="Editar nome e e-mail">
+          <Pencil className="w-4 h-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar usuário</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Nome</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>E-mail</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <p className="text-xs text-muted-foreground">A alteração vale imediatamente. Sem envio de e-mail de confirmação.</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button disabled={mut.isPending || !name.trim() || !email.trim()} onClick={() => mut.mutate()}
+            style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
+            {mut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
