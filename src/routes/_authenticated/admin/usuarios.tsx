@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { listUsers, inviteUser, setUserRole, deleteUser, adminChangeUserPassword } from "@/lib/users.functions";
+import { listUsers, inviteUser, setUserRole, deleteUser, adminChangeUserPassword, adminUpdateUserProfile } from "@/lib/users.functions";
 import { listBrokerMappings, setBrokerMapping } from "@/lib/broker-mapping.functions";
 import { adminSetCorretorGerente } from "@/lib/team.functions";
 import { listDistinctCorretores } from "@/lib/commissions.functions";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
-import { Loader2, Trash2, UserPlus, Link2, KeyRound } from "lucide-react";
+import { Loader2, Trash2, UserPlus, Link2, KeyRound, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
@@ -32,6 +32,7 @@ function Page() {
   const setMap = useServerFn(setBrokerMapping);
   const listBrokers = useServerFn(listDistinctCorretores);
   const changePw = useServerFn(adminChangeUserPassword);
+  const updateProfile = useServerFn(adminUpdateUserProfile);
   const setCorretorGer = useServerFn(adminSetCorretorGerente);
 
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: () => list({}), enabled: isAdmin });
@@ -161,6 +162,12 @@ function Page() {
                   </td>
                   <td className="p-3 text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <EditProfileButton
+                        userId={u.id}
+                        currentName={u.display_name ?? ""}
+                        currentEmail={u.email ?? ""}
+                        updateProfile={updateProfile}
+                      />
                       <ChangePasswordButton userId={u.id} userLabel={u.display_name ?? u.email ?? ""} changePw={changePw} />
                       <Button variant="ghost" size="icon" onClick={() => { if (confirm("Remover usuário?")) delMut.mutate(u.id); }}>
                         <Trash2 className="w-4 h-4 text-destructive" />
@@ -212,6 +219,60 @@ function ChangePasswordButton({
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button disabled={mut.isPending || pw.length < 8} onClick={() => mut.mutate()}
+            style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
+            {mut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditProfileButton({
+  userId, currentName, currentEmail, updateProfile,
+}: {
+  userId: string; currentName: string; currentEmail: string;
+  updateProfile: (args: { data: { userId: string; email: string; displayName: string } }) => Promise<unknown>;
+}) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(currentName);
+  const [email, setEmail] = useState(currentEmail);
+  const mut = useMutation({
+    mutationFn: () => updateProfile({ data: { userId, email, displayName: name } }),
+    onSuccess: () => {
+      toast.success("Usuário atualizado.");
+      setOpen(false);
+      qc.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) { setName(currentName); setEmail(currentEmail); } }}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" title="Editar nome e e-mail">
+          <Pencil className="w-4 h-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar usuário</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Nome</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>E-mail</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <p className="text-xs text-muted-foreground">A alteração vale imediatamente. Sem envio de e-mail de confirmação.</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button disabled={mut.isPending || !name.trim() || !email.trim()} onClick={() => mut.mutate()}
             style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
             {mut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
           </Button>

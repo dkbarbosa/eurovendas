@@ -33,6 +33,12 @@ const ChangePwSchema = z.object({
   password: z.string().min(8, "Senha precisa de no mínimo 8 caracteres").max(128),
 });
 
+const UpdateProfileSchema = z.object({
+  userId: z.string().uuid("ID de usuário inválido"),
+  email: z.string().trim().toLowerCase().email("E-mail inválido").max(254),
+  displayName: z.string().trim().min(1, "Nome obrigatório").max(120),
+});
+
 
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
@@ -126,5 +132,27 @@ export const adminChangeUserPassword = createServerFn({ method: "POST" })
       password: data.password,
     });
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Admin altera nome e e-mail de qualquer usuário. */
+export const adminUpdateUserProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string; email: string; displayName: string }) =>
+    UpdateProfileSchema.parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      email: data.email,
+      email_confirm: true,
+      user_metadata: { display_name: data.displayName },
+    });
+    if (authErr) throw new Error(authErr.message);
+    const { error: profErr } = await supabaseAdmin
+      .from("profiles")
+      .update({ email: data.email, display_name: data.displayName })
+      .eq("id", data.userId);
+    if (profErr) throw new Error(profErr.message);
     return { ok: true };
   });
