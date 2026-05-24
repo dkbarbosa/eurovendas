@@ -111,6 +111,7 @@ function Page() {
               <th className="text-left p-3">E-mail</th>
               <th className="text-left p-3">Papéis</th>
               <th className="text-left p-3"><Link2 className="w-3 h-3 inline mr-1" />Corretor (planilha)</th>
+              <th className="text-left p-3"><Link2 className="w-3 h-3 inline mr-1" />Gerente (planilha)</th>
               <th className="text-left p-3">Gerente responsável</th>
               <th className="p-3"></th>
             </tr>
