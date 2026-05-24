@@ -28,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
-  Loader2, DollarSign, ShoppingBag, TrendingUp, Trophy, Building2, Award,
+  Loader2, DollarSign, ShoppingBag, TrendingUp, Trophy, Building2,
   CalendarDays, Filter, CircleDot, Users, UserPlus, UserMinus, Search,
 } from "lucide-react";
 
@@ -84,10 +84,11 @@ function Page() {
   // Filtros
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getUTCFullYear()));
-  const [month, setMonth] = useState<string>("all");
+  const [month, setMonth] = useState<string>(String(now.getUTCMonth() + 1));
   const [activeStatuses, setActiveStatuses] = useState<string[]>([]);
   const [corretorFilter, setCorretorFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [growthPeriod, setGrowthPeriod] = useState<"quarter" | "semester" | "year">("quarter");
 
   const years = useMemo(() => {
     const set = new Set<number>();
@@ -139,6 +140,48 @@ function Page() {
     const ticket = vendasCount > 0 ? vgv / vendasCount : 0;
     return { vgv, vendasCount, comGer, comCorr, ticket, distratos };
   }, [filtered]);
+
+  // Crescimento por período (trimestre / semestre / anual) — compara VGV do período atual com o anterior
+  const growth = useMemo(() => {
+    const td = new Date();
+    const y = td.getUTCFullYear();
+    const mo = td.getUTCMonth();
+    let curStart: Date, curEnd: Date, prevStart: Date, prevEnd: Date, label: string;
+    if (growthPeriod === "quarter") {
+      const q = Math.floor(mo / 3);
+      curStart = new Date(Date.UTC(y, q * 3, 1));
+      curEnd = new Date(Date.UTC(y, q * 3 + 3, 1));
+      prevStart = new Date(Date.UTC(y, q * 3 - 3, 1));
+      prevEnd = curStart;
+      label = `T${q + 1}/${y}`;
+    } else if (growthPeriod === "semester") {
+      const s = mo < 6 ? 0 : 1;
+      curStart = new Date(Date.UTC(y, s * 6, 1));
+      curEnd = new Date(Date.UTC(y, s * 6 + 6, 1));
+      prevStart = new Date(Date.UTC(y, s * 6 - 6, 1));
+      prevEnd = curStart;
+      label = `${s === 0 ? "1º" : "2º"} sem/${y}`;
+    } else {
+      curStart = new Date(Date.UTC(y, 0, 1));
+      curEnd = new Date(Date.UTC(y + 1, 0, 1));
+      prevStart = new Date(Date.UTC(y - 1, 0, 1));
+      prevEnd = curStart;
+      label = `${y}`;
+    }
+    let cur = 0, prev = 0, curN = 0, prevN = 0;
+    for (const s of sales) {
+      if (!s.data) continue;
+      const st = (s.status ?? "").toUpperCase().trim();
+      if (st.includes("DISTRATO") || st.includes("CANCEL")) continue;
+      const d = new Date(s.data);
+      const v = Number(s.valor_venda) || 0;
+      if (d >= curStart && d < curEnd) { cur += v; curN += 1; }
+      else if (d >= prevStart && d < prevEnd) { prev += v; prevN += 1; }
+    }
+    const pct = prev > 0 ? ((cur - prev) / prev) * 100 : (cur > 0 ? 100 : null);
+    return { cur, prev, curN, prevN, pct, label };
+  }, [sales, growthPeriod]);
+
 
   // Séries
   const byMonth = useMemo(() => {
@@ -340,24 +383,48 @@ function Page() {
               <Input className="pl-9 h-9 w-56" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cliente / empreend…" />
             </div>
 
-            {(year !== String(now.getUTCFullYear()) || month !== "all" || activeStatuses.length > 0 || corretorFilter !== "all" || search) && (
+            {(year !== String(now.getUTCFullYear()) || month !== String(now.getUTCMonth() + 1) || activeStatuses.length > 0 || corretorFilter !== "all" || search) && (
               <Button variant="ghost" size="sm" className="h-8"
-                onClick={() => { setYear(String(now.getUTCFullYear())); setMonth("all"); setActiveStatuses([]); setCorretorFilter("all"); setSearch(""); }}>
+                onClick={() => { setYear(String(now.getUTCFullYear())); setMonth(String(now.getUTCMonth() + 1)); setActiveStatuses([]); setCorretorFilter("all"); setSearch(""); }}>
                 Limpar
               </Button>
             )}
           </motion.section>
 
           {/* KPIs */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             <KPICard label="VGV Total" value={k.vgv} format={fmtBRLCompact} accent="teal" icon={<DollarSign className="w-4 h-4" />} index={0} />
             <KPICard label="Vendas" value={k.vendasCount} format={fmtNum} accent="azure" icon={<ShoppingBag className="w-4 h-4" />} index={1} />
             <KPICard label="Ticket Médio" value={k.ticket} format={fmtBRLCompact} accent="gold" icon={<TrendingUp className="w-4 h-4" />} index={2} />
-            <KPICard label="Comissão Gerente" value={k.comGer} format={fmtBRLCompact} accent="teal" icon={<Award className="w-4 h-4" />} index={3} />
-            <KPICard label="Comissão Corretores" value={k.comCorr} format={fmtBRLCompact} accent="azure" icon={<Award className="w-4 h-4" />} index={4} />
-            <KPICard label="Top Corretor" value={topCorretor?.name ?? "—"} accent="gold" icon={<Trophy className="w-4 h-4" />} index={5}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 3 * 0.05 }}
+              className={`glass-card p-4 ring-1 ${growth.pct == null ? "ring-border" : growth.pct >= 0 ? "ring-emerald-400/40" : "ring-rose-400/40"}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <TrendingUp className="w-4 h-4" /> Crescimento
+                </div>
+                <Select value={growthPeriod} onValueChange={(v) => setGrowthPeriod(v as "quarter" | "semester" | "year")}>
+                  <SelectTrigger className="h-7 w-[112px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="quarter">Trimestre</SelectItem>
+                    <SelectItem value="semester">Semestre</SelectItem>
+                    <SelectItem value="year">Anual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className={`font-display text-2xl mt-2 ${growth.pct == null ? "" : growth.pct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                {growth.pct == null ? "—" : `${growth.pct >= 0 ? "+" : ""}${growth.pct.toFixed(1)}%`}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-1 truncate">
+                {growth.label} · {fmtBRLCompact(growth.cur)} vs {fmtBRLCompact(growth.prev)}
+              </div>
+            </motion.div>
+            <KPICard label="Top Corretor" value={topCorretor?.name ?? "—"} accent="gold" icon={<Trophy className="w-4 h-4" />} index={4}
               hint={topCorretor ? `${fmtBRLCompact(topCorretor.vgv)} · ${topCorretor.vendas} vendas` : "—"} />
           </section>
+
 
           {/* Charts row 1 */}
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">

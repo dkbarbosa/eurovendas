@@ -44,8 +44,7 @@ const fmtBR = (d: string | null | undefined) => {
 
 const firstDayOfMonth = () =>
   new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
-const lastDayOfMonth = () =>
-  new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10);
+const today = () => new Date().toISOString().slice(0, 10);
 
 function GerentesPage() {
   const { isAdmin, isGerente } = useAuth();
@@ -56,7 +55,7 @@ function GerentesPage() {
     undefined,
   );
   const [dateFrom, setDateFrom] = usePersistentState<string>("gerentes:from", firstDayOfMonth());
-  const [dateTo, setDateTo] = usePersistentState<string>("gerentes:to", lastDayOfMonth());
+  const [dateTo, setDateTo] = usePersistentState<string>("gerentes:to", today());
   const [search, setSearch] = usePersistentState<string>("gerentes:search", "");
   const [corretorFilter, setCorretorFilter] = useState<string>("all");
 
@@ -286,7 +285,7 @@ function GerentesPage() {
           <span>{filteredSales.length} venda(s) no período</span>
           <button
             className="underline hover:text-foreground"
-            onClick={() => { setDateFrom(firstDayOfMonth()); setDateTo(lastDayOfMonth()); setSearch(""); setCorretorFilter("all"); }}
+            onClick={() => { setDateFrom(firstDayOfMonth()); setDateTo(today()); setSearch(""); setCorretorFilter("all"); }}
           >
             Restaurar mês atual
           </button>
