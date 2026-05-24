@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/CurrencyInput";
+import { MinhasNFsSection } from "@/components/nf/MinhasNFsSection";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -413,6 +414,10 @@ function DiretorPage() {
           </section>
         </>
       )}
+
+      <MinhasNFsSection title="Minhas Notas Fiscais" />
+
+
 
       <Dialog open={reqDialog.open} onOpenChange={(o) => setReqDialog({ open: o, sale: o ? reqDialog.sale : null })}>
         <DialogContent className="max-w-md">

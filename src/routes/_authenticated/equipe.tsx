@@ -412,9 +412,10 @@ function Page() {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <TrendingUp className="w-4 h-4" /> Crescimento
                 </div>
-                <Select value={growthPeriod} onValueChange={(v) => setGrowthPeriod(v as "quarter" | "semester" | "year")}>
-                  <SelectTrigger className="h-7 w-[112px] text-xs"><SelectValue /></SelectTrigger>
+                <Select value={growthPeriod} onValueChange={(v) => setGrowthPeriod(v as "month" | "quarter" | "semester" | "year")}>
+                  <SelectTrigger className="h-7 w-[120px] text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="month">Mensal</SelectItem>
                     <SelectItem value="quarter">Trimestre</SelectItem>
                     <SelectItem value="semester">Semestre</SelectItem>
                     <SelectItem value="year">Anual</SelectItem>

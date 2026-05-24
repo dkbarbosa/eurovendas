@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/CurrencyInput";
+import { MinhasNFsSection } from "@/components/nf/MinhasNFsSection";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -538,6 +539,8 @@ function GerentesPage() {
           </section>
         </>
       )}
+
+      <MinhasNFsSection title="Minhas Notas Fiscais" />
 
       {/* Diálogo solicitação */}
       <Dialog open={reqDialog.open} onOpenChange={(open) => !open && setReqDialog({ open: false, sale: null })}>

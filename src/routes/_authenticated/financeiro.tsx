@@ -990,12 +990,13 @@ function RequestNFTab() {
   const [dialog, setDialog] = useState<{
     open: boolean;
     saleId: string | null;
-    sale: { comprador?: string | null; empreendimento?: string | null; unidade?: string | null; corretor?: string | null } | null;
+    sale: { comprador?: string | null; empreendimento?: string | null; unidade?: string | null; corretor?: string | null; gerente?: string | null } | null;
+    requesterRole: "corretor" | "gerente" | "diretor";
     observacao: string;
     distratoId: string;
     valorDesc: string;
     obsDesc: string;
-  }>({ open: false, saleId: null, sale: null, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" });
+  }>({ open: false, saleId: null, sale: null, requesterRole: "corretor", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" });
   const [search, setSearch] = useState("");
 
   const fnDistList = useServerFn(listDistratosForSale);
@@ -1021,14 +1022,14 @@ function RequestNFTab() {
   }, [data, search]);
 
   const reqMut = useMutation({
-    mutationFn: (v: { sale_id: string; observacao?: string; distrato_id?: string; desconto_distrato?: number; observacao_distrato?: string }) => fnRequest({ data: v }),
+    mutationFn: (v: { sale_id: string; requester_role: "corretor" | "gerente" | "diretor"; observacao?: string; distrato_id?: string; desconto_distrato?: number; observacao_distrato?: string }) => fnRequest({ data: v }),
     onSuccess: () => {
-      toast.success("NF solicitada ao corretor.");
+      toast.success("NF solicitada.");
       qc.invalidateQueries({ queryKey: ["nf-eligible"] });
       qc.invalidateQueries({ queryKey: ["all-nfs"] });
       qc.invalidateQueries({ queryKey: ["distratos"] });
       qc.invalidateQueries({ queryKey: ["pendencias-distrato"] });
-      setDialog({ open: false, saleId: null, sale: null, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" });
+      setDialog({ open: false, saleId: null, sale: null, requesterRole: "corretor", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -1069,11 +1070,24 @@ function RequestNFTab() {
                 <td className="p-3 text-right">{BRL(s.comissao_liq_corretor)}</td>
                 <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
                 <td className="p-3 text-right">
-                  <Button size="sm" disabled={!s.mapped_user_id}
-                    onClick={() => setDialog({ open: true, saleId: s.id, sale: s, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}
-                    style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
-                    <FilePlus2 className="w-3.5 h-3.5 mr-1" />Solicitar NF
-                  </Button>
+                  <div className="flex justify-end gap-1.5 flex-wrap">
+                    <Button size="sm" disabled={!s.mapped_user_id || s.has_active_nf_corretor}
+                      onClick={() => setDialog({ open: true, saleId: s.id, sale: s, requesterRole: "corretor", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}
+                      style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+                      title={s.has_active_nf_corretor ? "NF ativa do corretor" : "Solicitar NF ao corretor"}>
+                      <FilePlus2 className="w-3.5 h-3.5 mr-1" />Corretor
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={!s.gerente || s.has_active_nf_gerente}
+                      onClick={() => setDialog({ open: true, saleId: s.id, sale: s, requesterRole: "gerente", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}
+                      title={s.has_active_nf_gerente ? "NF ativa do gerente" : "Solicitar NF ao gerente"}>
+                      <FilePlus2 className="w-3.5 h-3.5 mr-1" />Gerente
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={s.has_active_nf_diretor}
+                      onClick={() => setDialog({ open: true, saleId: s.id, sale: s, requesterRole: "diretor", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}
+                      title={s.has_active_nf_diretor ? "NF ativa da gestão" : "Solicitar NF à gestão"}>
+                      <FilePlus2 className="w-3.5 h-3.5 mr-1" />Gestão
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -1084,11 +1098,15 @@ function RequestNFTab() {
       <Dialog open={dialog.open} onOpenChange={(o) => setDialog({ ...dialog, open: o })}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Solicitar emissão de NF</DialogTitle>
+            <DialogTitle>
+              Solicitar emissão de NF — {dialog.requesterRole === "corretor" ? "Corretor" : dialog.requesterRole === "gerente" ? "Gerente" : "Gestão"}
+            </DialogTitle>
             <DialogDescription>
               {dialog.sale && (
                 <span>
-                  <b>{dialog.sale.comprador}</b> · {dialog.sale.empreendimento} / {dialog.sale.unidade} · Corretor: <b>{dialog.sale.corretor}</b>
+                  <b>{dialog.sale.comprador}</b> · {dialog.sale.empreendimento} / {dialog.sale.unidade}
+                  {dialog.requesterRole === "corretor" && <> · Corretor: <b>{dialog.sale.corretor}</b></>}
+                  {dialog.requesterRole === "gerente" && <> · Gerente: <b>{dialog.sale.gerente}</b></>}
                 </span>
               )}
             </DialogDescription>
@@ -1210,14 +1228,15 @@ function RequestNFTab() {
             <Textarea value={dialog.observacao} onChange={(e) => setDialog({ ...dialog, observacao: e.target.value })} rows={3} maxLength={2000} placeholder="Instruções, prazo, dados de faturamento…" />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialog({ open: false, saleId: null, sale: null, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setDialog({ open: false, saleId: null, sale: null, requesterRole: "corretor", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}>Cancelar</Button>
             <Button disabled={reqMut.isPending || (!!selectedDist && (!(valorDescNum > 0) || valorDescNum > maxDesc + 0.001))}
               onClick={() => reqMut.mutate({
                 sale_id: dialog.saleId!,
+                requester_role: dialog.requesterRole,
                 observacao: dialog.observacao || undefined,
-                distrato_id: selectedDist ? dialog.distratoId : undefined,
-                desconto_distrato: selectedDist && valorDescNum > 0 ? valorDescNum : undefined,
-                observacao_distrato: selectedDist ? (dialog.obsDesc || undefined) : undefined,
+                distrato_id: dialog.requesterRole === "corretor" && selectedDist ? dialog.distratoId : undefined,
+                desconto_distrato: dialog.requesterRole === "corretor" && selectedDist && valorDescNum > 0 ? valorDescNum : undefined,
+                observacao_distrato: dialog.requesterRole === "corretor" && selectedDist ? (dialog.obsDesc || undefined) : undefined,
               })}
               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
               {reqMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar"}
