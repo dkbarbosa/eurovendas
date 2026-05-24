@@ -383,9 +383,9 @@ function Page() {
               <Input className="pl-9 h-9 w-56" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cliente / empreend…" />
             </div>
 
-            {(year !== String(now.getUTCFullYear()) || month !== "all" || activeStatuses.length > 0 || corretorFilter !== "all" || search) && (
+            {(year !== String(now.getUTCFullYear()) || month !== String(now.getUTCMonth() + 1) || activeStatuses.length > 0 || corretorFilter !== "all" || search) && (
               <Button variant="ghost" size="sm" className="h-8"
-                onClick={() => { setYear(String(now.getUTCFullYear())); setMonth("all"); setActiveStatuses([]); setCorretorFilter("all"); setSearch(""); }}>
+                onClick={() => { setYear(String(now.getUTCFullYear())); setMonth(String(now.getUTCMonth() + 1)); setActiveStatuses([]); setCorretorFilter("all"); setSearch(""); }}>
                 Limpar
               </Button>
             )}
