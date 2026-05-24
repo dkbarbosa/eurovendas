@@ -1232,10 +1232,11 @@ function RequestNFTab() {
             <Button disabled={reqMut.isPending || (!!selectedDist && (!(valorDescNum > 0) || valorDescNum > maxDesc + 0.001))}
               onClick={() => reqMut.mutate({
                 sale_id: dialog.saleId!,
+                requester_role: dialog.requesterRole,
                 observacao: dialog.observacao || undefined,
-                distrato_id: selectedDist ? dialog.distratoId : undefined,
-                desconto_distrato: selectedDist && valorDescNum > 0 ? valorDescNum : undefined,
-                observacao_distrato: selectedDist ? (dialog.obsDesc || undefined) : undefined,
+                distrato_id: dialog.requesterRole === "corretor" && selectedDist ? dialog.distratoId : undefined,
+                desconto_distrato: dialog.requesterRole === "corretor" && selectedDist && valorDescNum > 0 ? valorDescNum : undefined,
+                observacao_distrato: dialog.requesterRole === "corretor" && selectedDist ? (dialog.obsDesc || undefined) : undefined,
               })}
               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
               {reqMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar"}
