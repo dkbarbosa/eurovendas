@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { listUsers, inviteUser, setUserRole, deleteUser, adminChangeUserPassword } from "@/lib/users.functions";
+import { listUsers, inviteUser, setUserRole, deleteUser, adminChangeUserPassword, adminUpdateUserProfile } from "@/lib/users.functions";
 import { listBrokerMappings, setBrokerMapping } from "@/lib/broker-mapping.functions";
 import { adminSetCorretorGerente } from "@/lib/team.functions";
 import { listDistinctCorretores } from "@/lib/commissions.functions";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
-import { Loader2, Trash2, UserPlus, Link2, KeyRound } from "lucide-react";
+import { Loader2, Trash2, UserPlus, Link2, KeyRound, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
