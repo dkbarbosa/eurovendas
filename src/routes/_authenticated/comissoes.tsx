@@ -933,14 +933,20 @@ function ComissoesPage() {
                             (() => {
                               const stUp = (s.status ?? "").trim().toUpperCase();
                               const isReservado = stUp === "RESERVADO";
+                              const isAssinado = stUp === "ASSINADO";
                               const isCaixa = stUp === "CAIXA";
                               const finSolicitou = !!nfAberta;
-                              // Fluxo: ASSINADO → solicita → aprovado → NF → Pago → Aguardando CAIXA.
-                              // Antes de qualquer pagamento confirmado, o corretor pode solicitar livremente.
-                              // Após um pagamento confirmado, só libera nova solicitação se Status = CAIXA
-                              // ou se o financeiro tiver solicitado a NF.
-                              const jaTevePagamento = totalPagoSale > 0;
-                              const allowed = !isReservado && (!jaTevePagamento || isCaixa || finSolicitou);
+                              // Fluxo: ASSINADO → Solicitar adiantamento → Aprovado → NF → Pago → CAIXA → Solicitar pagamento (comissão final).
+                              const allowed = !isReservado && !hasPending && (isAssinado || isCaixa || finSolicitou);
+                              const label = isReservado
+                                ? "Reservado"
+                                : hasPending
+                                  ? "Pendente"
+                                  : isAssinado
+                                    ? "Solicitar adiantamento"
+                                    : isCaixa || finSolicitou
+                                      ? "Solicitar pagamento"
+                                      : "Aguardando CAIXA";
                               const blockReason = isReservado
                                 ? "Venda reservada não permite solicitação."
                                 : hasPending
@@ -948,18 +954,11 @@ function ComissoesPage() {
                                   : !allowed
                                     ? "Aguardando o Status da venda virar CAIXA (ou o financeiro solicitar a NF) para liberar nova solicitação."
                                     : "";
-                              const label = isReservado
-                                ? "Reservado"
-                                : hasPending
-                                  ? "Pendente"
-                                  : !allowed
-                                    ? "Aguardando CAIXA"
-                                    : "Solicitar pagamento";
                               return (
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  disabled={hasPending || isReservado || !allowed}
+                                  disabled={!allowed}
                                   title={blockReason}
                                   onClick={() => openReq(s)}
                                 >
@@ -967,6 +966,7 @@ function ComissoesPage() {
                                 </Button>
                               );
                             })()
+
 
                           )}
 
