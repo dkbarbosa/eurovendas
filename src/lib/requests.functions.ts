@@ -218,10 +218,12 @@ export const listAllRequests = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const saleIds = [...new Set((reqs ?? []).map((r) => r.sale_id).filter((v): v is string => !!v))];
-    const userIds = [...new Set((reqs ?? []).map((r) => r.corretor_user_id).filter((v): v is string => !!v))];
+    const corretorIds = (reqs ?? []).map((r) => r.corretor_user_id).filter((v): v is string => !!v);
+    const gerenteIds = (reqs ?? []).map((r) => r.gerente_user_id).filter((v): v is string => !!v);
+    const userIds = [...new Set([...corretorIds, ...gerenteIds])];
     const safeIds = saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"];
     const [{ data: sales }, { data: profs }, { data: paidReqs }, { data: nfRows }] = await Promise.all([
-      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,comissao_liq_corretor,status,valor_sinal_negocio").in("id", safeIds),
+      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,comissao_liq_corretor,status,valor_sinal_negocio").in("id", safeIds),
       supabaseAdmin.from("profiles").select("id,display_name,email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
       // Todos pedidos PAGOS dessas vendas, para calcular adiantado/saldo + histórico.
       supabaseAdmin
