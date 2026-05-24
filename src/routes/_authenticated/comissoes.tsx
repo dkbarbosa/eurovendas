@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import React, { useMemo, useState } from "react";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 import { listMyBrokerSales, listDistinctCorretores } from "@/lib/commissions.functions";
 import { createCommissionRequest, deleteCommissionRequest, markRequestPaid } from "@/lib/requests.functions";
 import { markNFEmitted, deleteNFRequest, markNFPaid } from "@/lib/nf.functions";
