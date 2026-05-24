@@ -487,15 +487,15 @@ function DiretorPage() {
 }
 
 function Kpi({
-  icon, label, value, hint, accent, warn, premium,
+  icon, label, value, hint,
 }: {
   icon: React.ReactNode; label: string; value: string; hint?: string;
   accent?: boolean; warn?: boolean; premium?: boolean;
 }) {
   return (
-    <div className={`glass-card p-4 ${accent ? "ring-1 ring-primary/30" : ""} ${warn ? "ring-1 ring-amber-400/30" : ""} ${premium ? "ring-1 ring-violet-400/30" : ""}`}>
+    <div className="p-4 rounded-lg border border-border/40">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">{icon}{label}</div>
-      <div className="font-display text-xl mt-1 truncate">{value}</div>
+      <div className="font-display text-xl mt-1 truncate text-foreground">{value}</div>
       {hint && <div className="text-[11px] text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
