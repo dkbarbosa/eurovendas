@@ -87,10 +87,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-        {canManagement && (
+        {isAdmin && (
           <>
             <SectionLabel>Visão da Gestão</SectionLabel>
-            {MANAGEMENT_NAV.filter((item) => isAdmin || !item.adminOnly).map((item) => (
+            {MANAGEMENT_NAV.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -103,7 +103,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </>
         )}
 
-        {canCommissions && (
+        {(isAdmin || isGerente) && (
+          <>
+            <SectionLabel className="mt-6">Painel Gerência</SectionLabel>
+            <NavLink to="/gerentes" label="Painel do Gerente" icon={UserCog}
+              active={loc.pathname === "/gerentes"} onNavigate={() => setMobileOpen(false)} />
+            <NavLink to="/equipe" label="Minha Equipe" icon={Users2}
+              active={loc.pathname === "/equipe"} onNavigate={() => setMobileOpen(false)} />
+          </>
+        )}
+
+        {(isAdmin || isGerente || isCorretor) && (
           <>
             <SectionLabel className="mt-6">Painel Corretor</SectionLabel>
             <NavLink to="/comissoes" label="Comissões" icon={Wallet}
@@ -111,13 +121,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </>
         )}
 
-        {(isAdmin || isGerente) && (
-          <>
-            <SectionLabel className="mt-6">Equipe</SectionLabel>
-            <NavLink to="/equipe" label="Minha Equipe" icon={Users2}
-              active={loc.pathname === "/equipe"} onNavigate={() => setMobileOpen(false)} />
-          </>
-        )}
 
         <SectionLabel className="mt-6">Conta</SectionLabel>
         <NavLink to="/conta" label="Minha Conta" icon={UserCircle}
