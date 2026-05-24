@@ -608,39 +608,6 @@ function ComissoesPage() {
             />
           </div>
 
-          {distratos.length > 0 && (
-            <div className="rounded-full border border-destructive/30 bg-destructive/5 px-3 py-2 flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5 pr-2 border-r border-destructive/20">
-                <Ban className="w-3.5 h-3.5 text-destructive" />
-                <span className="text-xs font-medium">Distratos</span>
-                <span className="text-[11px] text-muted-foreground">
-                  Pend. <span className="text-destructive font-semibold">{BRL(totalADevolver)}</span>
-                  {totalDevolvido > 0 && <> · Dev. <span className="text-emerald-400 font-semibold">{BRL(totalDevolvido)}</span></>}
-                </span>
-              </div>
-              {distratos.map((d) => {
-                const dot =
-                  d.status === "devolvido" ? "bg-emerald-400"
-                  : d.status === "cancelado" ? "bg-muted-foreground/50"
-                  : "bg-destructive";
-                const amountCls =
-                  d.status === "devolvido" ? "text-emerald-400"
-                  : d.status === "cancelado" ? "text-muted-foreground line-through"
-                  : "text-destructive";
-                return (
-                  <span
-                    key={d.id}
-                    title={`${d.empreendimento ?? "—"} · Unid ${d.unidade ?? "—"}${d.motivo ? ` — ${d.motivo}` : ""}`}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-background/60 border border-border/60 px-2.5 py-1 text-[11px]"
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-                    <span className="font-medium truncate max-w-[140px]">{d.comprador ?? "—"}</span>
-                    <span className={`font-semibold ${amountCls}`}>{BRL(d.valor_devolver)}</span>
-                  </span>
-                );
-              })}
-            </div>
-          )}
 
 
 
