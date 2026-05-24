@@ -415,7 +415,7 @@ function DiretorPage() {
         </>
       )}
 
-      <MinhasNFsSection title="Minhas Notas Fiscais" />
+      
 
 
 
