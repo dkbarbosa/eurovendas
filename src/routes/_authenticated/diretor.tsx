@@ -306,46 +306,6 @@ function DiretorPage() {
             </div>
           </div>
 
-          {/* Solicitações */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Send className="w-4 h-4 text-primary" />
-              <h2 className="font-display text-xl">Solicitações ao financeiro</h2>
-              <span className="text-xs text-muted-foreground ml-2">
-                {requests.length} no total · {kpis.pendCount} pendente(s)
-              </span>
-            </div>
-            <div className="glass-card p-2 overflow-x-auto">
-              <table className="w-full text-sm min-w-[700px]">
-                <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    <th className="text-left p-3">Criado</th>
-                    <th className="text-left p-3">Tipo</th>
-                    <th className="text-right p-3">Valor</th>
-                    <th className="p-3">Status</th>
-                    <th className="text-left p-3">Motivo / Obs.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requests.length === 0 ? (
-                    <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhuma solicitação ainda.</td></tr>
-                  ) : requests.map((r) => (
-                    <tr key={r.id} className="border-t border-border">
-                      <td className="p-3">{fmtBR(r.created_at)}</td>
-                      <td className="p-3 capitalize">{r.tipo === "adiantamento" ? "Adiantamento" : "Comissão final"}</td>
-                      <td className="p-3 text-right font-medium">{BRL(r.valor_solicitado)}</td>
-                      <td className="p-3 text-center">
-                        <Badge variant={r.status === "pago" ? "default" : r.status === "negado" ? "destructive" : "secondary"}>
-                          {r.status}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-muted-foreground">{r.motivo_negacao ?? r.observacao_financeiro ?? r.observacao_corretor ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
 
           {/* Vendas + ação de pedido */}
           <section className="space-y-3">
