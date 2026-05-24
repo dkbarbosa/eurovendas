@@ -990,12 +990,13 @@ function RequestNFTab() {
   const [dialog, setDialog] = useState<{
     open: boolean;
     saleId: string | null;
-    sale: { comprador?: string | null; empreendimento?: string | null; unidade?: string | null; corretor?: string | null } | null;
+    sale: { comprador?: string | null; empreendimento?: string | null; unidade?: string | null; corretor?: string | null; gerente?: string | null } | null;
+    requesterRole: "corretor" | "gerente" | "diretor";
     observacao: string;
     distratoId: string;
     valorDesc: string;
     obsDesc: string;
-  }>({ open: false, saleId: null, sale: null, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" });
+  }>({ open: false, saleId: null, sale: null, requesterRole: "corretor", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" });
   const [search, setSearch] = useState("");
 
   const fnDistList = useServerFn(listDistratosForSale);
