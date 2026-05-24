@@ -280,17 +280,23 @@ export const markNFEmitted = createServerFn({ method: "POST" })
     if (nfRow.status !== "solicitada") throw new Error("NF não está mais aguardando emissão.");
     if (!isAdmin && nfRow.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
 
-    // Resolver/criar subpasta no Drive identificando a venda.
+    // Resolver/criar subpasta no Drive: {Corretor}/NF/{Empreendimento}/{Cliente}
     let folderId: string | undefined;
     if (nfRow.sale_id) {
       const { data: sale } = await supabaseAdmin
-        .from("sales").select("corretor,empreendimento,unidade")
+        .from("sales").select("corretor,empreendimento,unidade,comprador")
         .eq("id", nfRow.sale_id).maybeSingle();
-      const folderName = sanitizeFolderName([sale?.corretor, sale?.empreendimento, sale?.unidade]);
-      try {
-        folderId = await getOrCreateDriveFolder(folderName);
-      } catch (e) {
-        console.error("getOrCreateDriveFolder:", e);
+      if (sale?.corretor) {
+        try {
+          folderId = await getCorretorDocFolder({
+            corretor: sale.corretor,
+            tipo: "NF",
+            empreendimento: sale.empreendimento,
+            cliente: sale.comprador ?? sale.unidade,
+          });
+        } catch (e) {
+          console.error("getCorretorDocFolder:", e);
+        }
       }
     }
 
