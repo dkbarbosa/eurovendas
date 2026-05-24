@@ -248,9 +248,12 @@ function ComissoesPage() {
     queryKey: ["distratos-broker", displayName],
     queryFn: () => fnDistratos({ data: {} }),
     enabled: !!displayName,
-    refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
+
   const distratos = useMemo(() => {
     if (!displayName) return [];
     // Para staff impersonando um corretor, filtrar pelo nome; corretor já vê só os seus pelo RLS.
