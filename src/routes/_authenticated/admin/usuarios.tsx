@@ -144,7 +144,7 @@ function Page() {
                   <td className="p-3">
                     <select
                       value={current}
-                      onChange={(e) => mapMut.mutate({ user_id: u.id, corretor_nome: e.target.value || null })}
+                      onChange={(e) => mapMut.mutate({ user_id: u.id, corretor_nome: e.target.value || null, gerente_nome: currentGer || null })}
                       className="h-9 w-full max-w-[220px] rounded-md bg-background text-foreground border border-border px-2 text-sm"
                     >
                       <option value="" className="bg-background text-foreground">— sem vínculo —</option>
@@ -155,6 +155,25 @@ function Page() {
                         <option value={current} className="bg-background text-foreground">{current} (planilha)</option>
                       )}
                     </select>
+                  </td>
+                  <td className="p-3">
+                    {isGer ? (
+                      <select
+                        value={currentGer}
+                        onChange={(e) => mapMut.mutate({ user_id: u.id, corretor_nome: current || null, gerente_nome: e.target.value || null })}
+                        className="h-9 w-full max-w-[220px] rounded-md bg-background text-foreground border border-border px-2 text-sm"
+                      >
+                        <option value="" className="bg-background text-foreground">— sem vínculo —</option>
+                        {gerentesSheet.map((g) => (
+                          <option key={g} value={g} className="bg-background text-foreground">{g}</option>
+                        ))}
+                        {currentGer && !gerentesSheet.includes(currentGer) && (
+                          <option value={currentGer} className="bg-background text-foreground">{currentGer} (planilha)</option>
+                        )}
+                      </select>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="p-3">
                     {isCorretor ? (
