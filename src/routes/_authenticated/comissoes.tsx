@@ -194,7 +194,7 @@ function ComissoesPage() {
       {
         adiantado: number;
         finalPago: number;
-        items: Array<{ id: string; tipo: string; valor: number; data: string | null }>;
+        items: Array<{ id: string; tipo: string; valor: number; data: string | null; kind: "request" | "nf" }>;
       }
     >();
     for (const r of requests) {
@@ -208,6 +208,7 @@ function ComissoesPage() {
         tipo: r.tipo,
         valor: v,
         data: (r.paid_at ?? r.decided_at ?? r.created_at) as string | null,
+        kind: "request",
       });
       m.set(r.sale_id, cur);
     }
@@ -227,9 +228,11 @@ function ComissoesPage() {
         tipo: "comissao_final",
         valor: v,
         data: (n.paga_at ?? n.recebida_at ?? n.created_at) as string | null,
+        kind: "nf",
       });
       m.set(n.sale_id, cur);
     }
+
 
     return m;
   }, [requests, nfs]);
@@ -781,16 +784,35 @@ function ComissoesPage() {
                                 </div>
                                 <ul className="space-y-1.5 text-sm">
                                   {historico.map((h) => (
-                                    <li key={h.id} className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
+                                    <li key={`${h.kind}-${h.id}`} className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
                                       <div className="flex flex-col">
                                         <span className="text-xs uppercase tracking-wide text-muted-foreground">
                                           {h.tipo === "adiantamento" ? "Adiantamento" : "Comissão final"}
+                                          <span className="ml-1 text-[10px] text-muted-foreground/70">({h.kind === "nf" ? "NF" : "Pedido"})</span>
                                         </span>
                                         <span className="text-xs text-muted-foreground">{fmtBR(h.data)}</span>
                                       </div>
-                                      <span className="font-medium">{BRL(h.valor)}</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">{BRL(h.valor)}</span>
+                                        {isAdmin && (
+                                          <button
+                                            title="Excluir lançamento (admin) — remove o pagamento do histórico"
+                                            onClick={() => {
+                                              const label = h.tipo === "adiantamento" ? "adiantamento" : "comissão final";
+                                              if (confirm(`Excluir este pagamento (${label} — ${BRL(h.valor)}) do histórico? Esta ação não pode ser desfeita.`)) {
+                                                if (h.kind === "nf") delNFMut.mutate(h.id);
+                                                else delReqMut.mutate(h.id);
+                                              }
+                                            }}
+                                            className="text-muted-foreground hover:text-destructive transition-colors"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        )}
+                                      </div>
                                     </li>
                                   ))}
+
                                 </ul>
                                 <div className="pt-2 border-t border-border/60 text-xs space-y-0.5">
                                   <div className="flex justify-between"><span className="text-muted-foreground">Adiantado</span><span>{BRL(adiantadoSale)}</span></div>
