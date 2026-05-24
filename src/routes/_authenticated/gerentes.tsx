@@ -9,7 +9,6 @@ import {
   listDistinctGerentes,
   createGerenteCommissionRequest,
 } from "@/lib/gerente.functions";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -20,8 +19,8 @@ import { CurrencyInput } from "@/components/CurrencyInput";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  Loader2, Wallet, TrendingUp, Users, Receipt, Ban, Send, Search,
-  CircleDollarSign, Trophy, Clock, FileText, CheckCircle2, Timer,
+  Loader2, Wallet, TrendingUp, Receipt, Ban, Send, Search,
+  CircleDollarSign, Clock, FileText, CheckCircle2, Timer,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
