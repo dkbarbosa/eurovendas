@@ -66,7 +66,7 @@ function DiretorPage() {
   const qc = useQueryClient();
 
   const [dateFrom, setDateFrom] = usePersistentState<string>("diretor:from", firstDayOfMonth());
-  const [dateTo, setDateTo] = usePersistentState<string>("diretor:to", lastDayOfMonth());
+  const [dateTo, setDateTo] = usePersistentState<string>("diretor:to", today());
   const [search, setSearch] = usePersistentState<string>("diretor:search", "");
 
   const fnOverview = useServerFn(getDiretorOverview);
@@ -226,7 +226,7 @@ function DiretorPage() {
           <span>{filteredSales.length} venda(s) no período</span>
           <button
             className="underline hover:text-foreground"
-            onClick={() => { setDateFrom(firstDayOfMonth()); setDateTo(lastDayOfMonth()); setSearch(""); }}
+            onClick={() => { setDateFrom(firstDayOfMonth()); setDateTo(today()); setSearch(""); }}
           >
             Restaurar mês atual
           </button>
