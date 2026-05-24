@@ -392,15 +392,39 @@ function Page() {
           </motion.section>
 
           {/* KPIs */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             <KPICard label="VGV Total" value={k.vgv} format={fmtBRLCompact} accent="teal" icon={<DollarSign className="w-4 h-4" />} index={0} />
             <KPICard label="Vendas" value={k.vendasCount} format={fmtNum} accent="azure" icon={<ShoppingBag className="w-4 h-4" />} index={1} />
             <KPICard label="Ticket Médio" value={k.ticket} format={fmtBRLCompact} accent="gold" icon={<TrendingUp className="w-4 h-4" />} index={2} />
-            <KPICard label="Comissão Gerente" value={k.comGer} format={fmtBRLCompact} accent="teal" icon={<Award className="w-4 h-4" />} index={3} />
-            <KPICard label="Comissão Corretores" value={k.comCorr} format={fmtBRLCompact} accent="azure" icon={<Award className="w-4 h-4" />} index={4} />
-            <KPICard label="Top Corretor" value={topCorretor?.name ?? "—"} accent="gold" icon={<Trophy className="w-4 h-4" />} index={5}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 3 * 0.05 }}
+              className={`glass-card p-4 ring-1 ${growth.pct == null ? "ring-border" : growth.pct >= 0 ? "ring-emerald-400/40" : "ring-rose-400/40"}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <TrendingUp className="w-4 h-4" /> Crescimento
+                </div>
+                <Select value={growthPeriod} onValueChange={(v) => setGrowthPeriod(v as "quarter" | "semester" | "year")}>
+                  <SelectTrigger className="h-7 w-[112px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="quarter">Trimestre</SelectItem>
+                    <SelectItem value="semester">Semestre</SelectItem>
+                    <SelectItem value="year">Anual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className={`font-display text-2xl mt-2 ${growth.pct == null ? "" : growth.pct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                {growth.pct == null ? "—" : `${growth.pct >= 0 ? "+" : ""}${growth.pct.toFixed(1)}%`}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-1 truncate">
+                {growth.label} · {fmtBRLCompact(growth.cur)} vs {fmtBRLCompact(growth.prev)}
+              </div>
+            </motion.div>
+            <KPICard label="Top Corretor" value={topCorretor?.name ?? "—"} accent="gold" icon={<Trophy className="w-4 h-4" />} index={4}
               hint={topCorretor ? `${fmtBRLCompact(topCorretor.vgv)} · ${topCorretor.vendas} vendas` : "—"} />
           </section>
+
 
           {/* Charts row 1 */}
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
