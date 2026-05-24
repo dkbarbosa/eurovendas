@@ -84,15 +84,6 @@ function Dashboard() {
     },
   });
 
-  const { data: cfg } = useQuery({
-    queryKey: ["config"],
-    queryFn: async () => {
-      const { data } = await supabase.from("config_kv").select("key,value");
-      const map: Record<string, number> = {};
-      for (const r of data ?? []) map[r.key] = Number(r.value);
-      return map;
-    },
-  });
 
   // ── Filtros ───────────────────────────────────────────────
   const years = useMemo(() => {
