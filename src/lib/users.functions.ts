@@ -134,3 +134,25 @@ export const adminChangeUserPassword = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Admin altera nome e e-mail de qualquer usuário. */
+export const adminUpdateUserProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string; email: string; displayName: string }) =>
+    UpdateProfileSchema.parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      email: data.email,
+      email_confirm: true,
+      user_metadata: { display_name: data.displayName },
+    });
+    if (authErr) throw new Error(authErr.message);
+    const { error: profErr } = await supabaseAdmin
+      .from("profiles")
+      .update({ email: data.email, display_name: data.displayName })
+      .eq("id", data.userId);
+    if (profErr) throw new Error(profErr.message);
+    return { ok: true };
+  });
