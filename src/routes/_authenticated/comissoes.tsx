@@ -1090,7 +1090,7 @@ function ComissoesPage() {
             const maxReceber = Math.max(0, comLiq - jaAdiantado - jaFinal);
             const valor = reqForm.valor_solicitado ?? 0;
             const sinal = reqForm.valor_sinal ?? 0;
-            const excedeu = valor > maxReceber;
+            const excedeu = valor > maxReceber + 0.01;
             // Regras automáticas
             const minSinalComissao = valorVenda * 0.06;
             const maxAdiant = Math.floor(sinal / 2999.99) * 1000;
