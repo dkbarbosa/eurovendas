@@ -476,6 +476,7 @@ function GerentesPage() {
                           )}
                         </td>
                         <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
+                        <td className="p-3"><SaleNFCell saleId={s.id} /></td>
                         <td className="p-3 text-right">
                           <Button
                             size="sm"
