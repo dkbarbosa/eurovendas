@@ -3,22 +3,23 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserContext } from "@/lib/auth.functions";
 
-type Role = "admin" | "gerente" | "corretor" | "financeiro";
+type Role = "admin" | "diretor" | "gerente" | "corretor" | "financeiro";
 
 interface AuthCtx {
   session: Session | null;
   user: User | null;
   roles: Role[];
   isAdmin: boolean;
+  isDiretor: boolean;
   isFinanceiro: boolean;
   isCorretor: boolean;
   isGerente: boolean;
   /** Capabilities semânticas. */
   canAdmin: boolean;       // só admin
-  canManagement: boolean;  // admin OU gerente — vê área comercial
-  canFinanceiro: boolean;  // admin OU financeiro — vê painel financeiro
-  canCommissions: boolean; // admin, gerente OU corretor — vê suas comissões
-  /** @deprecated mantido para compat — use canAdmin no lugar de isStaff. */
+  canManagement: boolean;  // admin OU diretor OU gerente
+  canFinanceiro: boolean;  // admin OU financeiro
+  canCommissions: boolean; // admin, gerente OU corretor
+  /** @deprecated mantido para compat. */
   isStaff: boolean;
   corretorNome: string | null;
   gerenteNome: string | null;
@@ -91,12 +92,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const isAdmin = roles.includes("admin");
+  const isDiretor = roles.includes("diretor");
   const isFinanceiro = roles.includes("financeiro");
   const isCorretor = roles.includes("corretor");
   const isGerente = roles.includes("gerente");
 
   const canAdmin = isAdmin;
-  const canManagement = isAdmin || isGerente;
+  const canManagement = isAdmin || isDiretor || isGerente;
   const canFinanceiro = isAdmin || isFinanceiro;
   const canCommissions = isAdmin || isGerente || isCorretor;
 
@@ -105,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: session?.user ?? null,
     roles,
     isAdmin,
+    isDiretor,
     isFinanceiro,
     isCorretor,
     isGerente,
@@ -112,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     canManagement,
     canFinanceiro,
     canCommissions,
-    isStaff: isAdmin, // compat: "staff" agora é admin-only (financeiro perdeu acesso à área comercial)
+    isStaff: isAdmin,
     corretorNome,
     gerenteNome,
     loading,
@@ -148,12 +151,11 @@ export function useAuth() {
 
 /**
  * Retorna a rota "home" permitida para o usuário com base na role mais privilegiada.
- * Usado por beforeLoad guards para redirecionar quando o usuário tenta acessar
- * uma área que não pode ver.
  */
 export function homeRouteForRoles(roles: string[]): string {
   if (roles.includes("admin")) return "/";
-  if (roles.includes("gerente")) return "/gerentes";
+  if (roles.includes("diretor")) return "/";
+  if (roles.includes("gerente")) return "/equipe";
   if (roles.includes("financeiro")) return "/financeiro";
   if (roles.includes("corretor")) return "/comissoes";
   return "/login";
