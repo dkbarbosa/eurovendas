@@ -718,14 +718,36 @@ function ComissoesPage() {
                       <td className="p-3 font-medium">
                         <div>{s.comprador ?? "—"}</div>
                         {distrato && (
-                          <Badge
-                            variant="outline"
-                            className={`mt-1 text-[10px] gap-1 ${distrato.status === "devolvido" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-destructive/10 text-destructive border-destructive/30"}`}
-                            title={distrato.motivo ?? undefined}
-                          >
-                            <Ban className="w-2.5 h-2.5" />
-                            {distrato.status === "devolvido" ? "Distrato devolvido" : `Distrato · devolver ${BRL(distrato.valor_devolver)}`}
-                          </Badge>
+                          <div className="mt-1 flex items-center gap-1">
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] gap-1 ${distrato.status === "devolvido" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-destructive/10 text-destructive border-destructive/30"}`}
+                            >
+                              <Ban className="w-2.5 h-2.5" />
+                              {distrato.status === "devolvido" ? "Distrato devolvido" : `Distrato · devolver ${BRL(distrato.valor_devolver)}`}
+                            </Badge>
+                            {distrato.motivo && (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    title="Ver mensagem do distrato"
+                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                                  >
+                                    <MessageSquare className="w-3 h-3" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent align="start" className="w-80 p-3 space-y-2">
+                                  <div className="text-[10px] uppercase tracking-wide text-destructive">Motivo do distrato</div>
+                                  <div className="text-sm whitespace-pre-wrap break-words text-foreground/90 rounded-md border border-destructive/20 bg-destructive/5 p-2">
+                                    {distrato.motivo}
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground">
+                                    Valor a devolver: <span className="font-semibold text-destructive">{BRL(distrato.valor_devolver)}</span>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td className="p-3 text-muted-foreground">
