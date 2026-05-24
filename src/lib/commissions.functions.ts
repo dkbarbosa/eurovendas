@@ -41,14 +41,19 @@ export const listMyBrokerSales = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => ListMySalesSchema.parse(d))
   .handler(async ({ data, context }) => {
     const roles = await getRoles(context.userId);
-    const isStaff = roles.includes("admin") || roles.includes("financeiro") || roles.includes("diretor");
+    // Financeiro NÃO acessa comissões. Apenas admin pode atuar em nome de outro corretor.
+    if (roles.includes("financeiro") && !roles.includes("admin") && !roles.includes("gerente") && !roles.includes("corretor")) {
+      throw new Error("Acesso negado.");
+    }
+    const canActAs = roles.includes("admin");
     let nome: string | null = null;
-    if (data?.corretorNome && isStaff) {
+    if (data?.corretorNome && canActAs) {
       nome = data.corretorNome;
     } else {
       nome = await getCorretorNome(context.userId);
     }
-    if (!nome) return { corretorNome: null, sales: [], requests: [], nfs: [] };
+    if (!nome) return { corretorNome: null, sales: [], requests: [], nfs: [], descontos: [] };
+
 
     const [{ data: sales }, { data: reqs }, { data: nfs }] = await Promise.all([
       supabaseAdmin
