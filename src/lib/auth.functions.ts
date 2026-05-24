@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-type Role = "admin" | "gerente" | "corretor" | "financeiro";
+type Role = "admin" | "diretor" | "gerente" | "corretor" | "financeiro";
 
 export const getCurrentUserContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
