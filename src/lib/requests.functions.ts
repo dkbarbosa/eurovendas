@@ -487,22 +487,7 @@ export const markRequestPaid = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!upd?.length) throw new Error("Pedido já foi marcado como pago.");
 
-    // Após confirmação de pagamento de adiantamento, somar valor na planilha.
-    let sheetWarning: string | undefined;
-    const row = upd[0];
-    if (row.tipo === "adiantamento" && row.sale_id) {
-      const { data: sale } = await supabaseAdmin
-        .from("sales")
-        .select("data, empreendimento, unidade, comprador, valor_venda, corretor")
-        .eq("id", row.sale_id)
-        .single();
-      if (sale) {
-        const res = await addAdvanceToSheet(sale, Number(row.valor_solicitado) || 0);
-        if (!res.ok) {
-          sheetWarning = res.error;
-          console.error("addAdvanceToSheet:", res.error);
-        }
-      }
-    }
-    return { ok: true, sheetWarning };
+    // Planilha: já foi atualizada no momento da aprovação (decideRequest).
+    // Aqui não somamos novamente para evitar duplicação.
+    return { ok: true };
   });
