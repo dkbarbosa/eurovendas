@@ -185,19 +185,8 @@ function GerentesPage() {
     return Array.from(map.values()).sort((a, b) => a.mes.localeCompare(b.mes));
   }, [filteredSales]);
 
-  const equipeStats = useMemo(() => {
-    const m = new Map<string, { corretor: string; vendas: number; vgv: number; comCorr: number; comGer: number }>();
-    for (const s of filteredSales) {
-      const nome = s.corretor ?? "—";
-      const cur = m.get(nome) ?? { corretor: nome, vendas: 0, vgv: 0, comCorr: 0, comGer: 0 };
-      cur.vendas += 1;
-      cur.vgv += Number(s.valor_venda) || 0;
-      cur.comCorr += Number(s.comissao_liq_corretor) || 0;
-      cur.comGer += Number(s.comissao_liq_gerente) || 0;
-      m.set(nome, cur);
-    }
-    return Array.from(m.values()).sort((a, b) => b.vgv - a.vgv);
-  }, [filteredSales]);
+
+
 
   // diálogo de solicitação
   const [reqDialog, setReqDialog] = useState<{ open: boolean; sale: (typeof sales)[number] | null }>(
