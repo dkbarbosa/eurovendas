@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/usuarios")({ component: Page });
 
-const ROLES = ["admin", "diretor", "gerente", "corretor", "financeiro"] as const;
+const ROLES = ["admin", "gerente", "corretor", "financeiro"] as const;
 type Role = typeof ROLES[number];
 
 function Page() {
