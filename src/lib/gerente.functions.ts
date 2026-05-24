@@ -21,7 +21,32 @@ async function getGerenteNome(userId: string): Promise<string | null> {
     .select("gerente_nome,ativo")
     .eq("user_id", userId)
     .maybeSingle();
-  return data?.ativo ? data?.gerente_nome ?? null : null;
+  if (data?.ativo && data.gerente_nome) return data.gerente_nome;
+
+  // Fallback: resolve pelo display_name do profile contra distinct sales.gerente
+  const { data: prof } = await supabaseAdmin
+    .from("profiles")
+    .select("display_name")
+    .eq("id", userId)
+    .maybeSingle();
+  const displayName = (prof?.display_name ?? "").trim();
+  if (!displayName) return null;
+  const dnNorm = displayName.toLowerCase();
+  const { data: hits } = await supabaseAdmin
+    .from("sales")
+    .select("gerente")
+    .ilike("gerente", displayName)
+    .not("gerente", "is", null)
+    .limit(1);
+  const hit = (hits ?? []).find((r) => (r.gerente ?? "").trim().toLowerCase() === dnNorm);
+  if (!hit?.gerente) return null;
+  await supabaseAdmin
+    .from("broker_mapping")
+    .upsert(
+      { user_id: userId, gerente_nome: hit.gerente, ativo: true },
+      { onConflict: "user_id" },
+    );
+  return hit.gerente;
 }
 
 // Lista nomes distintos de gerentes na planilha (para admin escolher quem inspecionar)
