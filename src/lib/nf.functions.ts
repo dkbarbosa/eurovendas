@@ -403,6 +403,21 @@ export const cancelNF = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => CancelSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertFinanceiro(context.userId);
+    // Reverter desconto do distrato (se houver)
+    const { data: nf } = await supabaseAdmin
+      .from("nf_requests").select("distrato_id,desconto_distrato,status")
+      .eq("id", data.id).maybeSingle();
+    if (nf && nf.distrato_id && Number(nf.desconto_distrato) > 0 && nf.status !== "cancelada") {
+      const { data: dist } = await supabaseAdmin
+        .from("distratos").select("valor_devolvido,valor_devolver,status")
+        .eq("id", nf.distrato_id).maybeSingle();
+      if (dist) {
+        await supabaseAdmin.from("distratos").update({
+          valor_devolvido: Math.max(0, Number(dist.valor_devolvido) - Number(nf.desconto_distrato)),
+          status: "pendente_devolucao",
+        }).eq("id", nf.distrato_id);
+      }
+    }
     const { error } = await supabaseAdmin
       .from("nf_requests")
       .update({
@@ -423,6 +438,21 @@ export const deleteNFRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const roles = await getRoles(context.userId);
     if (!roles.includes("admin")) throw new Error("Apenas administradores podem excluir.");
+    // Reverter desconto do distrato se ainda não cancelado
+    const { data: nf } = await supabaseAdmin
+      .from("nf_requests").select("distrato_id,desconto_distrato,status")
+      .eq("id", data.id).maybeSingle();
+    if (nf && nf.distrato_id && Number(nf.desconto_distrato) > 0 && nf.status !== "cancelada") {
+      const { data: dist } = await supabaseAdmin
+        .from("distratos").select("valor_devolvido")
+        .eq("id", nf.distrato_id).maybeSingle();
+      if (dist) {
+        await supabaseAdmin.from("distratos").update({
+          valor_devolvido: Math.max(0, Number(dist.valor_devolvido) - Number(nf.desconto_distrato)),
+          status: "pendente_devolucao",
+        }).eq("id", nf.distrato_id);
+      }
+    }
     const { error } = await supabaseAdmin.from("nf_requests").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
