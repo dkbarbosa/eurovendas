@@ -880,6 +880,35 @@ function ComissoesPage() {
                                   </PopoverContent>
                                 </Popover>
                               )}
+                              {(r.observacao_financeiro || r.observacao_corretor) && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      title="Ver mensagens"
+                                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                    >
+                                      <MessageSquare className="w-3 h-3" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="start" className="w-80 p-3 space-y-2">
+                                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                      Mensagens do pedido
+                                    </div>
+                                    {r.observacao_corretor && (
+                                      <div className="rounded-md border border-border/60 bg-secondary/40 p-2">
+                                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Você (corretor)</div>
+                                        <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">{r.observacao_corretor}</div>
+                                      </div>
+                                    )}
+                                    {r.observacao_financeiro && (
+                                      <div className="rounded-md border border-primary/30 bg-primary/10 p-2">
+                                        <div className="text-[10px] uppercase tracking-wide text-primary mb-0.5">Financeiro</div>
+                                        <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">{r.observacao_financeiro}</div>
+                                      </div>
+                                    )}
+                                  </PopoverContent>
+                                </Popover>
+                              )}
                               {isAdmin && (
                                 <button title="Excluir (admin)" onClick={() => {
                                   if (confirm("Excluir esta solicitação?")) delReqMut.mutate(r.id);
