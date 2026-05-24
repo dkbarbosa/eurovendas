@@ -54,23 +54,56 @@ function resolveBrokerUserId(
 }
 
 // ---------- VENDAS ELEGÍVEIS PARA NF (financeiro) ----------
+// Vendas elegíveis para solicitação de NF — uma por papel (corretor/gerente/diretor).
 export const listEligibleSalesForNF = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFinanceiro(context.userId);
     const [{ data: sales }, { data: nfs }] = await Promise.all([
-      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,comissao_liq_corretor,status").order("data", { ascending: false }).limit(2000),
-      supabaseAdmin.from("nf_requests").select("sale_id,status"),
+      supabaseAdmin
+        .from("sales")
+        .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,coaphar,comissao_liq_corretor,comissao_liq_gerente,status")
+        .order("data", { ascending: false })
+        .limit(2000),
+      supabaseAdmin.from("nf_requests").select("sale_id,status,requester_role"),
     ]);
-    const activeSaleIds = new Set(
-      (nfs ?? []).filter((n) => n.status === "solicitada" || n.status === "emitida" || n.status === "recebida").map((n) => n.sale_id),
-    );
+    const activeByRole = new Set<string>();
+    for (const n of nfs ?? []) {
+      if (n.status === "solicitada" || n.status === "emitida" || n.status === "recebida") {
+        activeByRole.add(`${n.sale_id}::${n.requester_role ?? "corretor"}`);
+      }
+    }
     const { data: maps } = await supabaseAdmin.from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
     const mapList = (maps ?? []) as { user_id: string; corretor_nome: string }[];
-    return (sales ?? [])
-      .filter((s) => !activeSaleIds.has(s.id))
-      .map((s) => ({ ...s, mapped_user_id: resolveBrokerUserId(s.corretor, mapList) }));
+    return (sales ?? []).map((s) => ({
+      ...s,
+      mapped_user_id: resolveBrokerUserId(s.corretor, mapList),
+      has_active_nf_corretor: activeByRole.has(`${s.id}::corretor`),
+      has_active_nf_gerente: activeByRole.has(`${s.id}::gerente`),
+      has_active_nf_diretor: activeByRole.has(`${s.id}::diretor`),
+    }));
   });
+
+// ---------- RESOLVERS PARA GERENTE/DIRETOR ----------
+async function resolveGerenteUserIdForSale(saleGerenteNome: string | null | undefined): Promise<string | null> {
+  if (!saleGerenteNome?.trim()) return null;
+  const { data } = await supabaseAdmin
+    .from("broker_mapping")
+    .select("user_id,gerente_nome")
+    .ilike("gerente_nome", saleGerenteNome.trim())
+    .eq("ativo", true)
+    .not("gerente_nome", "is", null)
+    .limit(1);
+  return data?.[0]?.user_id ?? null;
+}
+async function resolveDiretorUserId(): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "diretor")
+    .limit(1);
+  return data?.[0]?.user_id ?? null;
+}
 
 // ---------- SOLICITAR NF (financeiro) ----------
 const RequestNFSchema = z.object({
