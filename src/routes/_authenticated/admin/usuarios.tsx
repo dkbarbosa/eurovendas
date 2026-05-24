@@ -139,11 +139,15 @@ function Page() {
                     <select
                       value={current}
                       onChange={(e) => mapMut.mutate({ user_id: u.id, corretor_nome: e.target.value || null })}
-                      className="h-9 w-full max-w-[220px] rounded-md bg-input border border-border px-2 text-sm"
+                      className="h-9 w-full max-w-[220px] rounded-md bg-background text-foreground border border-border px-2 text-sm"
                     >
-                      <option value="">— sem vínculo —</option>
-                      {brokers.map((b) => <option key={b} value={b}>{b}</option>)}
-                      {current && !brokers.includes(current) && <option value={current}>{current} (planilha)</option>}
+                      <option value="" className="bg-background text-foreground">— sem vínculo —</option>
+                      {brokers.map((b) => (
+                        <option key={b} value={b} className="bg-background text-foreground">{b}</option>
+                      ))}
+                      {current && !brokers.includes(current) && (
+                        <option value={current} className="bg-background text-foreground">{current} (planilha)</option>
+                      )}
                     </select>
                   </td>
                   <td className="p-3">
@@ -151,10 +155,14 @@ function Page() {
                       <select
                         value={currentTeam}
                         onChange={(e) => teamMut.mutate({ corretor_user_id: u.id, gerente_user_id: e.target.value || null })}
-                        className="h-9 w-full max-w-[220px] rounded-md bg-input border border-border px-2 text-sm"
+                        className="h-9 w-full max-w-[220px] rounded-md bg-background text-foreground border border-border px-2 text-sm"
                       >
-                        <option value="">— sem gerente —</option>
-                        {gerentes.map((g) => <option key={g.id} value={g.id}>{g.display_name ?? g.email}</option>)}
+                        <option value="" className="bg-background text-foreground">— sem gerente —</option>
+                        {gerentes.map((g) => (
+                          <option key={g.id} value={g.id} className="bg-background text-foreground">
+                            {g.display_name ?? g.email}
+                          </option>
+                        ))}
                       </select>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
