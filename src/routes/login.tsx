@@ -49,9 +49,26 @@ function LoginPage() {
     setSubmitting(true);
     try {
       const { error } = await signIn(email, password);
-      if (error) toast.error(error);
-      // redireciono pra "/" — o AuthLayout vai mandar pra home certa da role
-      else nav({ to: "/" });
+      if (error) { toast.error(error); return; }
+      // Valida que a aba escolhida bate com uma role real do usuário
+      try {
+        const ctx = await getCurrentUserContext();
+        const userRoles = (ctx.roles ?? []) as RoleKey[];
+        if (!userRoles.includes(role)) {
+          await supabase.auth.signOut();
+          const labels = userRoles
+            .map((r) => ROLES.find((x) => x.key === r)?.short ?? r)
+            .join(", ") || "nenhum perfil";
+          toast.error(
+            `Acesso negado: este usuário não tem permissão de ${active.short}. Perfis disponíveis: ${labels}.`,
+          );
+          return;
+        }
+        nav({ to: "/" });
+      } catch (err) {
+        await supabase.auth.signOut();
+        toast.error(err instanceof Error ? err.message : "Falha ao validar perfil.");
+      }
     } finally {
       setSubmitting(false);
     }
