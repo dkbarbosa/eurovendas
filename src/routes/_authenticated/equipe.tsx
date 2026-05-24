@@ -141,6 +141,48 @@ function Page() {
     return { vgv, vendasCount, comGer, comCorr, ticket, distratos };
   }, [filtered]);
 
+  // Crescimento por período (trimestre / semestre / anual) — compara VGV do período atual com o anterior
+  const growth = useMemo(() => {
+    const td = new Date();
+    const y = td.getUTCFullYear();
+    const mo = td.getUTCMonth();
+    let curStart: Date, curEnd: Date, prevStart: Date, prevEnd: Date, label: string;
+    if (growthPeriod === "quarter") {
+      const q = Math.floor(mo / 3);
+      curStart = new Date(Date.UTC(y, q * 3, 1));
+      curEnd = new Date(Date.UTC(y, q * 3 + 3, 1));
+      prevStart = new Date(Date.UTC(y, q * 3 - 3, 1));
+      prevEnd = curStart;
+      label = `T${q + 1}/${y}`;
+    } else if (growthPeriod === "semester") {
+      const s = mo < 6 ? 0 : 1;
+      curStart = new Date(Date.UTC(y, s * 6, 1));
+      curEnd = new Date(Date.UTC(y, s * 6 + 6, 1));
+      prevStart = new Date(Date.UTC(y, s * 6 - 6, 1));
+      prevEnd = curStart;
+      label = `${s === 0 ? "1º" : "2º"} sem/${y}`;
+    } else {
+      curStart = new Date(Date.UTC(y, 0, 1));
+      curEnd = new Date(Date.UTC(y + 1, 0, 1));
+      prevStart = new Date(Date.UTC(y - 1, 0, 1));
+      prevEnd = curStart;
+      label = `${y}`;
+    }
+    let cur = 0, prev = 0, curN = 0, prevN = 0;
+    for (const s of sales) {
+      if (!s.data) continue;
+      const st = (s.status ?? "").toUpperCase().trim();
+      if (st.includes("DISTRATO") || st.includes("CANCEL")) continue;
+      const d = new Date(s.data);
+      const v = Number(s.valor_venda) || 0;
+      if (d >= curStart && d < curEnd) { cur += v; curN += 1; }
+      else if (d >= prevStart && d < prevEnd) { prev += v; prevN += 1; }
+    }
+    const pct = prev > 0 ? ((cur - prev) / prev) * 100 : (cur > 0 ? 100 : null);
+    return { cur, prev, curN, prevN, pct, label };
+  }, [sales, growthPeriod]);
+
+
   // Séries
   const byMonth = useMemo(() => {
     const map = new Map<string, { mes: string; vgv: number; vendas: number; comGer: number }>();
