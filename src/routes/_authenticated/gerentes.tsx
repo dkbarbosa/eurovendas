@@ -437,6 +437,7 @@ function GerentesPage() {
                     <th className="text-right p-3">Adiantado</th>
                     <th className="text-right p-3">A Receber</th>
                     <th className="text-left p-3">Status</th>
+                    <th className="text-left p-3">Pedidos / NF</th>
                     <th className="p-3"></th>
                   </tr>
                 </thead>
