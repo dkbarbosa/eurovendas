@@ -43,15 +43,18 @@ const ADMIN_NAV = [
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, isFinanceiro, isGerente, isCorretor, signOut } = useAuth();
+  const { user, isAdmin, isDiretor, isFinanceiro, isGerente, isCorretor, signOut } = useAuth();
   const loc = useLocation();
   const nav = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const canFinanceiro = isAdmin || isFinanceiro;
+  const canManagementNav = isAdmin || isDiretor;
 
   const roleLabel = isAdmin
     ? "Administrador"
+    : isDiretor
+    ? "Gerente Geral"
     : isGerente
     ? "Gerente"
     : isFinanceiro
@@ -87,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-        {isAdmin && (
+        {canManagementNav && (
           <>
             <SectionLabel>Visão da Gestão</SectionLabel>
             {MANAGEMENT_NAV.map((item) => (
@@ -100,6 +103,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onNavigate={() => setMobileOpen(false)}
               />
             ))}
+            {(isAdmin || isDiretor) && (
+              <NavLink to="/diretor" label="Painel Financeiro" icon={Wallet}
+                active={loc.pathname === "/diretor"} onNavigate={() => setMobileOpen(false)} />
+            )}
           </>
         )}
 

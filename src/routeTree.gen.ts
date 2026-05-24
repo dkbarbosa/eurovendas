@@ -19,6 +19,7 @@ import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authentic
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedEmpreendimentosRouteImport } from './routes/_authenticated/empreendimentos'
 import { Route as AuthenticatedDistratosRouteImport } from './routes/_authenticated/distratos'
+import { Route as AuthenticatedDiretorRouteImport } from './routes/_authenticated/diretor'
 import { Route as AuthenticatedCorretoresRouteImport } from './routes/_authenticated/corretores'
 import { Route as AuthenticatedContaRouteImport } from './routes/_authenticated/conta'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
@@ -78,6 +79,11 @@ const AuthenticatedDistratosRoute = AuthenticatedDistratosRouteImport.update({
   path: '/distratos',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedDiretorRoute = AuthenticatedDiretorRouteImport.update({
+  id: '/diretor',
+  path: '/diretor',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedCorretoresRoute = AuthenticatedCorretoresRouteImport.update({
   id: '/corretores',
   path: '/corretores',
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conta': typeof AuthenticatedContaRoute
   '/corretores': typeof AuthenticatedCorretoresRoute
+  '/diretor': typeof AuthenticatedDiretorRoute
   '/distratos': typeof AuthenticatedDistratosRoute
   '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/equipe': typeof AuthenticatedEquipeRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conta': typeof AuthenticatedContaRoute
   '/corretores': typeof AuthenticatedCorretoresRoute
+  '/diretor': typeof AuthenticatedDiretorRoute
   '/distratos': typeof AuthenticatedDistratosRoute
   '/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/equipe': typeof AuthenticatedEquipeRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/conta': typeof AuthenticatedContaRoute
   '/_authenticated/corretores': typeof AuthenticatedCorretoresRoute
+  '/_authenticated/diretor': typeof AuthenticatedDiretorRoute
   '/_authenticated/distratos': typeof AuthenticatedDistratosRoute
   '/_authenticated/empreendimentos': typeof AuthenticatedEmpreendimentosRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/comissoes'
     | '/conta'
     | '/corretores'
+    | '/diretor'
     | '/distratos'
     | '/empreendimentos'
     | '/equipe'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/comissoes'
     | '/conta'
     | '/corretores'
+    | '/diretor'
     | '/distratos'
     | '/empreendimentos'
     | '/equipe'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/_authenticated/comissoes'
     | '/_authenticated/conta'
     | '/_authenticated/corretores'
+    | '/_authenticated/diretor'
     | '/_authenticated/distratos'
     | '/_authenticated/empreendimentos'
     | '/_authenticated/equipe'
@@ -321,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDistratosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/diretor': {
+      id: '/_authenticated/diretor'
+      path: '/diretor'
+      fullPath: '/diretor'
+      preLoaderRoute: typeof AuthenticatedDiretorRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/corretores': {
       id: '/_authenticated/corretores'
       path: '/corretores'
@@ -386,6 +405,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedContaRoute: typeof AuthenticatedContaRoute
   AuthenticatedCorretoresRoute: typeof AuthenticatedCorretoresRoute
+  AuthenticatedDiretorRoute: typeof AuthenticatedDiretorRoute
   AuthenticatedDistratosRoute: typeof AuthenticatedDistratosRoute
   AuthenticatedEmpreendimentosRoute: typeof AuthenticatedEmpreendimentosRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
@@ -404,6 +424,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedContaRoute: AuthenticatedContaRoute,
   AuthenticatedCorretoresRoute: AuthenticatedCorretoresRoute,
+  AuthenticatedDiretorRoute: AuthenticatedDiretorRoute,
   AuthenticatedDistratosRoute: AuthenticatedDistratosRoute,
   AuthenticatedEmpreendimentosRoute: AuthenticatedEmpreendimentosRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,

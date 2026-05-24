@@ -11,11 +11,11 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthLayout() {
-  const { session, loading, rolesLoading, roles, isAdmin, isFinanceiro, isGerente, isCorretor, signOut } = useAuth();
+  const { session, loading, rolesLoading, roles, isAdmin, isDiretor, isFinanceiro, isGerente, isCorretor, signOut } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
   const allowed = roles.length > 0;
-  const caps = { isAdmin, isFinanceiro, isGerente, isCorretor };
+  const caps = { isAdmin, isDiretor, isFinanceiro, isGerente, isCorretor };
   const routeOk = allowed && canAccess(loc.pathname, caps);
 
   useEffect(() => {

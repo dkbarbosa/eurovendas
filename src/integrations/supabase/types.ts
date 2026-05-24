@@ -62,6 +62,7 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           desconto_distrato: number
+          diretor_user_id: string | null
           gerente_user_id: string | null
           id: string
           motivo_negacao: string | null
@@ -85,6 +86,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           desconto_distrato?: number
+          diretor_user_id?: string | null
           gerente_user_id?: string | null
           id?: string
           motivo_negacao?: string | null
@@ -108,6 +110,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           desconto_distrato?: number
+          diretor_user_id?: string | null
           gerente_user_id?: string | null
           id?: string
           motivo_negacao?: string | null
