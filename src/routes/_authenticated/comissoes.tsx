@@ -194,7 +194,7 @@ function ComissoesPage() {
       {
         adiantado: number;
         finalPago: number;
-        items: Array<{ id: string; tipo: string; valor: number; data: string | null }>;
+        items: Array<{ id: string; tipo: string; valor: number; data: string | null; kind: "request" | "nf" }>;
       }
     >();
     for (const r of requests) {
@@ -208,6 +208,7 @@ function ComissoesPage() {
         tipo: r.tipo,
         valor: v,
         data: (r.paid_at ?? r.decided_at ?? r.created_at) as string | null,
+        kind: "request",
       });
       m.set(r.sale_id, cur);
     }
@@ -227,9 +228,11 @@ function ComissoesPage() {
         tipo: "comissao_final",
         valor: v,
         data: (n.paga_at ?? n.recebida_at ?? n.created_at) as string | null,
+        kind: "nf",
       });
       m.set(n.sale_id, cur);
     }
+
 
     return m;
   }, [requests, nfs]);
