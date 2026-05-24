@@ -310,10 +310,12 @@ export type Database = {
           corretor_user_id: string | null
           created_at: string
           desconto_distrato: number
+          diretor_user_id: string | null
           distrato_id: string | null
           drive_file_id: string | null
           drive_file_id_2: string | null
           emitida_at: string | null
+          gerente_user_id: string | null
           id: string
           numero_nf: string | null
           observacao_corretor: string | null
@@ -323,6 +325,7 @@ export type Database = {
           paga_at: string | null
           paga_por: string | null
           recebida_at: string | null
+          requester_role: string
           sale_id: string
           solicitado_por: string | null
           status: Database["public"]["Enums"]["nf_status"]
@@ -336,10 +339,12 @@ export type Database = {
           corretor_user_id?: string | null
           created_at?: string
           desconto_distrato?: number
+          diretor_user_id?: string | null
           distrato_id?: string | null
           drive_file_id?: string | null
           drive_file_id_2?: string | null
           emitida_at?: string | null
+          gerente_user_id?: string | null
           id?: string
           numero_nf?: string | null
           observacao_corretor?: string | null
@@ -349,6 +354,7 @@ export type Database = {
           paga_at?: string | null
           paga_por?: string | null
           recebida_at?: string | null
+          requester_role?: string
           sale_id: string
           solicitado_por?: string | null
           status?: Database["public"]["Enums"]["nf_status"]
@@ -362,10 +368,12 @@ export type Database = {
           corretor_user_id?: string | null
           created_at?: string
           desconto_distrato?: number
+          diretor_user_id?: string | null
           distrato_id?: string | null
           drive_file_id?: string | null
           drive_file_id_2?: string | null
           emitida_at?: string | null
+          gerente_user_id?: string | null
           id?: string
           numero_nf?: string | null
           observacao_corretor?: string | null
@@ -375,6 +383,7 @@ export type Database = {
           paga_at?: string | null
           paga_por?: string | null
           recebida_at?: string | null
+          requester_role?: string
           sale_id?: string
           solicitado_por?: string | null
           status?: Database["public"]["Enums"]["nf_status"]
