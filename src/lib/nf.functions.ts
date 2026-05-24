@@ -76,6 +76,9 @@ export const listEligibleSalesForNF = createServerFn({ method: "GET" })
 const RequestNFSchema = z.object({
   sale_id: z.string().uuid(),
   observacao: z.string().trim().max(2000).optional(),
+  distrato_id: z.string().uuid().optional(),
+  desconto_distrato: z.number().nonnegative().max(99999999).optional(),
+  observacao_distrato: z.string().trim().max(2000).optional(),
 });
 
 export const requestNF = createServerFn({ method: "POST" })
@@ -95,16 +98,113 @@ export const requestNF = createServerFn({ method: "POST" })
       .from("nf_requests").select("id").eq("sale_id", data.sale_id).in("status", ["solicitada", "emitida"]).maybeSingle();
     if (active) throw new Error("Já existe uma NF ativa para esta venda.");
 
+    // Valida desconto se vinculado a um distrato
+    let distratoId: string | null = null;
+    let desconto = 0;
+    if (data.distrato_id && (data.desconto_distrato ?? 0) > 0) {
+      const { data: dist } = await supabaseAdmin
+        .from("distratos")
+        .select("id,corretor_user_id,valor_devolver,valor_devolvido,status")
+        .eq("id", data.distrato_id)
+        .maybeSingle();
+      if (!dist) throw new Error("Distrato não encontrado.");
+      if (dist.status === "cancelado") throw new Error("Distrato cancelado.");
+      if (dist.corretor_user_id && dist.corretor_user_id !== userId)
+        throw new Error("Distrato pertence a outro corretor.");
+      const saldo = Math.max(0, Number(dist.valor_devolver) - Number(dist.valor_devolvido));
+      if ((data.desconto_distrato ?? 0) > saldo + 0.001)
+        throw new Error(`Desconto excede saldo do distrato (saldo: ${saldo.toFixed(2)}).`);
+      distratoId = data.distrato_id;
+      desconto = data.desconto_distrato ?? 0;
+
+      // Debita imediatamente do distrato (reserva)
+      const novoDevolvido = Number(dist.valor_devolvido) + desconto;
+      const quitado = novoDevolvido >= Number(dist.valor_devolver) - 0.001;
+      await supabaseAdmin
+        .from("distratos")
+        .update({
+          valor_devolvido: novoDevolvido,
+          status: quitado ? "quitado_por_desconto" : "pendente_devolucao",
+        })
+        .eq("id", distratoId);
+    }
+
     const { error } = await supabaseAdmin.from("nf_requests").insert({
       sale_id: data.sale_id,
       corretor_user_id: userId,
       solicitado_por: context.userId,
       status: "solicitada",
       observacao_financeiro: data.observacao ?? null,
+      distrato_id: distratoId,
+      desconto_distrato: desconto,
+      observacao_distrato: data.observacao_distrato ?? null,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      // rollback do débito no distrato em caso de falha
+      if (distratoId && desconto > 0) {
+        const { data: dist } = await supabaseAdmin
+          .from("distratos").select("valor_devolvido,valor_devolver,status")
+          .eq("id", distratoId).maybeSingle();
+        if (dist) {
+          await supabaseAdmin.from("distratos").update({
+            valor_devolvido: Math.max(0, Number(dist.valor_devolvido) - desconto),
+            status: "pendente_devolucao",
+          }).eq("id", distratoId);
+        }
+      }
+      throw new Error(error.message);
+    }
     return { ok: true };
   });
+
+// ---------- LISTAR PENDÊNCIAS DE DISTRATO PARA UMA VENDA (financeiro) ----------
+// Recebe o sale_id e retorna as pendências do corretor mapeado para essa venda,
+// já incluindo o histórico de descontos aplicados em cada distrato.
+export const listDistratosForSale = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ sale_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertFinanceiro(context.userId);
+    const { data: sale } = await supabaseAdmin
+      .from("sales").select("corretor").eq("id", data.sale_id).maybeSingle();
+    if (!sale?.corretor) return { corretor_user_id: null as string | null, distratos: [], descontos: [], nfs_desconto: [] };
+    const { data: maps } = await supabaseAdmin
+      .from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
+    const userId = resolveBrokerUserId(sale.corretor, (maps ?? []) as { user_id: string; corretor_nome: string }[]);
+    if (!userId) return { corretor_user_id: null, distratos: [], descontos: [], nfs_desconto: [] };
+
+    const { data: dists } = await supabaseAdmin
+      .from("distratos")
+      .select("*")
+      .eq("corretor_user_id", userId)
+      .neq("status", "cancelado")
+      .order("created_at", { ascending: false });
+
+    const distIds = (dists ?? []).map((d) => d.id);
+    const [{ data: descs }, { data: nfsDesc }] = await Promise.all([
+      distIds.length
+        ? supabaseAdmin.from("distrato_descontos").select("*").in("distrato_id", distIds).order("aplicado_at", { ascending: false })
+        : Promise.resolve({ data: [] as never[] }),
+      distIds.length
+        ? supabaseAdmin
+            .from("nf_requests")
+            .select("id,sale_id,distrato_id,desconto_distrato,observacao_distrato,status,created_at")
+            .in("distrato_id", distIds)
+            .gt("desconto_distrato", 0)
+        : Promise.resolve({ data: [] as never[] }),
+    ]);
+
+    return {
+      corretor_user_id: userId,
+      distratos: (dists ?? []).map((d) => ({
+        ...d,
+        saldo_restante: Math.max(0, Number(d.valor_devolver) - Number(d.valor_devolvido)),
+      })),
+      descontos: descs ?? [],
+      nfs_desconto: nfsDesc ?? [],
+    };
+  });
+
 
 // ---------- LISTAR NF (financeiro) ----------
 export const listAllNFs = createServerFn({ method: "GET" })
@@ -303,6 +403,21 @@ export const cancelNF = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => CancelSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertFinanceiro(context.userId);
+    // Reverter desconto do distrato (se houver)
+    const { data: nf } = await supabaseAdmin
+      .from("nf_requests").select("distrato_id,desconto_distrato,status")
+      .eq("id", data.id).maybeSingle();
+    if (nf && nf.distrato_id && Number(nf.desconto_distrato) > 0 && nf.status !== "cancelada") {
+      const { data: dist } = await supabaseAdmin
+        .from("distratos").select("valor_devolvido,valor_devolver,status")
+        .eq("id", nf.distrato_id).maybeSingle();
+      if (dist) {
+        await supabaseAdmin.from("distratos").update({
+          valor_devolvido: Math.max(0, Number(dist.valor_devolvido) - Number(nf.desconto_distrato)),
+          status: "pendente_devolucao",
+        }).eq("id", nf.distrato_id);
+      }
+    }
     const { error } = await supabaseAdmin
       .from("nf_requests")
       .update({
@@ -323,6 +438,21 @@ export const deleteNFRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const roles = await getRoles(context.userId);
     if (!roles.includes("admin")) throw new Error("Apenas administradores podem excluir.");
+    // Reverter desconto do distrato se ainda não cancelado
+    const { data: nf } = await supabaseAdmin
+      .from("nf_requests").select("distrato_id,desconto_distrato,status")
+      .eq("id", data.id).maybeSingle();
+    if (nf && nf.distrato_id && Number(nf.desconto_distrato) > 0 && nf.status !== "cancelada") {
+      const { data: dist } = await supabaseAdmin
+        .from("distratos").select("valor_devolvido")
+        .eq("id", nf.distrato_id).maybeSingle();
+      if (dist) {
+        await supabaseAdmin.from("distratos").update({
+          valor_devolvido: Math.max(0, Number(dist.valor_devolvido) - Number(nf.desconto_distrato)),
+          status: "pendente_devolucao",
+        }).eq("id", nf.distrato_id);
+      }
+    }
     const { error } = await supabaseAdmin.from("nf_requests").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

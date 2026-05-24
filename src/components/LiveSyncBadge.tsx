@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { RefreshCw, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useLiveSync } from "@/hooks/use-live-sync";
 
 function timeAgo(d: Date | null) {
@@ -13,7 +14,7 @@ function timeAgo(d: Date | null) {
 }
 
 export function LiveSyncBadge() {
-  const { state, lastAt, lastError, rows } = useLiveSync();
+  const { state, lastAt, lastError, rows, refresh } = useLiveSync();
 
   const color =
     state === "syncing" ? "#007FFF" :
@@ -40,7 +41,16 @@ export function LiveSyncBadge() {
         {state === "error" ? "Erro" : state === "syncing" ? "Sincronizando" : "Sincronizado"}
       </span>
       <span className="text-muted-foreground">{timeAgo(lastAt)}</span>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-6 w-6 p-0 ml-1"
+        onClick={() => refresh()}
+        disabled={state === "syncing"}
+        title="Atualizar agora"
+      >
+        <RefreshCw className={`w-3 h-3 ${state === "syncing" ? "animate-spin" : ""}`} />
+      </Button>
     </motion.div>
   );
 }
-
