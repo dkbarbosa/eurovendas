@@ -396,11 +396,12 @@ function DiretorPage() {
                         <td className="p-3 text-right">{BRL(s.valor_sinal_negocio)}</td>
                         <td className="p-3 text-right font-medium">{BRL(s.comissao_diretor)}</td>
                         <td className="p-3 text-right text-emerald-400">{BRL(pago)}</td>
+                        <td className="p-3"><SaleNFCell saleId={s.id} /></td>
                         <td className="p-3 text-center">
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={bloqueado || pend || isAdmin && !isDiretor ? true : false}
+                            disabled={bloqueado || pend || (isAdmin && !isDiretor)}
                             onClick={() => openReq(s)}
                           >
                             {pend ? "Pendente" : bloqueado ? stUp : "Solicitar"}
