@@ -270,18 +270,63 @@ export const listAllNFs = createServerFn({ method: "GET" })
     const { data: nfs } = await supabaseAdmin
       .from("nf_requests").select("*").order("created_at", { ascending: false }).limit(2000);
     const saleIds = [...new Set((nfs ?? []).map((n) => n.sale_id).filter((v): v is string => !!v))];
-    const userIds = [...new Set((nfs ?? []).map((n) => n.corretor_user_id).filter((v): v is string => !!v))];
+    const ownerIds = [
+      ...new Set(
+        (nfs ?? [])
+          .flatMap((n) => [n.corretor_user_id, n.gerente_user_id, n.diretor_user_id])
+          .filter((v): v is string => !!v),
+      ),
+    ];
     const [{ data: sales }, { data: profs }] = await Promise.all([
-      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor").in("id", saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"]),
-      supabaseAdmin.from("profiles").select("id,display_name,email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
+      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente").in("id", saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"]),
+      supabaseAdmin.from("profiles").select("id,display_name,email").in("id", ownerIds.length ? ownerIds : ["00000000-0000-0000-0000-000000000000"]),
     ]);
     const sMap = new Map((sales ?? []).map((s) => [s.id, s]));
     const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
-    return (nfs ?? []).map((n) => ({
-      ...n,
-      sale: sMap.get(n.sale_id) ?? null,
-      corretor_profile: n.corretor_user_id ? pMap.get(n.corretor_user_id) ?? null : null,
-    }));
+    return (nfs ?? []).map((n) => {
+      const ownerId = n.requester_role === "gerente"
+        ? n.gerente_user_id
+        : n.requester_role === "diretor"
+          ? n.diretor_user_id
+          : n.corretor_user_id;
+      return {
+        ...n,
+        sale: sMap.get(n.sale_id) ?? null,
+        corretor_profile: n.corretor_user_id ? pMap.get(n.corretor_user_id) ?? null : null,
+        owner_profile: ownerId ? pMap.get(ownerId) ?? null : null,
+      };
+    });
+  });
+
+// ---------- LISTAR MINHAS NFs (gerente ou diretor) ----------
+export const listMyNFs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const roles = await getRoles(context.userId);
+    const isGer = roles.includes("gerente");
+    const isDir = roles.includes("diretor");
+    if (!isGer && !isDir) return [];
+
+    const filter = isGer && isDir
+      ? `gerente_user_id.eq.${context.userId},diretor_user_id.eq.${context.userId}`
+      : isGer
+        ? `gerente_user_id.eq.${context.userId}`
+        : `diretor_user_id.eq.${context.userId}`;
+
+    const { data: nfs } = await supabaseAdmin
+      .from("nf_requests")
+      .select("*")
+      .or(filter)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+
+    const saleIds = [...new Set((nfs ?? []).map((n) => n.sale_id).filter((v): v is string => !!v))];
+    const { data: sales } = await supabaseAdmin
+      .from("sales")
+      .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente")
+      .in("id", saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"]);
+    const sMap = new Map((sales ?? []).map((s) => [s.id, s]));
+    return (nfs ?? []).map((n) => ({ ...n, sale: sMap.get(n.sale_id) ?? null }));
   });
 
 // ---------- CORRETOR EMITE NF (faz upload para o Google Drive) ----------
