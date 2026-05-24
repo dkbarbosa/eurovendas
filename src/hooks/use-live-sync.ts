@@ -51,22 +51,15 @@ export function useLiveSync() {
   useEffect(() => {
     mounted.current = true;
     if (!isAdmin || !session) return;
+    // Sincroniza apenas quando a página é carregada/recarregada.
+    // Sem intervalo de polling e sem refetch ao trocar de aba — assim os
+    // filtros e o estado da página são preservados durante a navegação.
     run();
-    const id = setInterval(() => {
-      // Não dispara em background quando aba está oculta — economiza requests.
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      run();
-    }, INTERVAL_MS);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") run();
-    };
-    document.addEventListener("visibilitychange", onVisible);
     return () => {
       mounted.current = false;
-      clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [isAdmin, session, run]);
+
 
   return { state, lastAt, lastError, rows, refresh: run };
 }
