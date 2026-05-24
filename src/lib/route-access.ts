@@ -14,6 +14,9 @@ export interface Caps {
 type Rule = { match: (path: string) => boolean; allow: (c: Caps) => boolean };
 
 const RULES: Rule[] = [
+  // Conta — qualquer usuário autenticado
+  { match: (p) => p === "/conta" || p.startsWith("/conta/"), allow: () => true },
+
   // Administração — só admin
   { match: (p) => p.startsWith("/admin"), allow: (c) => c.isAdmin },
 
@@ -23,6 +26,9 @@ const RULES: Rule[] = [
 
   // Comissões — admin, gerente OU corretor (cada um vê só as próprias; gerente também)
   { match: (p) => p === "/comissoes" || p.startsWith("/comissoes/"), allow: (c) => c.isAdmin || c.isGerente || c.isCorretor },
+
+  // Minha Equipe — admin OU gerente
+  { match: (p) => p === "/equipe" || p.startsWith("/equipe/"), allow: (c) => c.isAdmin || c.isGerente },
 
   // Gerentes (cadastro/lista) — só admin
   { match: (p) => p === "/gerentes" || p.startsWith("/gerentes/"), allow: (c) => c.isAdmin },

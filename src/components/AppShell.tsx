@@ -18,6 +18,8 @@ import {
   Wallet,
   Receipt,
   Ban,
+  UserCircle,
+  Users2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -111,6 +113,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               active={loc.pathname === "/comissoes"} onNavigate={() => setMobileOpen(false)} />
           </>
         )}
+
+        {(isAdmin || isGerente) && (
+          <>
+            <SectionLabel className="mt-6">Equipe</SectionLabel>
+            <NavLink to="/equipe" label="Minha Equipe" icon={Users2}
+              active={loc.pathname === "/equipe"} onNavigate={() => setMobileOpen(false)} />
+          </>
+        )}
+
+        <SectionLabel className="mt-6">Conta</SectionLabel>
+        <NavLink to="/conta" label="Minha Conta" icon={UserCircle}
+          active={loc.pathname === "/conta"} onNavigate={() => setMobileOpen(false)} />
+
 
         {canFinanceiro && (
           <>
