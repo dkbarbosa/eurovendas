@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-        {isAdmin && (
+        {canManagementNav && (
           <>
             <SectionLabel>Visão da Gestão</SectionLabel>
             {MANAGEMENT_NAV.map((item) => (
@@ -103,6 +103,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onNavigate={() => setMobileOpen(false)}
               />
             ))}
+            {(isAdmin || isDiretor) && (
+              <NavLink to="/diretor" label="Painel Financeiro" icon={Wallet}
+                active={loc.pathname === "/diretor"} onNavigate={() => setMobileOpen(false)} />
+            )}
           </>
         )}
 
