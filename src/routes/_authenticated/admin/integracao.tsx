@@ -183,7 +183,7 @@ function IntegPage() {
           transition={{ duration: 0.3, delay: 0.2 }}
           className="glass-card p-5 flex items-center gap-4"
         >
-          <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
             <HardDrive className="w-5 h-5" />
           </div>
           <div>
@@ -198,7 +198,7 @@ function IntegPage() {
           transition={{ duration: 0.3, delay: 0.25 }}
           className="glass-card p-5 flex items-center gap-4"
         >
-          <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
+          <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
