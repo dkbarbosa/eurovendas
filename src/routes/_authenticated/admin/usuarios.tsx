@@ -6,6 +6,7 @@ import { listUsers, inviteUser, setUserRole, deleteUser, adminChangeUserPassword
 import { listBrokerMappings, setBrokerMapping } from "@/lib/broker-mapping.functions";
 import { adminSetCorretorGerente } from "@/lib/team.functions";
 import { listDistinctCorretores } from "@/lib/commissions.functions";
+import { listDistinctGerentes } from "@/lib/gerente.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,7 @@ function Page() {
   const listMaps = useServerFn(listBrokerMappings);
   const setMap = useServerFn(setBrokerMapping);
   const listBrokers = useServerFn(listDistinctCorretores);
+  const listGerentesSheet = useServerFn(listDistinctGerentes);
   const changePw = useServerFn(adminChangeUserPassword);
   const updateProfile = useServerFn(adminUpdateUserProfile);
   const setCorretorGer = useServerFn(adminSetCorretorGerente);
@@ -38,6 +40,7 @@ function Page() {
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: () => list({}), enabled: isAdmin });
   const { data: maps = [] } = useQuery({ queryKey: ["broker-mappings"], queryFn: () => listMaps(), enabled: isAdmin });
   const { data: brokers = [] } = useQuery({ queryKey: ["distinct-corretores"], queryFn: () => listBrokers(), enabled: isAdmin });
+  const { data: gerentesSheet = [] } = useQuery({ queryKey: ["distinct-gerentes"], queryFn: () => listGerentesSheet(), enabled: isAdmin });
 
   const mapByUser = useMemo(() => new Map(maps.map((m) => [m.user_id, m])), [maps]);
   const gerentes = useMemo(() => users.filter((u) => u.roles.includes("gerente")), [users]);
@@ -59,7 +62,7 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
   const mapMut = useMutation({
-    mutationFn: (v: { user_id: string; corretor_nome: string | null }) => setMap({ data: v }),
+    mutationFn: (v: { user_id: string; corretor_nome: string | null; gerente_nome?: string | null }) => setMap({ data: v }),
     onSuccess: () => { toast.success("Vínculo atualizado."); qc.invalidateQueries({ queryKey: ["broker-mappings"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -108,6 +111,7 @@ function Page() {
               <th className="text-left p-3">E-mail</th>
               <th className="text-left p-3">Papéis</th>
               <th className="text-left p-3"><Link2 className="w-3 h-3 inline mr-1" />Corretor (planilha)</th>
+              <th className="text-left p-3"><Link2 className="w-3 h-3 inline mr-1" />Gerente (planilha)</th>
               <th className="text-left p-3">Gerente responsável</th>
               <th className="p-3"></th>
             </tr>
@@ -116,8 +120,10 @@ function Page() {
             {users.map((u) => {
               const map = mapByUser.get(u.id);
               const current = map?.corretor_nome ?? "";
+              const currentGer = map?.gerente_nome ?? "";
               const currentTeam = map?.team_gerente_user_id ?? "";
               const isCorretor = u.roles.includes("corretor");
+              const isGer = u.roles.includes("gerente");
               return (
                 <tr key={u.id} className="border-t border-border">
                   <td className="p-3 font-medium">{u.display_name ?? "—"}</td>
@@ -138,7 +144,7 @@ function Page() {
                   <td className="p-3">
                     <select
                       value={current}
-                      onChange={(e) => mapMut.mutate({ user_id: u.id, corretor_nome: e.target.value || null })}
+                      onChange={(e) => mapMut.mutate({ user_id: u.id, corretor_nome: e.target.value || null, gerente_nome: currentGer || null })}
                       className="h-9 w-full max-w-[220px] rounded-md bg-background text-foreground border border-border px-2 text-sm"
                     >
                       <option value="" className="bg-background text-foreground">— sem vínculo —</option>
@@ -149,6 +155,25 @@ function Page() {
                         <option value={current} className="bg-background text-foreground">{current} (planilha)</option>
                       )}
                     </select>
+                  </td>
+                  <td className="p-3">
+                    {isGer ? (
+                      <select
+                        value={currentGer}
+                        onChange={(e) => mapMut.mutate({ user_id: u.id, corretor_nome: current || null, gerente_nome: e.target.value || null })}
+                        className="h-9 w-full max-w-[220px] rounded-md bg-background text-foreground border border-border px-2 text-sm"
+                      >
+                        <option value="" className="bg-background text-foreground">— sem vínculo —</option>
+                        {gerentesSheet.map((g) => (
+                          <option key={g} value={g} className="bg-background text-foreground">{g}</option>
+                        ))}
+                        {currentGer && !gerentesSheet.includes(currentGer) && (
+                          <option value={currentGer} className="bg-background text-foreground">{currentGer} (planilha)</option>
+                        )}
+                      </select>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="p-3">
                     {isCorretor ? (
