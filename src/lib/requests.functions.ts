@@ -279,7 +279,8 @@ export const listAllRequests = createServerFn({ method: "POST" })
         final_pago: p.final,
         a_receber: aReceber,
         historico: p.items.slice().sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "")),
-        nf_status: nfBySale.get(r.sale_id) ?? null,
+        nf_status: nfBySale.get(r.sale_id)?.status ?? null,
+        nf_info: nfBySale.get(r.sale_id) ?? null,
       };
     });
 
