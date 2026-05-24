@@ -330,18 +330,18 @@ export const decideRequest = createServerFn({ method: "POST" })
     if (data.decision === "aprovado") {
       const { data: req } = await supabaseAdmin
         .from("commission_requests")
-        .select("tipo, valor_solicitado, sale_id, corretor_user_id")
+        .select("tipo, valor_solicitado, sale_id, corretor_user_id, gerente_user_id, diretor_user_id, requester_role")
         .eq("id", data.id)
         .single();
       if (req?.sale_id) {
         const { data: sale } = await supabaseAdmin
           .from("sales")
-          .select("data, empreendimento, unidade, comprador, valor_venda, corretor")
+          .select("data, empreendimento, unidade, comprador, valor_venda, corretor, gerente")
           .eq("id", req.sale_id)
           .single();
 
-        // Soma o adiantamento na coluna "Adiant. Corr." da planilha.
-        if (sale && req.tipo === "adiantamento") {
+        // Soma o adiantamento na coluna "Adiant. Corr." da planilha (apenas pedidos do corretor).
+        if (sale && req.tipo === "adiantamento" && (req.requester_role ?? "corretor") === "corretor") {
           try {
             const res = await addAdvanceToSheet(sale, Number(req.valor_solicitado) || 0);
             if (!res.ok) {
@@ -354,17 +354,24 @@ export const decideRequest = createServerFn({ method: "POST" })
           }
         }
 
-        // Cria automaticamente solicitação de NF (se não houver ativa para a venda).
+        // Cria automaticamente solicitação de NF para o MESMO papel do pedido aprovado.
+        // Se não houver NF ativa para a venda + papel, abre uma nova com o owner correto.
         try {
+          const role = (req.requester_role ?? "corretor") as "corretor" | "gerente" | "diretor";
           const { data: active } = await supabaseAdmin
             .from("nf_requests")
             .select("id")
             .eq("sale_id", req.sale_id)
+            .eq("requester_role", role)
             .in("status", ["solicitada", "emitida"])
             .maybeSingle();
           if (!active) {
-            let corretorUserId: string | null = req.corretor_user_id ?? null;
-            if (!corretorUserId && sale?.corretor) {
+            let corretorUserId: string | null = role === "corretor" ? (req.corretor_user_id ?? null) : null;
+            let gerenteUserId: string | null = role === "gerente" ? (req.gerente_user_id ?? null) : null;
+            let diretorUserId: string | null = role === "diretor" ? (req.diretor_user_id ?? null) : null;
+
+            // Fallback: tenta resolver o corretor pelo nome da venda caso o pedido não traga user_id.
+            if (role === "corretor" && !corretorUserId && sale?.corretor) {
               const { data: map } = await supabaseAdmin
                 .from("broker_mapping")
                 .select("user_id")
@@ -373,14 +380,28 @@ export const decideRequest = createServerFn({ method: "POST" })
                 .maybeSingle();
               corretorUserId = map?.user_id ?? null;
             }
-            if (corretorUserId) {
-              await supabaseAdmin.from("nf_requests").insert({
+
+            const hasOwner =
+              (role === "corretor" && !!corretorUserId) ||
+              (role === "gerente" && !!gerenteUserId) ||
+              (role === "diretor" && !!diretorUserId);
+
+            if (hasOwner) {
+              const ownerLabel =
+                role === "gerente" ? "Gerente" : role === "diretor" ? "Gestão" : "Corretor";
+              const { error: nfErr } = await supabaseAdmin.from("nf_requests").insert({
                 sale_id: req.sale_id,
+                requester_role: role,
                 corretor_user_id: corretorUserId,
+                gerente_user_id: gerenteUserId,
+                diretor_user_id: diretorUserId,
                 solicitado_por: context.userId,
                 status: "solicitada",
-                observacao_financeiro: `NF solicitada automaticamente após aprovação de ${req.tipo === "adiantamento" ? "adiantamento" : "comissão"}.`,
+                observacao_financeiro: `NF solicitada automaticamente após aprovação de ${req.tipo === "adiantamento" ? "adiantamento" : "comissão"} (${ownerLabel}).`,
               });
+              if (nfErr) console.error("auto-create nf_request insert:", nfErr);
+            } else {
+              console.warn(`auto-create nf_request: sem owner para papel ${role} na venda ${req.sale_id}`);
             }
           }
         } catch (e) {
