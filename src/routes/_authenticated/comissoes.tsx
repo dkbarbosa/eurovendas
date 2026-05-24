@@ -941,12 +941,13 @@ function ComissoesPage() {
                               const isCaixa = stUp === "CAIXA";
                               const finSolicitou = !!nfAberta;
                               const jaTevePagamento = totalPagoSale > 0;
-                              // Fluxo: ASSINADO → Solicitar adiantamento → Aprovado → NF → Pago → Aguardando CAIXA → CAIXA → Solicitar pagamento.
-                              // Após qualquer pagamento, só libera nova solicitação se status = CAIXA ou financeiro solicitou NF.
+                              const sinalSale = Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
+                              const sinalOk = sinalSale >= 2999.99;
+                              // Regra: ASSINADO só libera se sinal ≥ R$ 2.999,99. CAIXA/NF liberam sempre.
                               const allowed =
                                 !isReservado &&
                                 !hasPending &&
-                                (isCaixa || finSolicitou || (isAssinado && !jaTevePagamento));
+                                (isCaixa || finSolicitou || (isAssinado && !jaTevePagamento && sinalOk));
                               const label = isReservado
                                 ? "Reservado"
                                 : hasPending
@@ -955,16 +956,20 @@ function ComissoesPage() {
                                     ? "Solicitar pagamento"
                                     : jaTevePagamento
                                       ? "Aguardando CAIXA"
-                                      : isAssinado
+                                      : isAssinado && sinalOk
                                         ? "Solicitar adiantamento"
-                                        : "Aguardando CAIXA";
+                                        : isAssinado && !sinalOk
+                                          ? "Sinal insuficiente"
+                                          : "Aguardando CAIXA";
                               const blockReason = isReservado
                                 ? "Venda reservada não permite solicitação."
                                 : hasPending
                                   ? "Já existe uma solicitação pendente para esta venda."
-                                  : !allowed
-                                    ? "Aguardando o Status da venda virar CAIXA (ou o financeiro solicitar a NF) para liberar nova solicitação."
-                                    : "";
+                                  : isAssinado && !sinalOk && !jaTevePagamento
+                                    ? `Sinal de ${BRL(sinalSale)} é menor que R$ 2.999,99 — adiantamento não liberado. Aguarde o status virar CAIXA.`
+                                    : !allowed
+                                      ? "Aguardando o Status da venda virar CAIXA (ou o financeiro solicitar a NF) para liberar nova solicitação."
+                                      : "";
                               return (
                                 <Button
                                   size="sm"
@@ -977,6 +982,7 @@ function ComissoesPage() {
                                 </Button>
                               );
                             })()
+
 
 
 
