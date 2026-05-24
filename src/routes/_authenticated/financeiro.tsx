@@ -1070,11 +1070,24 @@ function RequestNFTab() {
                 <td className="p-3 text-right">{BRL(s.comissao_liq_corretor)}</td>
                 <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
                 <td className="p-3 text-right">
-                  <Button size="sm" disabled={!s.mapped_user_id}
-                    onClick={() => setDialog({ open: true, saleId: s.id, sale: s, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}
-                    style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
-                    <FilePlus2 className="w-3.5 h-3.5 mr-1" />Solicitar NF
-                  </Button>
+                  <div className="flex justify-end gap-1.5 flex-wrap">
+                    <Button size="sm" disabled={!s.mapped_user_id || s.has_active_nf_corretor}
+                      onClick={() => setDialog({ open: true, saleId: s.id, sale: s, requesterRole: "corretor", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}
+                      style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+                      title={s.has_active_nf_corretor ? "NF ativa do corretor" : "Solicitar NF ao corretor"}>
+                      <FilePlus2 className="w-3.5 h-3.5 mr-1" />Corretor
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={!s.gerente || s.has_active_nf_gerente}
+                      onClick={() => setDialog({ open: true, saleId: s.id, sale: s, requesterRole: "gerente", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}
+                      title={s.has_active_nf_gerente ? "NF ativa do gerente" : "Solicitar NF ao gerente"}>
+                      <FilePlus2 className="w-3.5 h-3.5 mr-1" />Gerente
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={s.has_active_nf_diretor}
+                      onClick={() => setDialog({ open: true, saleId: s.id, sale: s, requesterRole: "diretor", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}
+                      title={s.has_active_nf_diretor ? "NF ativa da gestão" : "Solicitar NF à gestão"}>
+                      <FilePlus2 className="w-3.5 h-3.5 mr-1" />Gestão
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
