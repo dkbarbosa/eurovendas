@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { listAllRequests, decideRequest, markRequestPaid, deleteCommissionRequest, removeBonusFromRequest } from "@/lib/requests.functions";
 import { listAllNFs, listEligibleSalesForNF, requestNF, confirmNFReceived, cancelNF, deleteNFRequest, downloadNFFile, markNFPaid, listDistratosForSale } from "@/lib/nf.functions";
 import { listPendenciasDistrato, aplicarDescontoDistrato } from "@/lib/distratos.functions";
+import { setSaleStatus } from "@/lib/sales.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
