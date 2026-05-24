@@ -162,6 +162,12 @@ function Page() {
                   </td>
                   <td className="p-3 text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <EditProfileButton
+                        userId={u.id}
+                        currentName={u.display_name ?? ""}
+                        currentEmail={u.email ?? ""}
+                        updateProfile={updateProfile}
+                      />
                       <ChangePasswordButton userId={u.id} userLabel={u.display_name ?? u.email ?? ""} changePw={changePw} />
                       <Button variant="ghost" size="icon" onClick={() => { if (confirm("Remover usuário?")) delMut.mutate(u.id); }}>
                         <Trash2 className="w-4 h-4 text-destructive" />
