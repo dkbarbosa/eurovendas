@@ -679,9 +679,24 @@ function AdvancesTab() {
                                     </a>
                                   )}
                                 </div>
-                                {r.observacao_corretor && <div className="text-xs"><b>C:</b> {r.observacao_corretor}</div>}
-                                {r.observacao_financeiro && <div className="text-xs text-muted-foreground"><b>F:</b> {r.observacao_financeiro}</div>}
-                                {r.motivo_negacao && <div className="text-xs text-destructive"><b>Motivo:</b> {r.motivo_negacao}</div>}
+                                {r.observacao_corretor && (
+                                  <div className="mt-2 rounded-md border border-sky-500/30 bg-sky-500/5 p-2">
+                                    <div className="text-[10px] uppercase tracking-wide text-sky-300 font-semibold">💬 Mensagem do corretor</div>
+                                    <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">{r.observacao_corretor}</div>
+                                  </div>
+                                )}
+                                {r.observacao_financeiro && (
+                                  <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2">
+                                    <div className="text-[10px] uppercase tracking-wide text-amber-300 font-semibold">💬 Mensagem do financeiro</div>
+                                    <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">{r.observacao_financeiro}</div>
+                                  </div>
+                                )}
+                                {r.motivo_negacao && (
+                                  <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 p-2">
+                                    <div className="text-[10px] uppercase tracking-wide text-destructive font-semibold">⚠ Motivo da negação</div>
+                                    <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">{r.motivo_negacao}</div>
+                                  </div>
+                                )}
                               </td>
                               <td className="px-3 py-2 text-right whitespace-nowrap">
                                 {r.status === "pendente" && (
