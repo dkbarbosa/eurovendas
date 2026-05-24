@@ -32,6 +32,7 @@ function Page() {
   const setMap = useServerFn(setBrokerMapping);
   const listBrokers = useServerFn(listDistinctCorretores);
   const changePw = useServerFn(adminChangeUserPassword);
+  const updateProfile = useServerFn(adminUpdateUserProfile);
   const setCorretorGer = useServerFn(adminSetCorretorGerente);
 
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: () => list({}), enabled: isAdmin });
