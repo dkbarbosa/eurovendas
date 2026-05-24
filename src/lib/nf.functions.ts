@@ -473,11 +473,15 @@ export const downloadNFFile = createServerFn({ method: "POST" })
     const isStaff = roles.includes("financeiro") || roles.includes("admin");
     const { data: nf } = await supabaseAdmin
       .from("nf_requests")
-      .select("drive_file_id,drive_file_id_2,corretor_user_id")
+      .select("drive_file_id,drive_file_id_2,corretor_user_id,gerente_user_id,diretor_user_id")
       .eq("id", data.id)
       .maybeSingle();
     if (!nf) throw new Error("NF não encontrada.");
-    if (!isStaff && nf.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
+    const isOwner =
+      nf.corretor_user_id === context.userId ||
+      nf.gerente_user_id === context.userId ||
+      nf.diretor_user_id === context.userId;
+    if (!isStaff && !isOwner) throw new Error("Acesso negado.");
     const fileId = data.which === "2" ? nf.drive_file_id_2 : nf.drive_file_id;
     if (!fileId) throw new Error("Arquivo não encontrado.");
 
