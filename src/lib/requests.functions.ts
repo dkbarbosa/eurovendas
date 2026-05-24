@@ -318,8 +318,10 @@ export const decideRequest = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!upd || upd.length === 0) throw new Error("Este pedido já foi decidido por outra pessoa.");
 
-    // Ao aprovar adiantamento: abrir solicitação de NF automaticamente.
-    // (A planilha só é atualizada quando o pagamento for confirmado — em markRequestPaid.)
+    // Ao aprovar adiantamento: somar valor na planilha + abrir solicitação de NF.
+    // Idempotente: o update acima usa .eq("status","pendente"), portanto este bloco
+    // só executa uma única vez por pedido (transição pendente -> aprovado).
+    let sheetWarning: string | undefined;
     if (data.decision === "aprovado") {
       const { data: req } = await supabaseAdmin
         .from("commission_requests")
@@ -333,6 +335,20 @@ export const decideRequest = createServerFn({ method: "POST" })
           .eq("id", req.sale_id)
           .single();
 
+        // Soma o adiantamento na coluna "Adiant. Corr." da planilha.
+        if (sale && req.tipo === "adiantamento") {
+          try {
+            const res = await addAdvanceToSheet(sale, Number(req.valor_solicitado) || 0);
+            if (!res.ok) {
+              sheetWarning = res.error;
+              console.error("addAdvanceToSheet (aprovação):", res.error);
+            }
+          } catch (e) {
+            console.error("addAdvanceToSheet exception:", e);
+            sheetWarning = e instanceof Error ? e.message : String(e);
+          }
+        }
+
         // Cria automaticamente solicitação de NF (se não houver ativa para a venda).
         try {
           const { data: active } = await supabaseAdmin
@@ -342,7 +358,6 @@ export const decideRequest = createServerFn({ method: "POST" })
             .in("status", ["solicitada", "emitida"])
             .maybeSingle();
           if (!active) {
-            // Resolver corretor_user_id: usa o do pedido; senão, mapeia pelo nome.
             let corretorUserId: string | null = req.corretor_user_id ?? null;
             if (!corretorUserId && sale?.corretor) {
               const { data: map } = await supabaseAdmin
@@ -368,7 +383,7 @@ export const decideRequest = createServerFn({ method: "POST" })
         }
       }
     }
-    return { ok: true };
+    return { ok: true, sheetWarning };
   });
 
 // ---------- REMOVER BÔNUS (financeiro) ----------
@@ -472,22 +487,7 @@ export const markRequestPaid = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!upd?.length) throw new Error("Pedido já foi marcado como pago.");
 
-    // Após confirmação de pagamento de adiantamento, somar valor na planilha.
-    let sheetWarning: string | undefined;
-    const row = upd[0];
-    if (row.tipo === "adiantamento" && row.sale_id) {
-      const { data: sale } = await supabaseAdmin
-        .from("sales")
-        .select("data, empreendimento, unidade, comprador, valor_venda, corretor")
-        .eq("id", row.sale_id)
-        .single();
-      if (sale) {
-        const res = await addAdvanceToSheet(sale, Number(row.valor_solicitado) || 0);
-        if (!res.ok) {
-          sheetWarning = res.error;
-          console.error("addAdvanceToSheet:", res.error);
-        }
-      }
-    }
-    return { ok: true, sheetWarning };
+    // Planilha: já foi atualizada no momento da aprovação (decideRequest).
+    // Aqui não somamos novamente para evitar duplicação.
+    return { ok: true };
   });
