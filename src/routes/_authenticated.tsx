@@ -1,7 +1,8 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
+import { canAccess, homeRouteFor } from "@/lib/route-access";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShieldAlert } from "lucide-react";
 
@@ -10,14 +11,24 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthLayout() {
-  const { session, loading, rolesLoading, roles, signOut } = useAuth();
+  const { session, loading, rolesLoading, roles, isAdmin, isFinanceiro, isGerente, isCorretor, signOut } = useAuth();
   const nav = useNavigate();
-  // Qualquer role autenticada com pelo menos 1 role atribuída
+  const loc = useLocation();
   const allowed = roles.length > 0;
+  const caps = { isAdmin, isFinanceiro, isGerente, isCorretor };
+  const routeOk = allowed && canAccess(loc.pathname, caps);
 
   useEffect(() => {
-    if (!loading && !session) nav({ to: "/login" });
-  }, [session, loading, nav]);
+    if (!loading && !session) {
+      nav({ to: "/login" });
+      return;
+    }
+    // Redireciona usuário autenticado fora do escopo da role
+    if (!loading && !rolesLoading && session && allowed && !routeOk) {
+      const home = homeRouteFor(caps);
+      if (home !== loc.pathname) nav({ to: home, replace: true });
+    }
+  }, [session, loading, rolesLoading, allowed, routeOk, loc.pathname, nav, caps]);
 
   if (loading || !session || rolesLoading) {
     return (
@@ -42,6 +53,15 @@ function AuthLayout() {
             Sair
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  if (!routeOk) {
+    // useEffect já vai redirecionar; mostra spinner enquanto isso
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
