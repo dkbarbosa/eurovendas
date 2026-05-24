@@ -24,8 +24,8 @@ const RULES: Rule[] = [
   { match: (p) => p === "/financeiro" || p.startsWith("/financeiro/"), allow: (c) => c.isAdmin || c.isFinanceiro },
   { match: (p) => p === "/distratos" || p.startsWith("/distratos/"), allow: (c) => c.isAdmin || c.isFinanceiro },
 
-  // Comissões — admin, gerente OU corretor
-  { match: (p) => p === "/comissoes" || p.startsWith("/comissoes/"), allow: (c) => c.isAdmin || c.isGerente || c.isCorretor },
+  // Comissões (painel do corretor) — admin OU corretor (gerente NÃO vê)
+  { match: (p) => p === "/comissoes" || p.startsWith("/comissoes/"), allow: (c) => c.isAdmin || c.isCorretor },
 
   // Minha Equipe — admin OU gerente
   { match: (p) => p === "/equipe" || p.startsWith("/equipe/"), allow: (c) => c.isAdmin || c.isGerente },
