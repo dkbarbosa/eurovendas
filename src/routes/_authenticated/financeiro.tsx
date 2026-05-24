@@ -1029,7 +1029,7 @@ function RequestNFTab() {
       qc.invalidateQueries({ queryKey: ["all-nfs"] });
       qc.invalidateQueries({ queryKey: ["distratos"] });
       qc.invalidateQueries({ queryKey: ["pendencias-distrato"] });
-      setDialog({ open: false, saleId: null, sale: null, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" });
+      setDialog({ open: false, saleId: null, sale: null, requesterRole: "corretor", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -1211,7 +1211,7 @@ function RequestNFTab() {
             <Textarea value={dialog.observacao} onChange={(e) => setDialog({ ...dialog, observacao: e.target.value })} rows={3} maxLength={2000} placeholder="Instruções, prazo, dados de faturamento…" />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialog({ open: false, saleId: null, sale: null, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setDialog({ open: false, saleId: null, sale: null, requesterRole: "corretor", observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}>Cancelar</Button>
             <Button disabled={reqMut.isPending || (!!selectedDist && (!(valorDescNum > 0) || valorDescNum > maxDesc + 0.001))}
               onClick={() => reqMut.mutate({
                 sale_id: dialog.saleId!,
