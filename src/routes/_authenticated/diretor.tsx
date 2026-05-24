@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/CurrencyInput";
-import { MinhasNFsSection } from "@/components/nf/MinhasNFsSection";
+import { SaleNFCell } from "@/components/nf/SaleNFCell";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -366,12 +366,13 @@ function DiretorPage() {
                     <th className="text-right p-3">Sinal</th>
                     <th className="text-right p-3">Comissão (0,4%)</th>
                     <th className="text-right p-3">Recebido</th>
+                    <th className="text-left p-3">Pedidos / NF</th>
                     <th className="p-3">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSales.length === 0 ? (
-                    <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
+                    <tr><td colSpan={12} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
                   ) : filteredSales.map((s) => {
                     const pago = paidBySale.get(s.id) ?? 0;
                     const pend = pendBySale.get(s.id) ?? false;
@@ -395,11 +396,12 @@ function DiretorPage() {
                         <td className="p-3 text-right">{BRL(s.valor_sinal_negocio)}</td>
                         <td className="p-3 text-right font-medium">{BRL(s.comissao_diretor)}</td>
                         <td className="p-3 text-right text-emerald-400">{BRL(pago)}</td>
+                        <td className="p-3"><SaleNFCell saleId={s.id} /></td>
                         <td className="p-3 text-center">
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={bloqueado || pend || isAdmin && !isDiretor ? true : false}
+                            disabled={bloqueado || pend || (isAdmin && !isDiretor)}
                             onClick={() => openReq(s)}
                           >
                             {pend ? "Pendente" : bloqueado ? stUp : "Solicitar"}
@@ -415,7 +417,7 @@ function DiretorPage() {
         </>
       )}
 
-      <MinhasNFsSection title="Minhas Notas Fiscais" />
+      
 
 
 
@@ -485,15 +487,15 @@ function DiretorPage() {
 }
 
 function Kpi({
-  icon, label, value, hint, accent, warn, premium,
+  icon, label, value, hint,
 }: {
   icon: React.ReactNode; label: string; value: string; hint?: string;
   accent?: boolean; warn?: boolean; premium?: boolean;
 }) {
   return (
-    <div className={`glass-card p-4 ${accent ? "ring-1 ring-primary/30" : ""} ${warn ? "ring-1 ring-amber-400/30" : ""} ${premium ? "ring-1 ring-violet-400/30" : ""}`}>
+    <div className="p-4 rounded-lg border border-border/40">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">{icon}{label}</div>
-      <div className="font-display text-xl mt-1 truncate">{value}</div>
+      <div className="font-display text-xl mt-1 truncate text-foreground">{value}</div>
       {hint && <div className="text-[11px] text-muted-foreground mt-1">{hint}</div>}
     </div>
   );

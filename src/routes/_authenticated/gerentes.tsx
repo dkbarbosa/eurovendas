@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/CurrencyInput";
-import { MinhasNFsSection } from "@/components/nf/MinhasNFsSection";
+import { SaleNFCell } from "@/components/nf/SaleNFCell";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -437,12 +437,13 @@ function GerentesPage() {
                     <th className="text-right p-3">Adiantado</th>
                     <th className="text-right p-3">A Receber</th>
                     <th className="text-left p-3">Status</th>
+                    <th className="text-left p-3">Pedidos / NF</th>
                     <th className="p-3"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSales.length === 0 && (
-                    <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
+                    <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
                   )}
                   {filteredSales.map((s) => {
                     const comLiq = Number(s.comissao_liq_gerente) || 0;
@@ -475,6 +476,7 @@ function GerentesPage() {
                           )}
                         </td>
                         <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
+                        <td className="p-3"><SaleNFCell saleId={s.id} /></td>
                         <td className="p-3 text-right">
                           <Button
                             size="sm"
@@ -540,7 +542,7 @@ function GerentesPage() {
         </>
       )}
 
-      <MinhasNFsSection title="Minhas Notas Fiscais" />
+      
 
       {/* Diálogo solicitação */}
       <Dialog open={reqDialog.open} onOpenChange={(open) => !open && setReqDialog({ open: false, sale: null })}>
@@ -661,7 +663,7 @@ function GerentesPage() {
 }
 
 function Kpi({
-  icon, label, value, hint, accent, warn, premium,
+  icon, label, value, hint,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -671,20 +673,13 @@ function Kpi({
   warn?: boolean;
   premium?: boolean;
 }) {
-  const valueCls = accent
-    ? "text-primary"
-    : warn
-      ? "text-amber-400"
-      : premium
-        ? "bg-gradient-to-r from-[oklch(0.78_0.16_180)] to-[oklch(0.78_0.14_90)] bg-clip-text text-transparent"
-        : "";
   return (
-    <div className="glass-card p-4">
+    <div className="p-4 rounded-lg border border-border/40">
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
         {icon}
         <span>{label}</span>
       </div>
-      <div className={`mt-2 font-display text-2xl font-semibold tabular-nums ${valueCls}`}>{value}</div>
+      <div className="mt-2 font-display text-2xl font-semibold tabular-nums text-foreground">{value}</div>
       {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
