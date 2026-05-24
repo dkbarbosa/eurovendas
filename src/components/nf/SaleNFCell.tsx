@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listMyNFs, markNFEmitted, markNFPaid, downloadNFFile } from "@/lib/nf.functions";
+import { listMyNFs, markNFEmitted, markNFPaid } from "@/lib/nf.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Receipt, Upload, Loader2, Download, CheckCircle2, Paperclip, X, Wallet } from "lucide-react";
+import { Receipt, Upload, Loader2, CheckCircle2, Paperclip, X, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -298,7 +298,6 @@ export function NFEmitDialog({
 export function SaleNFCell({ saleId }: { saleId: string }) {
   const qc = useQueryClient();
   const fnPay = useServerFn(markNFPaid);
-  const fnDownload = useServerFn(downloadNFFile);
   const { data: nfs = [] } = useMyNFs();
   const sNfs = useMemo(() => nfs.filter((n) => n.sale_id === saleId), [nfs, saleId]);
   const nfAberta = useMemo(() => sNfs.find((n) => n.status === "solicitada"), [sNfs]);
@@ -314,20 +313,6 @@ export function SaleNFCell({ saleId }: { saleId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const downloadFile = async (id: string, which: "1" | "2") => {
-    try {
-      const r = await fnDownload({ data: { id, which } }) as { base64: string; contentType: string; filename: string };
-      const bin = atob(r.base64);
-      const buf = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-      const blob = new Blob([buf], { type: r.contentType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = r.filename;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    } catch (e) { toast.error((e as Error).message); }
-  };
 
   if (sNfs.length === 0) return null;
 
@@ -337,26 +322,18 @@ export function SaleNFCell({ saleId }: { saleId: string }) {
         {sNfs.map((n) => (
           <div key={n.id} className="flex items-center gap-1 flex-wrap">
             <NFPill n={n} />
-            {n.drive_file_id && (
-              <button
-                title="Baixar NF"
-                onClick={() => downloadFile(n.id, "1")}
-                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-              >
-                <Download className="w-3 h-3" />
-              </button>
-            )}
             {(n.status === "emitida" || n.status === "recebida") && (
-              <button
-                title="Marcar como paga"
+              <Button
+                size="sm"
                 disabled={payMut.isPending}
                 onClick={() => {
                   if (confirm("Confirmar que esta NF foi paga? Isso finaliza o processo.")) payMut.mutate(n.id);
                 }}
-                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors"
+                className="h-6 px-2 text-[11px]"
+                style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
               >
-                <Wallet className="w-3 h-3" />
-              </button>
+                <Wallet className="w-3 h-3 mr-1" /> Pago
+              </Button>
             )}
           </div>
         ))}
