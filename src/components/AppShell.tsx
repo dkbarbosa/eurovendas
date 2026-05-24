@@ -43,15 +43,18 @@ const ADMIN_NAV = [
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, isFinanceiro, isGerente, isCorretor, signOut } = useAuth();
+  const { user, isAdmin, isDiretor, isFinanceiro, isGerente, isCorretor, signOut } = useAuth();
   const loc = useLocation();
   const nav = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const canFinanceiro = isAdmin || isFinanceiro;
+  const canManagementNav = isAdmin || isDiretor;
 
   const roleLabel = isAdmin
     ? "Administrador"
+    : isDiretor
+    ? "Gerente Geral"
     : isGerente
     ? "Gerente"
     : isFinanceiro
