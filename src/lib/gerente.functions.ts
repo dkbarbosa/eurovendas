@@ -185,9 +185,10 @@ export const createGerenteCommissionRequest = createServerFn({ method: "POST" })
       if (data.tipo === "adiantamento") {
         if (sinal < 2999.99)
           throw new Error(`Adiantamento exige sinal ≥ ${fmt(2999.99)} (atual: ${fmt(sinal)}).`);
-        const maxAdiant = Math.floor(sinal / 2999.99) * 1000;
+        // Gerente recebe R$ 500 a cada R$ 2.999,99 de sinal
+        const maxAdiant = Math.floor(sinal / 2999.99) * 500;
         if (data.valor_solicitado > maxAdiant + 0.001)
-          throw new Error(`Adiantamento máximo: ${fmt(maxAdiant)} (R$1.000 a cada R$2.999,99 de sinal).`);
+          throw new Error(`Adiantamento máximo do gerente: ${fmt(maxAdiant)} (R$ 500 a cada R$ 2.999,99 de sinal).`);
       }
       if (data.tipo === "comissao_final") {
         const minSinal = valorVenda * 0.06;
