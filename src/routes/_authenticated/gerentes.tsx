@@ -663,7 +663,7 @@ function GerentesPage() {
 }
 
 function Kpi({
-  icon, label, value, hint, accent, warn, premium,
+  icon, label, value, hint,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -673,20 +673,13 @@ function Kpi({
   warn?: boolean;
   premium?: boolean;
 }) {
-  const valueCls = accent
-    ? "text-primary"
-    : warn
-      ? "text-amber-400"
-      : premium
-        ? "bg-gradient-to-r from-[oklch(0.78_0.16_180)] to-[oklch(0.78_0.14_90)] bg-clip-text text-transparent"
-        : "";
   return (
-    <div className="glass-card p-4">
+    <div className="p-4 rounded-lg border border-border/40">
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
         {icon}
         <span>{label}</span>
       </div>
-      <div className={`mt-2 font-display text-2xl font-semibold tabular-nums ${valueCls}`}>{value}</div>
+      <div className="mt-2 font-display text-2xl font-semibold tabular-nums text-foreground">{value}</div>
       {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
