@@ -1293,10 +1293,34 @@ function NFTab() {
                   </div>
                 </td>
                 <td className="p-3"><NFStatusBadge status={n.status} /></td>
-                <td className="p-3 max-w-[220px]">
-                  {n.observacao_financeiro && <div className="text-xs"><b>F:</b> {n.observacao_financeiro}</div>}
-                  {n.observacao_corretor && <div className="text-xs text-muted-foreground"><b>C:</b> {n.observacao_corretor}</div>}
-                  {n.observacao_recebimento && <div className="text-xs text-emerald-500"><b>Receb:</b> {n.observacao_recebimento}</div>}
+                <td className="p-3 max-w-[280px] space-y-1.5">
+                  {n.observacao_financeiro && (
+                    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-amber-300 font-semibold">💬 Financeiro</div>
+                      <div className="text-xs whitespace-pre-wrap break-words text-foreground/90">{n.observacao_financeiro}</div>
+                    </div>
+                  )}
+                  {n.observacao_corretor && (
+                    <div className="rounded-md border border-sky-500/30 bg-sky-500/5 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-sky-300 font-semibold">💬 Corretor</div>
+                      <div className="text-xs whitespace-pre-wrap break-words text-foreground/90">{n.observacao_corretor}</div>
+                    </div>
+                  )}
+                  {n.observacao_recebimento && (
+                    <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-emerald-300 font-semibold">✓ Recebimento</div>
+                      <div className="text-xs whitespace-pre-wrap break-words text-foreground/90">{n.observacao_recebimento}</div>
+                    </div>
+                  )}
+                  {Number((n as { desconto_distrato?: number }).desconto_distrato) > 0 && (
+                    <div className="rounded-md border-2 border-rose-500/40 bg-rose-500/5 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-rose-300 font-semibold">🏷 Desconto de distrato</div>
+                      <div className="text-sm font-bold text-rose-300">−{BRL(Number((n as { desconto_distrato?: number }).desconto_distrato))}</div>
+                      {(n as { observacao_distrato?: string | null }).observacao_distrato && (
+                        <div className="text-xs whitespace-pre-wrap break-words text-foreground/80 mt-1">{(n as { observacao_distrato?: string | null }).observacao_distrato}</div>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="p-3 text-right whitespace-nowrap">
                   <div className="flex gap-1.5 justify-end">
