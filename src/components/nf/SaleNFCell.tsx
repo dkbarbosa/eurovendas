@@ -337,26 +337,18 @@ export function SaleNFCell({ saleId }: { saleId: string }) {
         {sNfs.map((n) => (
           <div key={n.id} className="flex items-center gap-1 flex-wrap">
             <NFPill n={n} />
-            {n.drive_file_id && (
-              <button
-                title="Baixar NF"
-                onClick={() => downloadFile(n.id, "1")}
-                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-              >
-                <Download className="w-3 h-3" />
-              </button>
-            )}
             {(n.status === "emitida" || n.status === "recebida") && (
-              <button
-                title="Marcar como paga"
+              <Button
+                size="sm"
                 disabled={payMut.isPending}
                 onClick={() => {
                   if (confirm("Confirmar que esta NF foi paga? Isso finaliza o processo.")) payMut.mutate(n.id);
                 }}
-                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors"
+                className="h-6 px-2 text-[11px]"
+                style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
               >
-                <Wallet className="w-3 h-3" />
-              </button>
+                <Wallet className="w-3 h-3 mr-1" /> Pago
+              </Button>
             )}
           </div>
         ))}
