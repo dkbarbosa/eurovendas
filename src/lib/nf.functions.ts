@@ -373,24 +373,37 @@ export const markNFEmitted = createServerFn({ method: "POST" })
 
     const ownerCheck = supabaseAdmin
       .from("nf_requests")
-      .select("id,corretor_user_id,status,drive_file_id,sale_id")
+      .select("id,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,status,drive_file_id,sale_id")
       .eq("id", data.id)
       .maybeSingle();
     const { data: nfRow } = await ownerCheck;
     if (!nfRow) throw new Error("NF não encontrada.");
     if (nfRow.status !== "solicitada") throw new Error("NF não está mais aguardando emissão.");
-    if (!isAdmin && nfRow.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
+    const isOwner =
+      nfRow.corretor_user_id === context.userId ||
+      nfRow.gerente_user_id === context.userId ||
+      nfRow.diretor_user_id === context.userId;
+    if (!isAdmin && !isOwner) throw new Error("Acesso negado.");
 
-    // Resolver/criar subpasta no Drive: {Corretor}/NF/{Empreendimento}/{Cliente}
+    // Resolver/criar subpasta no Drive: {Solicitante}/NF/{Empreendimento}/{Cliente}
     let folderId: string | undefined;
     if (nfRow.sale_id) {
       const { data: sale } = await supabaseAdmin
-        .from("sales").select("corretor,empreendimento,unidade,comprador")
+        .from("sales").select("corretor,gerente,empreendimento,unidade,comprador")
         .eq("id", nfRow.sale_id).maybeSingle();
-      if (sale?.corretor) {
+      // Para gerente/diretor usa display_name do profile; corretor usa nome da planilha.
+      let folderOwnerName: string | null = null;
+      if (nfRow.requester_role === "corretor") folderOwnerName = sale?.corretor ?? null;
+      else if (nfRow.requester_role === "gerente") folderOwnerName = sale?.gerente ?? null;
+      else if (nfRow.requester_role === "diretor") {
+        const { data: prof } = await supabaseAdmin
+          .from("profiles").select("display_name").eq("id", nfRow.diretor_user_id ?? "").maybeSingle();
+        folderOwnerName = prof?.display_name ?? "Gestao";
+      }
+      if (sale && folderOwnerName) {
         try {
           folderId = await getCorretorDocFolder({
-            corretor: sale.corretor,
+            corretor: folderOwnerName,
             tipo: "NF",
             empreendimento: sale.empreendimento,
             cliente: sale.comprador ?? sale.unidade,
@@ -400,6 +413,7 @@ export const markNFEmitted = createServerFn({ method: "POST" })
         }
       }
     }
+
 
     const buf1 = b64ToBytes(data.file_base64);
     const safeName1 = `${data.id}-${data.file_name.replace(/[^\w.\-]+/g, "_")}`;
