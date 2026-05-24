@@ -220,7 +220,8 @@ export const listAllRequests = createServerFn({ method: "POST" })
     const saleIds = [...new Set((reqs ?? []).map((r) => r.sale_id).filter((v): v is string => !!v))];
     const corretorIds = (reqs ?? []).map((r) => r.corretor_user_id).filter((v): v is string => !!v);
     const gerenteIds = (reqs ?? []).map((r) => r.gerente_user_id).filter((v): v is string => !!v);
-    const userIds = [...new Set([...corretorIds, ...gerenteIds])];
+    const diretorIds = (reqs ?? []).map((r) => r.diretor_user_id).filter((v): v is string => !!v);
+    const userIds = [...new Set([...corretorIds, ...gerenteIds, ...diretorIds])];
     const safeIds = saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"];
     const [{ data: sales }, { data: profs }, { data: paidReqs }, { data: nfRows }] = await Promise.all([
       supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,comissao_liq_corretor,status,valor_sinal_negocio").in("id", safeIds),
