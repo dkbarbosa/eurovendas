@@ -385,12 +385,17 @@ export const estornarDescontoDistrato = createServerFn({ method: "POST" })
 export const listDescontosByDistrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ distrato_id: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
-    const { data: rows, error } = await supabaseAdmin
+  .handler(async ({ data, context }) => {
+    // Staff (admin/financeiro) vê tudo; corretor só vê descontos dele.
+    const roles = await getRoles(context.userId);
+    const isStaff = roles.includes("admin") || roles.includes("financeiro");
+    let q = supabaseAdmin
       .from("distrato_descontos")
       .select("*")
       .eq("distrato_id", data.distrato_id)
       .order("aplicado_at", { ascending: false });
+    if (!isStaff) q = q.eq("corretor_user_id", context.userId);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
