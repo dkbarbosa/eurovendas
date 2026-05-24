@@ -22,7 +22,7 @@ export const getCurrentUserContext = createServerFn({ method: "GET" })
 
     const roles = (rolesData ?? [])
       .map((item) => item.role as string)
-      .filter((r): r is Role => r === "admin" || r === "gerente" || r === "corretor" || r === "financeiro");
+      .filter((r): r is Role => r === "admin" || r === "diretor" || r === "gerente" || r === "corretor" || r === "financeiro");
 
     const mappingAtivo = mappingData?.ativo ?? false;
     let corretorNome = mappingAtivo ? mappingData?.corretor_nome ?? null : null;
