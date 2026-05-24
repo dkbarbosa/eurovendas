@@ -84,10 +84,11 @@ function Page() {
   // Filtros
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getUTCFullYear()));
-  const [month, setMonth] = useState<string>("all");
+  const [month, setMonth] = useState<string>(String(now.getUTCMonth() + 1));
   const [activeStatuses, setActiveStatuses] = useState<string[]>([]);
   const [corretorFilter, setCorretorFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [growthPeriod, setGrowthPeriod] = useState<"quarter" | "semester" | "year">("quarter");
 
   const years = useMemo(() => {
     const set = new Set<number>();
