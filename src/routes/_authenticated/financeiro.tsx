@@ -634,7 +634,20 @@ function AdvancesTab() {
                                   {(() => {
                                     const role = (r as { requester_role?: string }).requester_role;
                                     const gerProf = (r as { gerente_profile?: { display_name?: string | null; email?: string | null } | null }).gerente_profile;
+                                    const dirProf = (r as { diretor_profile?: { display_name?: string | null; email?: string | null } | null }).diretor_profile;
                                     const corProf = (r as { corretor_profile?: { display_name?: string | null; email?: string | null } | null }).corretor_profile;
+                                    if (role === "diretor") {
+                                      const nome = dirProf?.display_name ?? dirProf?.email ?? "Gestão";
+                                      return (
+                                        <span
+                                          className="inline-flex items-center gap-1 rounded-md border border-amber-400/50 bg-gradient-to-br from-amber-500/20 to-orange-500/10 px-2 py-1 text-[10px] font-semibold text-amber-200 w-fit shadow-[0_0_12px_-4px_hsl(35_90%_60%/0.45)]"
+                                          title={`Solicitado pela Gestão (${nome})`}
+                                        >
+                                          <span className="uppercase tracking-wider text-[9px] opacity-80">Pedido da Gestão</span>
+                                          <span className="text-amber-50">· {nome}</span>
+                                        </span>
+                                      );
+                                    }
                                     if (role === "gerente") {
                                       const nome = gerProf?.display_name ?? gerProf?.email ?? head.sale?.gerente ?? "Gerente";
                                       return (
