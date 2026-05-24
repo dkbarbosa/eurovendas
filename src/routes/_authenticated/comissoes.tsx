@@ -936,17 +936,24 @@ function ComissoesPage() {
                               const isAssinado = stUp === "ASSINADO";
                               const isCaixa = stUp === "CAIXA";
                               const finSolicitou = !!nfAberta;
-                              // Fluxo: ASSINADO → Solicitar adiantamento → Aprovado → NF → Pago → CAIXA → Solicitar pagamento (comissão final).
-                              const allowed = !isReservado && !hasPending && (isAssinado || isCaixa || finSolicitou);
+                              const jaTevePagamento = totalPagoSale > 0;
+                              // Fluxo: ASSINADO → Solicitar adiantamento → Aprovado → NF → Pago → Aguardando CAIXA → CAIXA → Solicitar pagamento.
+                              // Após qualquer pagamento, só libera nova solicitação se status = CAIXA ou financeiro solicitou NF.
+                              const allowed =
+                                !isReservado &&
+                                !hasPending &&
+                                (isCaixa || finSolicitou || (isAssinado && !jaTevePagamento));
                               const label = isReservado
                                 ? "Reservado"
                                 : hasPending
                                   ? "Pendente"
-                                  : isAssinado
-                                    ? "Solicitar adiantamento"
-                                    : isCaixa || finSolicitou
-                                      ? "Solicitar pagamento"
-                                      : "Aguardando CAIXA";
+                                  : isCaixa || finSolicitou
+                                    ? "Solicitar pagamento"
+                                    : jaTevePagamento
+                                      ? "Aguardando CAIXA"
+                                      : isAssinado
+                                        ? "Solicitar adiantamento"
+                                        : "Aguardando CAIXA";
                               const blockReason = isReservado
                                 ? "Venda reservada não permite solicitação."
                                 : hasPending
@@ -966,6 +973,7 @@ function ComissoesPage() {
                                 </Button>
                               );
                             })()
+
 
 
                           )}
