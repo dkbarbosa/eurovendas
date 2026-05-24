@@ -3,9 +3,10 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-type Role = "admin" | "diretor" | "gerente" | "corretor" | "financeiro";
+type Role = "admin" | "gerente" | "corretor" | "financeiro";
 
-const RoleSchema = z.enum(["admin", "diretor", "gerente", "corretor", "financeiro"]);
+const RoleSchema = z.enum(["admin", "gerente", "corretor", "financeiro"]);
+
 
 const InviteSchema = z.object({
   email: z.string().trim().toLowerCase().email("E-mail inválido").max(254),
