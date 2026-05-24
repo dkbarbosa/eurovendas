@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning, Ban, Send, Timer, Paperclip, X } from "lucide-react";
+import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning, MessageSquare, Ban, Send, Timer, Paperclip, X } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from "recharts";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -880,6 +880,35 @@ function ComissoesPage() {
                                   </PopoverContent>
                                 </Popover>
                               )}
+                              {(r.observacao_financeiro || r.observacao_corretor) && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      title="Ver mensagens"
+                                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                    >
+                                      <MessageSquare className="w-3 h-3" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="start" className="w-80 p-3 space-y-2">
+                                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                      Mensagens do pedido
+                                    </div>
+                                    {r.observacao_corretor && (
+                                      <div className="rounded-md border border-border/60 bg-secondary/40 p-2">
+                                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Você (corretor)</div>
+                                        <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">{r.observacao_corretor}</div>
+                                      </div>
+                                    )}
+                                    {r.observacao_financeiro && (
+                                      <div className="rounded-md border border-primary/30 bg-primary/10 p-2">
+                                        <div className="text-[10px] uppercase tracking-wide text-primary mb-0.5">Financeiro</div>
+                                        <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">{r.observacao_financeiro}</div>
+                                      </div>
+                                    )}
+                                  </PopoverContent>
+                                </Popover>
+                              )}
                               {isAdmin && (
                                 <button title="Excluir (admin)" onClick={() => {
                                   if (confirm("Excluir esta solicitação?")) delReqMut.mutate(r.id);
@@ -893,6 +922,50 @@ function ComissoesPage() {
                           {sNfs.map((n) => (
                             <div key={n.id} className="flex items-center gap-1 flex-wrap">
                               <NFPill n={n} />
+                              {(() => {
+                                const nn = n as { observacao_financeiro?: string | null; observacao_corretor?: string | null; observacao_recebimento?: string | null; observacao_distrato?: string | null };
+                                const hasMsg = nn.observacao_financeiro || nn.observacao_corretor || nn.observacao_recebimento || nn.observacao_distrato;
+                                if (!hasMsg) return null;
+                                return (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        title="Ver mensagens"
+                                        className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                      >
+                                        <MessageSquare className="w-3 h-3" />
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent align="start" className="w-80 p-3 space-y-2">
+                                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Mensagens da NF</div>
+                                      {nn.observacao_corretor && (
+                                        <div className="rounded-md border border-border/60 bg-secondary/40 p-2">
+                                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Você (corretor)</div>
+                                          <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">{nn.observacao_corretor}</div>
+                                        </div>
+                                      )}
+                                      {nn.observacao_financeiro && (
+                                        <div className="rounded-md border border-primary/30 bg-primary/10 p-2">
+                                          <div className="text-[10px] uppercase tracking-wide text-primary mb-0.5">Financeiro</div>
+                                          <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">{nn.observacao_financeiro}</div>
+                                        </div>
+                                      )}
+                                      {nn.observacao_distrato && (
+                                        <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-2">
+                                          <div className="text-[10px] uppercase tracking-wide text-rose-300 mb-0.5">Desconto distrato</div>
+                                          <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">{nn.observacao_distrato}</div>
+                                        </div>
+                                      )}
+                                      {nn.observacao_recebimento && (
+                                        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2">
+                                          <div className="text-[10px] uppercase tracking-wide text-emerald-300 mb-0.5">Recebimento</div>
+                                          <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">{nn.observacao_recebimento}</div>
+                                        </div>
+                                      )}
+                                    </PopoverContent>
+                                  </Popover>
+                                );
+                              })()}
                               {n.status === "recebida" && (
                                 <Button
                                   size="sm"
