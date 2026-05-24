@@ -1,74 +1,77 @@
-## Devolução por Distrato com Desconto em Comissões Futuras
 
-Hoje o distrato apenas marca pedidos pagos como `distratado` e registra valor a devolver. Vamos adicionar o ciclo completo: pendência financeira → vincular desconto em novo pedido → abater do valor pago → controlar saldo restante.
+# RBAC — remover "diretor" e isolar cada papel
 
-### 1. Banco de dados (nova migration)
+## Matriz de acesso final
 
-**Nova tabela `distrato_descontos`** (cada aplicação de desconto vinculada a um pedido de comissão):
-- `distrato_id` (FK lógica → distratos)
-- `commission_request_id` (FK lógica → commission_requests — pedido onde o desconto foi aplicado)
-- `valor_desconto` numeric
-- `aplicado_por` uuid, `aplicado_at` timestamptz
-- `status`: `aplicado` | `estornado`
-- `observacao` text
+| Área / Rota | admin | gerente | corretor | financeiro |
+|---|---|---|---|---|
+| `/` Dashboard | ✓ tudo | ✓ filtrado no time | ✗ | ✗ |
+| `/vendas` | ✓ tudo | ✓ só do time | ✗ | ✗ |
+| `/agendamentos` | ✓ | ✓ | ✗ | ✗ |
+| `/corretores` | ✓ | ✓ só do time | ✗ | ✗ |
+| `/gerentes` | ✓ | ✗ | ✗ | ✗ |
+| `/empreendimentos` | ✓ | ✓ | ✗ | ✗ |
+| `/aprovacoes` | ✓ | ✓ time | ✗ | ✗ |
+| `/insights` | ✓ | ✓ time | ✗ | ✗ |
+| `/comissoes` | ✓ | ✓ próprias | ✓ próprias | ✗ |
+| `/financeiro` (aprovar/negar/solicitar) | ✓ | ✗ | ✗ | ✓ |
+| `/distratos` | ✓ | ✗ | ✗ | ✓ |
+| `/admin/*` | ✓ | ✗ | ✗ | ✗ |
 
-**Alterações em `distratos`**:
-- `valor_devolvido` numeric default 0 (soma dos descontos aplicados + devoluções diretas)
-- `saldo_restante` (calculado em queries: `valor_devolver - valor_devolvido`)
-- adicionar status `quitado_por_desconto` ao enum `distrato_status`
+Financeiro fica 100% isolado da área comercial (não vê dashboard, vendas, gerentes, corretores, agendamentos, insights, empreendimentos, comissões de outros).
 
-**Alterações em `commission_requests`** (apenas para visualização rápida):
-- `desconto_distrato` numeric default 0 (soma dos descontos vinculados, refletido ao aprovar/pagar)
+## Mapeamento de time para gerente
 
-RLS: financeiro/admin gerencia; corretor vê os seus.
+A tabela `broker_mapping` hoje mapeia user → `corretor_nome`. Para o gerente enxergar o time, vou adicionar uma coluna `gerente_nome` (text, nullable) na mesma tabela. Regra:
+- Se `gerente_nome` preenchido **e** o usuário tem role `gerente` → ele vê `sales WHERE gerente = gerente_nome` (case-insensitive, trim) — mesma lógica usada hoje para corretor.
+- Mesma row pode ter `corretor_nome` e `gerente_nome` (admin que também atua).
+- Tela `/admin/usuarios` ganha campo para amarrar o gerente ao nome dele na planilha.
 
-### 2. Backend — `src/lib/distratos.functions.ts`
+## Mudanças no banco (migration)
 
-Adicionar:
-- `listPendenciasDistrato({ corretor_user_id? })` — retorna distratos com `saldo_restante > 0`. Financeiro vê todos; corretor vê os seus.
-- `aplicarDescontoDistrato({ distrato_id, commission_request_id, valor_desconto, observacao? })` — financeiro/admin. Valida: pedido `aprovado` (ainda não pago) e do mesmo corretor; valor ≤ saldo restante; valor ≤ valor_solicitado do pedido. Insere `distrato_descontos`, soma em `commission_requests.desconto_distrato`, soma em `distratos.valor_devolvido`. Se `valor_devolvido >= valor_devolver`, marca distrato como `quitado_por_desconto`.
-- `estornarDescontoDistrato({ id })` — admin/financeiro. Marca desconto como `estornado`, decrementa contadores, volta distrato para `pendente_devolucao` se aplicável.
-- `listDescontosByRequest({ commission_request_id })` — lista descontos aplicados em um pedido.
+1. Revogar todos os `user_roles` com `role='diretor'` (move pra `gerente` por padrão — admin pode reajustar depois).
+2. **Não removo o valor do enum** (`app_role`) porque PostgreSQL não suporta DROP VALUE em enum em uso histórico; deixo `diretor` no enum mas sem nenhum efeito prático no app (nenhum policy/função referencia mais). Linter não acusa.
+3. Reescrever policy `sales select own or staff` removendo `has_role(diretor)` e adicionando ramo gerente (sales.gerente = bm.gerente_nome).
+4. Adicionar coluna `broker_mapping.gerente_nome text`.
+5. Funções `app_private.is_admin` / `is_financeiro` permanecem; criar `app_private.is_gerente(uid)` e helper `app_private.gerente_nome_of(uid)`.
 
-Ajuste em `markDistratoDevolvido` para somar em `valor_devolvido` quando devolução em dinheiro.
+## Frontend
 
-### 3. UI Financeiro
+- `src/lib/auth.tsx`:
+  - Remover `isDiretor` e `isStaff` (conceito morto). Introduzir capabilities semânticas: `canManagement` (admin OR gerente), `canFinanceiro` (admin OR financeiro), `canAdmin` (admin), `canCorretor` (admin OR corretor OR gerente para próprias comissões).
+  - `corretorNome` continua; adicionar `gerenteNome` vindo de `getCurrentUserContext`.
+- `src/lib/auth.functions.ts`: retornar `gerenteNome` junto.
+- `src/components/AppShell.tsx`: reescrever blocos da sidebar conforme matriz. Financeiro vê apenas Painel Financeiro. Admin vê tudo. Gerente vê Gestão (sem `/gerentes`) + suas comissões. Corretor vê só Comissões.
+- Adicionar `beforeLoad` em cada route (`/vendas`, `/agendamentos`, `/corretores`, `/gerentes`, `/empreendimentos`, `/aprovacoes`, `/insights`, `/financeiro`, `/distratos`, `/admin/*`, `/comissoes`, `/`) que verifica a capability — se reprova, redireciona pra rota permitida do usuário (financeiro → `/financeiro`, corretor → `/comissoes`, gerente → `/`, sem role → `/login`).
+- Telas que já checam role (financeiro.tsx, comissoes.tsx, admin/*) — substituir `isStaff/isDiretor` pelas novas capabilities; em `comissoes.tsx` o gerente cai no mesmo fluxo do corretor (vê só as próprias).
+- `/admin/usuarios`: remover "diretor" da lista de roles atribuíveis; adicionar campo `gerente_nome` no mapeamento.
 
-**Em `/financeiro` — no card de cada pedido `aprovado`**:
-- Se corretor tem pendências de distrato, mostrar botão **"Vincular desconto"** (roxo/destrutivo suave).
-- Dialog: lista pendências do corretor (cliente, valor a devolver, saldo restante) + input valor desconto + observação. Permite múltiplos descontos no mesmo pedido.
-- Linha do pedido passa a exibir: `Valor: R$ 3.500 − Desconto distrato: R$ 1.000 = Líquido: R$ 2.500`.
-- Ao confirmar pagamento, valor pago = `valor_solicitado - desconto_distrato`.
+## Backend (server functions)
 
-**Em `/distratos` (DistratosPanel)**:
-- Nova coluna "Saldo restante" e "Devolvido".
-- Sub-bloco expansível mostrando descontos aplicados (data, pedido, valor, financeiro responsável, botão estornar).
-- KPI extra: "Saldo a recuperar" (soma de saldos restantes).
+- `commissions.functions.ts` linha 44: tirar `diretor` do `isStaff`. Gerente NÃO é staff aqui — vê só dele.
+- `requests.functions.ts`, `nf.functions.ts`, `distratos.functions.ts`: mantêm staff = admin OR financeiro (já estava assim na maior parte). Garantir que gerente é tratado como "corretor comum" para comissões dele.
+- `sales.functions.ts` (caminho de listagem): adicionar branch gerente (filtra por `sales.gerente = gerenteNome`).
+- `agendamentos.functions.ts`: liberar para gerente.
+- Bloquear financeiro em todas as listagens comerciais (sales, agendamentos, insights, etc.) — adicionar assert no início.
 
-### 4. UI Corretor
+## Garantias
 
-**Em `/comissoes` (visão do corretor)**:
-- Bloco vermelho "Pendências de devolução por distrato" listando: cliente, valor original, devolvido, saldo restante.
-- Em cada pedido `aprovado`, se houver desconto vinculado: mostrar "Desconto aplicado: R$ X.XXX — Distrato cliente João Silva".
+- Sem role válido → redireciona pra `/login` (já existe).
+- Cada rota tem duplo gate: `beforeLoad` no router + checagem no server function (defense-in-depth).
+- RLS no banco continua sendo a backstop final.
+- Nenhuma regra de negócio existente é alterada: cálculos de comissão, sync Sheets, Drive, NF, distrato, auditoria — tudo intacto. Só muda **quem enxerga o quê**.
 
-### Detalhes técnicos
+## Etapas de execução (na ordem)
 
-- Tabela `distrato_descontos` usa FK lógica (sem ON DELETE CASCADE — preservar histórico).
-- Pagamento: o `markPago` (em requests.functions.ts) precisa registrar `valor_pago_liquido = valor_solicitado - desconto_distrato` em log/auditoria. O fluxo de transferência continua sendo do financeiro, só ajustamos a exibição e cálculos.
-- Estorno do distrato (`cancelDistrato`/`deleteDistrato`): também estornar descontos vinculados.
-- KPIs de `/comissoes` (`Recebidos`, `Adiantamentos`) precisam descontar valores estornados/distratados para refletir a realidade.
+1. Migration: revogar roles diretor → gerente, adicionar `broker_mapping.gerente_nome`, criar `is_gerente`/`gerente_nome_of`, atualizar policy `sales`.
+2. Backend: `auth.functions.ts`, `commissions/sales/agendamentos/requests/nf/distratos.functions.ts`.
+3. `src/lib/auth.tsx` — novas capabilities.
+4. `AppShell` — sidebar nova.
+5. `beforeLoad` em cada route file.
+6. Telas: comissoes.tsx, financeiro.tsx, admin/usuarios.tsx — substituir checks.
+7. Smoke test mental: para cada role, listar rotas visíveis e confirmar matriz.
 
-### Arquivos
+## Pontos que preciso confirmar
 
-- **Migration**: criar `distrato_descontos`, adicionar colunas em `distratos` e `commission_requests`, novo valor enum.
-- **Editar**: `src/lib/distratos.functions.ts` — novas funções e ajustes em delete/cancel.
-- **Criar**: `src/components/distratos/AplicarDescontoButton.tsx`
-- **Editar**: `src/components/distratos/DistratosPanel.tsx` — saldo, descontos aplicados, estorno.
-- **Editar**: `src/routes/_authenticated/financeiro.tsx` — botão "Vincular desconto" nas linhas `aprovado` + exibição valor líquido.
-- **Editar**: `src/routes/_authenticated/comissoes.tsx` — bloco pendências do corretor + exibição desconto nos pedidos.
-
-### Confirmar antes de implementar
-
-1. O desconto pode ser aplicado em pedido **`aprovado` (ainda não pago)** apenas, ou também em pedidos `pendente`? (recomendo apenas `aprovado` — momento natural antes do pagamento).
-2. Se o pedido onde o desconto está vinculado for **negado/cancelado** depois, o desconto deve ser **estornado automaticamente** (saldo volta para o distrato)? (recomendo sim).
-3. Permitir **devolução em dinheiro parcial** (corretor paga parte e o restante vira desconto)? (atualmente `markDistratoDevolvido` quita 100% — ajustar para aceitar valor parcial).
+- **OK migrar diretores existentes para `gerente` automaticamente?** Alternativa: deixar sem role (vão cair no /login). Recomendo migrar pra gerente — admin reajusta depois se quiser.
+- **Gerente vê `/aprovacoes` e `/insights` do time?** Plano diz sim. Se preferir só admin, removo.
