@@ -397,12 +397,14 @@ export const decideRequest = createServerFn({ method: "POST" })
                 diretor_user_id: diretorUserId,
                 solicitado_por: context.userId,
                 status: "solicitada",
-                observacao_financeiro: `NF solicitada automaticamente após aprovação de ${req.tipo === "adiantamento" ? "adiantamento" : "comissão"} (${ownerLabel}).`,
+                valor_nf: Number(req.valor_solicitado) || 0,
+                observacao_financeiro: `NF solicitada automaticamente após aprovação de ${req.tipo === "adiantamento" ? "adiantamento" : "comissão"} (${ownerLabel}) — valor: R$ ${(Number(req.valor_solicitado) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`,
               });
               if (nfErr) console.error("auto-create nf_request insert:", nfErr);
             } else {
               console.warn(`auto-create nf_request: sem owner para papel ${role} na venda ${req.sale_id}`);
             }
+
           }
         } catch (e) {
           console.error("auto-create nf_request:", e);

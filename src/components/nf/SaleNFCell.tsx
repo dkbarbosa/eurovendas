@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CurrencyInput } from "@/components/CurrencyInput";
+
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -33,6 +33,7 @@ export type MyNFItem = {
   drive_file_id_2: string | null;
   created_at: string;
   sale_id: string;
+  requester_role: "corretor" | "gerente" | "diretor" | string;
   sale: {
     id: string;
     data: string | null;
@@ -42,6 +43,46 @@ export type MyNFItem = {
     valor_venda: number | null;
   } | null;
 };
+
+const ROLE_LABEL: Record<string, string> = {
+  corretor: "Corretor",
+  gerente: "Gerente",
+  diretor: "Gestão",
+};
+
+function RoleRulesBlock({ role }: { role: string }) {
+  const rules =
+    role === "gerente"
+      ? [
+          "Adiantamento: sinal mínimo R$ 2.999,99 — R$ 500 a cada R$ 2.999,99 de sinal.",
+          "Comissão final: sinal ≥ 6% do VGV.",
+        ]
+      : role === "diretor"
+        ? [
+            "Comissão de 0,4% sobre o VGV (4,5% de desconto quando COAPHAR = Sim).",
+            "Adiantamento: sinal mínimo R$ 300,00.",
+            "Comissão final: sinal ≥ 6% do VGV.",
+          ]
+        : [
+            "Adiantamento: sinal mínimo R$ 300,00.",
+            "Comissão final: sinal ≥ 6% do VGV.",
+          ];
+  return (
+    <div className="rounded-lg border border-amber-400/30 bg-amber-500/5 p-3 text-xs space-y-1.5">
+      <div className="font-medium text-amber-300 inline-flex items-center gap-1.5">
+        <Receipt className="w-3.5 h-3.5" />
+        Regras de adiantamento · {ROLE_LABEL[role] ?? "Corretor"}
+      </div>
+      <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+        {rules.map((r, i) => <li key={i}>{r}</li>)}
+      </ul>
+      <p className="text-[11px] text-muted-foreground/80 pt-1 border-t border-amber-400/20">
+        O valor já foi aprovado pelo financeiro e não pode ser alterado.
+      </p>
+    </div>
+  );
+}
+
 
 export function NFPill({ n }: { n: { status: string; numero_nf: string | null } }) {
   const label = n.status === "paga" ? "finalizado" : n.status;
@@ -159,10 +200,18 @@ export function NFEmitDialog({
               <Input value={form.numero_nf} onChange={(e) => setForm({ ...form, numero_nf: e.target.value })} maxLength={80} />
             </div>
             <div className="space-y-1.5">
-              <Label>Valor da NF (R$) *</Label>
-              <CurrencyInput value={form.valor_nf} onValueChange={(v) => setForm({ ...form, valor_nf: v ?? 0 })} />
+              <Label>Valor da NF (R$) · aprovado</Label>
+              <Input
+                value={BRL(form.valor_nf || 0)}
+                readOnly
+                disabled
+                className="bg-muted/40 text-foreground font-medium cursor-not-allowed"
+              />
             </div>
           </div>
+
+          {nf?.requester_role && <RoleRulesBlock role={nf.requester_role} />}
+
 
           <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5">
             <div className="flex items-center justify-between mb-2">
