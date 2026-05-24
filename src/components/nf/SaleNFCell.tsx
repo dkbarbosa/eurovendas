@@ -172,7 +172,7 @@ export function NFEmitDialog({
             <div className="grid grid-cols-2 gap-2">
               {([
                 { key: "nf", file: file1, setFile: setFile1, label: "Nota Fiscal", required: true },
-                { key: "pr", file: file2, setFile: setFile2, label: "Anexo extra", required: false },
+                { key: "pr", file: file2, setFile: setFile2, label: "Promissória", required: false },
               ] as const).map((slot) => {
                 const has = !!slot.file;
                 return (
