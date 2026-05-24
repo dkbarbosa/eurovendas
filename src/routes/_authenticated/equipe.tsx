@@ -88,7 +88,7 @@ function Page() {
   const [activeStatuses, setActiveStatuses] = useState<string[]>([]);
   const [corretorFilter, setCorretorFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
-  const [growthPeriod, setGrowthPeriod] = useState<"quarter" | "semester" | "year">("quarter");
+  const [growthPeriod, setGrowthPeriod] = useState<"month" | "quarter" | "semester" | "year">("month");
 
   const years = useMemo(() => {
     const set = new Set<number>();
