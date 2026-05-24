@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import {
@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Loader2, Wallet, TrendingUp, Users, Receipt, Ban, Send, Search,
-  CircleDollarSign, Trophy, Clock,
+  CircleDollarSign, Trophy, Clock, FileText, CheckCircle2, Timer,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -83,7 +83,6 @@ function GerentesPage() {
   const distratos = data?.distratos ?? [];
   const gerenteNome = data?.gerenteNome ?? null;
 
-  // ----- filtros aplicados -----
   const filteredSales = useMemo(() => {
     const q = search.trim().toLowerCase();
     return sales.filter((s) => {
@@ -96,7 +95,6 @@ function GerentesPage() {
     });
   }, [sales, dateFrom, dateTo, search, corretorFilter]);
 
-  // ----- agregados -----
   const corretoresDaEquipe = useMemo(() => {
     const set = new Set<string>();
     for (const s of sales) if (s.corretor) set.add(s.corretor);
@@ -104,7 +102,7 @@ function GerentesPage() {
   }, [sales]);
 
   const paidByReq = useMemo(() => {
-    const m = new Map<string, number>(); // sale_id -> total pago do gerente
+    const m = new Map<string, number>();
     for (const r of requests) {
       if (r.status === "pago") {
         m.set(r.sale_id, (m.get(r.sale_id) ?? 0) + (Number(r.valor_solicitado) || 0));
@@ -114,13 +112,11 @@ function GerentesPage() {
   }, [requests]);
 
   const kpis = useMemo(() => {
-    let vgv = 0;
     let comGerente = 0;
     let count = 0;
     for (const s of filteredSales) {
       const stUp = (s.status ?? "").trim().toUpperCase();
       if (stUp === "RESERVADO" || stUp === "DISTRATO") continue;
-      vgv += Number(s.valor_venda) || 0;
       comGerente += Number(s.comissao_liq_gerente) || 0;
       count += 1;
     }
@@ -128,29 +124,63 @@ function GerentesPage() {
     let pendValor = 0;
     let pendCount = 0;
     let aprovValor = 0;
+    let adiantPago = 0;
+    let valorSolicitado = 0;
+    let emAndamentoCount = 0;
     for (const r of requests) {
       const v = Number(r.valor_solicitado) || 0;
-      if (r.status === "pago") pago += v;
-      else if (r.status === "pendente") { pendValor += v; pendCount += 1; }
-      else if (r.status === "aprovado") aprovValor += v;
+      if (r.status === "pago") {
+        pago += v;
+        if (r.tipo === "adiantamento") adiantPago += v;
+      } else if (r.status === "pendente") {
+        pendValor += v;
+        pendCount += 1;
+        valorSolicitado += v;
+        emAndamentoCount += 1;
+      } else if (r.status === "aprovado") {
+        aprovValor += v;
+        valorSolicitado += v;
+        emAndamentoCount += 1;
+      }
     }
     const aReceber = Math.max(0, comGerente - pago);
+
+    // Evolução mensal de solicitações
+    const now = new Date();
+    const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevKey = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+    let curMonthValor = 0, prevMonthValor = 0;
+    for (const r of requests) {
+      if (!r.created_at) continue;
+      const k = String(r.created_at).slice(0, 7);
+      const v = Number(r.valor_solicitado) || 0;
+      if (k === curKey) curMonthValor += v;
+      else if (k === prevKey) prevMonthValor += v;
+    }
+    const evolucaoPct = prevMonthValor > 0
+      ? ((curMonthValor - prevMonthValor) / prevMonthValor) * 100
+      : (curMonthValor > 0 ? 100 : null);
+
     const distratosCount = distratos.length;
     const distratosImpacto = distratos.reduce(
       (s, d) => s + (Number(d.valor_comissao_gerente) || 0), 0,
     );
-    return { vgv, comGerente, count, pago, pendValor, pendCount, aprovValor, aReceber, distratosCount, distratosImpacto };
+    return {
+      comGerente, count, pago, adiantPago, pendValor, pendCount, aprovValor, aReceber,
+      valorSolicitado, emAndamentoCount, curMonthValor, prevMonthValor, evolucaoPct,
+      distratosCount, distratosImpacto,
+    };
   }, [filteredSales, requests, distratos]);
 
   const monthly = useMemo(() => {
-    const map = new Map<string, { mes: string; vendas: number; comissao: number; vgv: number }>();
+    const map = new Map<string, { mes: string; vendas: number; comissao: number }>();
     for (const s of filteredSales) {
       if (!s.data) continue;
       const k = String(s.data).slice(0, 7);
-      const cur = map.get(k) ?? { mes: k, vendas: 0, comissao: 0, vgv: 0 };
+      const cur = map.get(k) ?? { mes: k, vendas: 0, comissao: 0 };
       cur.vendas += 1;
       cur.comissao += Number(s.comissao_liq_gerente) || 0;
-      cur.vgv += Number(s.valor_venda) || 0;
       map.set(k, cur);
     }
     return Array.from(map.values()).sort((a, b) => a.mes.localeCompare(b.mes));
@@ -170,7 +200,7 @@ function GerentesPage() {
     return Array.from(m.values()).sort((a, b) => b.vgv - a.vgv);
   }, [filteredSales]);
 
-  // ----- diálogo de solicitação -----
+  // diálogo de solicitação
   const [reqDialog, setReqDialog] = useState<{ open: boolean; sale: (typeof sales)[number] | null }>(
     { open: false, sale: null },
   );
@@ -212,16 +242,14 @@ function GerentesPage() {
         <div className="text-xs uppercase tracking-widest text-muted-foreground">Painel do Gerente</div>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-display text-3xl font-semibold tracking-tight">
-              {gerenteNome ?? (isAdmin ? "Selecione um gerente" : "Sem vínculo de gerente")}
-            </h1>
+            <h1 className="font-display text-3xl font-semibold tracking-tight">Comissões</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Comissões, equipe, distratos e métricas do seu time.
+              Visualizando: <b className="text-foreground">{gerenteNome ?? (isAdmin ? "—" : "Sem vínculo")}</b>
             </p>
           </div>
           {isAdmin && (
             <div className="min-w-[260px]">
-              <Label className="text-xs">Atuar como gerente</Label>
+              <Label className="text-xs">Ver como gerente</Label>
               <Select value={adminPick ?? ""} onValueChange={(v) => setAdminPick(v || undefined)}>
                 <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
                 <SelectContent>
@@ -236,33 +264,44 @@ function GerentesPage() {
       </header>
 
       {/* Filtros */}
-      <div className="glass-card p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div>
-          <Label className="text-xs">De</Label>
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-        </div>
-        <div>
-          <Label className="text-xs">Até</Label>
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-        </div>
-        <div>
-          <Label className="text-xs">Corretor</Label>
-          <Select value={corretorFilter} onValueChange={setCorretorFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {corretoresDaEquipe.map((c) => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs">Buscar (cliente/empreend.)</Label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="glass-card p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">De</Label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Até</Label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Corretor</Label>
+            <Select value={corretorFilter} onValueChange={setCorretorFilter}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {corretoresDaEquipe.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Cliente / Empreend.</Label>
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Digite o nome…" />
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+          <span>{filteredSales.length} venda(s) no período</span>
+          <button
+            className="underline hover:text-foreground"
+            onClick={() => { setDateFrom(firstDayOfMonth()); setDateTo(lastDayOfMonth()); setSearch(""); setCorretorFilter("all"); }}
+          >
+            Restaurar mês atual
+          </button>
         </div>
       </div>
 
@@ -275,237 +314,270 @@ function GerentesPage() {
           {isAdmin ? "Selecione um gerente acima para visualizar o painel." : "Seu usuário ainda não está vinculado a um gerente. Fale com o administrador."}
         </div>
       ) : (
-        <Tabs defaultValue="visao" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
-            <TabsTrigger value="visao">Visão Geral</TabsTrigger>
-            <TabsTrigger value="comissao">Minha Comissão</TabsTrigger>
-            <TabsTrigger value="pedidos">Solicitações</TabsTrigger>
-            <TabsTrigger value="equipe">Equipe</TabsTrigger>
-            <TabsTrigger value="distratos">Distratos</TabsTrigger>
-          </TabsList>
+        <>
+          {/* KPIs — mesmo padrão do corretor */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+            <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.comGerente)} />
+            <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantamentos" value={BRL(kpis.adiantPago)} />
+            <Kpi icon={<CheckCircle2 className="w-4 h-4" />} label="Recebidos" value={BRL(kpis.pago)} />
+            <Kpi icon={<Clock className="w-4 h-4" />} label="A Receber" value={BRL(kpis.aReceber)} accent />
+            <Kpi
+              icon={<Send className="w-4 h-4" />}
+              label="Valor Solicitado"
+              value={BRL(kpis.valorSolicitado)}
+              warn
+              hint={kpis.pendCount > 0 ? `${kpis.pendCount} solicitação(ões) pendente(s)` : "Nenhuma pendente"}
+            />
+            <Kpi icon={<FileText className="w-4 h-4" />} label="Vendas / Pendentes" value={`${kpis.count} / ${kpis.pendCount}`} />
+            <Kpi
+              icon={<Timer className="w-4 h-4" />}
+              label="Evolução mensal"
+              value={kpis.evolucaoPct == null ? "—" : `${kpis.evolucaoPct >= 0 ? "+" : ""}${kpis.evolucaoPct.toFixed(1)}%`}
+              premium
+              hint={
+                kpis.evolucaoPct == null
+                  ? "Sem solicitações nos últimos meses"
+                  : `${BRL(kpis.curMonthValor)} este mês vs ${BRL(kpis.prevMonthValor)} no anterior`
+              }
+            />
+          </div>
 
-          {/* --------- VISÃO GERAL --------- */}
-          <TabsContent value="visao" className="space-y-6 mt-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Kpi icon={<TrendingUp className="w-4 h-4" />} label="VGV do período" value={BRL(kpis.vgv)} sub={`${kpis.count} vendas`} />
-              <Kpi icon={<CircleDollarSign className="w-4 h-4" />} label="Comissão (líq.)" value={BRL(kpis.comGerente)} />
-              <Kpi icon={<Wallet className="w-4 h-4" />} label="A receber" value={BRL(kpis.aReceber)} sub={`Pago: ${BRL(kpis.pago)}`} />
-              <Kpi icon={<Clock className="w-4 h-4" />} label="Pendente" value={BRL(kpis.pendValor)} sub={`${kpis.pendCount} pedido(s)`} />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="glass-card p-4">
-                <div className="text-sm font-medium mb-3">Comissão por mês</div>
-                <div className="h-64">
-                  <ResponsiveContainer>
-                    <BarChart data={monthly} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="grGerCom" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 95%, transparent)" />
-                          <stop offset="100%" stopColor="color-mix(in oklab, var(--primary) 35%, transparent)" />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} vertical={false} />
-                      <XAxis dataKey="mes" fontSize={11} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
-                      <YAxis fontSize={11} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                      <Tooltip
-                        cursor={{ fill: "color-mix(in oklab, var(--muted) 40%, transparent)" }}
-                        contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-                        formatter={(v: number) => BRL(v)}
-                      />
-                      <Bar dataKey="comissao" fill="url(#grGerCom)" radius={[6, 6, 0, 0]} maxBarSize={48} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-              <div className="glass-card p-4">
-                <div className="text-sm font-medium mb-3">VGV por mês</div>
-                <div className="h-64">
-                  <ResponsiveContainer>
-                    <LineChart data={monthly} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} vertical={false} />
-                      <XAxis dataKey="mes" fontSize={11} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
-                      <YAxis fontSize={11} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                      <Tooltip
-                        contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-                        formatter={(v: number) => BRL(v)}
-                      />
-                      <Line dataKey="vgv" stroke="var(--primary)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--primary)" }} activeDot={{ r: 5 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="glass-card p-5">
+              <h3 className="font-display text-lg mb-3">Comissão por mês</h3>
+              <div className="h-64">
+                <ResponsiveContainer>
+                  <BarChart data={monthly} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gerComBarGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="oklch(0.78 0.16 180)" stopOpacity={1} />
+                        <stop offset="100%" stopColor="oklch(0.55 0.14 200)" stopOpacity={0.85} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 8%)" />
+                    <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "oklch(0.78 0.02 270)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "oklch(0.78 0.02 270)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip
+                      formatter={(v: number) => BRL(v)}
+                      cursor={{ fill: "oklch(1 0 0 / 4%)" }}
+                      contentStyle={{ background: "oklch(0.16 0.02 270)", border: "1px solid oklch(1 0 0 / 10%)", borderRadius: 12, fontSize: 12 }}
+                    />
+                    <Bar dataKey="comissao" fill="url(#gerComBarGrad)" radius={[8, 8, 0, 0]} maxBarSize={56} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
-          </TabsContent>
+            <div className="glass-card p-5">
+              <h3 className="font-display text-lg mb-3">Vendas por mês</h3>
+              <div className="h-64">
+                <ResponsiveContainer>
+                  <LineChart data={monthly} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gerVendasLineGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="oklch(0.78 0.16 180)" />
+                        <stop offset="100%" stopColor="oklch(0.78 0.14 90)" />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 8%)" />
+                    <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "oklch(0.78 0.02 270)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "oklch(0.78 0.02 270)" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip contentStyle={{ background: "oklch(0.16 0.02 270)", border: "1px solid oklch(1 0 0 / 10%)", borderRadius: 12, fontSize: 12 }} />
+                    <Line type="monotone" dataKey="vendas" stroke="url(#gerVendasLineGrad)" strokeWidth={2.5} dot={{ r: 3, fill: "oklch(0.78 0.16 180)" }} activeDot={{ r: 5 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
 
-          {/* --------- MINHA COMISSÃO --------- */}
-          <TabsContent value="comissao" className="space-y-3 mt-6">
-            <div className="glass-card p-2 overflow-x-auto">
-              <table className="w-full text-sm min-w-[900px]">
-                <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    <th className="text-left p-3">Data</th>
-                    <th className="text-left p-3">Cliente</th>
-                    <th className="text-left p-3">Empreend./Un.</th>
-                    <th className="text-left p-3">Corretor</th>
-                    <th className="text-right p-3">VGV</th>
-                    <th className="text-right p-3">Com. Gerente</th>
-                    <th className="text-right p-3">A receber</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSales.map((s) => {
-                    const comLiq = Number(s.comissao_liq_gerente) || 0;
-                    const pago = paidByReq.get(s.id) ?? 0;
-                    const aReceber = Math.max(0, comLiq - pago);
-                    const stUp = (s.status ?? "").trim().toUpperCase();
-                    const blocked = stUp === "RESERVADO" || stUp === "DISTRATO";
-                    return (
-                      <tr key={s.id} className="border-t border-border">
-                        <td className="p-3">{fmtBR(s.data)}</td>
-                        <td className="p-3 font-medium">{s.comprador ?? "—"}</td>
-                        <td className="p-3 text-muted-foreground">
-                          {s.empreendimento ?? "—"} {s.unidade ? `· ${s.unidade}` : ""}
-                        </td>
-                        <td className="p-3">{s.corretor ?? "—"}</td>
-                        <td className="p-3 text-right tabular-nums">{BRL(s.valor_venda)}</td>
-                        <td className="p-3 text-right tabular-nums">{BRL(comLiq)}</td>
-                        <td className="p-3 text-right tabular-nums font-medium">{BRL(aReceber)}</td>
-                        <td className="p-3"><Badge variant="outline">{s.status ?? "—"}</Badge></td>
-                        <td className="p-3 text-right">
-                          <Button size="sm" disabled={blocked || aReceber <= 0} onClick={() => openReq(s)}>
-                            <Send className="w-3 h-3 mr-1" /> Solicitar
-                          </Button>
+          {/* Tabela principal de comissão */}
+          <div className="glass-card p-2 overflow-x-auto">
+            <table className="w-full text-sm min-w-[1040px]">
+              <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="text-left p-3">Data</th>
+                  <th className="text-left p-3">Comprador</th>
+                  <th className="text-left p-3">Empreend. / Un.</th>
+                  <th className="text-left p-3">Corretor</th>
+                  <th className="text-right p-3">Venda</th>
+                  <th className="text-right p-3">Comissão Liq.</th>
+                  <th className="text-right p-3">Adiantado</th>
+                  <th className="text-right p-3">A Receber</th>
+                  <th className="text-left p-3">Status</th>
+                  <th className="p-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSales.length === 0 && (
+                  <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
+                )}
+                {filteredSales.map((s) => {
+                  const comLiq = Number(s.comissao_liq_gerente) || 0;
+                  const pago = paidByReq.get(s.id) ?? 0;
+                  const aReceber = Math.max(0, comLiq - pago);
+                  const stUp = (s.status ?? "").trim().toUpperCase();
+                  const blocked = stUp === "RESERVADO" || stUp === "DISTRATO";
+                  const isFinalizada = aReceber <= 0 && comLiq > 0;
+                  return (
+                    <tr key={s.id} className="border-t border-border align-top">
+                      <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
+                      <td className="p-3 font-medium">{s.comprador ?? "—"}</td>
+                      <td className="p-3 text-muted-foreground">
+                        <div>{s.empreendimento ?? "—"}</div>
+                        <div className="text-xs">Unid: {s.unidade ?? "—"}</div>
+                      </td>
+                      <td className="p-3">{s.corretor ?? "—"}</td>
+                      <td className="p-3 text-right tabular-nums whitespace-nowrap">{BRL(s.valor_venda)}</td>
+                      <td className="p-3 text-right tabular-nums whitespace-nowrap font-medium">{BRL(comLiq)}</td>
+                      <td className="p-3 text-right tabular-nums whitespace-nowrap">
+                        <span className={pago > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}>{BRL(pago)}</span>
+                      </td>
+                      <td className="p-3 text-right tabular-nums whitespace-nowrap">
+                        {isFinalizada ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                            <CheckCircle2 className="w-3.5 h-3.5" />100% pago
+                          </span>
+                        ) : (
+                          <span className={aReceber > 0 ? "text-primary font-semibold" : "text-muted-foreground"}>{BRL(aReceber)}</span>
+                        )}
+                      </td>
+                      <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
+                      <td className="p-3 text-right">
+                        <Button
+                          size="sm"
+                          disabled={blocked || aReceber <= 0}
+                          onClick={() => openReq(s)}
+                          style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+                        >
+                          <Send className="w-3 h-3 mr-1" /> Solicitar
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Seções complementares */}
+          <Tabs defaultValue="pedidos" className="w-full">
+            <TabsList className="grid grid-cols-3 w-full md:w-auto">
+              <TabsTrigger value="pedidos">Solicitações</TabsTrigger>
+              <TabsTrigger value="equipe">Equipe</TabsTrigger>
+              <TabsTrigger value="distratos">Distratos</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="pedidos" className="space-y-3 mt-4">
+              <div className="glass-card p-2 overflow-x-auto">
+                <table className="w-full text-sm min-w-[700px]">
+                  <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="text-left p-3">Criado</th>
+                      <th className="text-left p-3">Tipo</th>
+                      <th className="text-right p-3">Valor</th>
+                      <th className="p-3">Status</th>
+                      <th className="text-left p-3">Motivo / Obs.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {requests.map((r) => (
+                      <tr key={r.id} className="border-t border-border">
+                        <td className="p-3">{fmtBR(r.created_at)}</td>
+                        <td className="p-3">{r.tipo === "adiantamento" ? "Adiantamento" : "Comissão final"}</td>
+                        <td className="p-3 text-right tabular-nums">{BRL(r.valor_solicitado)}</td>
+                        <td className="p-3"><StatusBadge status={r.status} /></td>
+                        <td className="p-3 text-muted-foreground text-xs">
+                          {r.motivo_negacao ?? r.observacao_financeiro ?? r.observacao_corretor ?? "—"}
                         </td>
                       </tr>
-                    );
-                  })}
-                  {filteredSales.length === 0 && (
-                    <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
+                    ))}
+                    {requests.length === 0 && (
+                      <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhuma solicitação ainda.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
 
-          {/* --------- SOLICITAÇÕES --------- */}
-          <TabsContent value="pedidos" className="space-y-3 mt-6">
-            <div className="glass-card p-2 overflow-x-auto">
-              <table className="w-full text-sm min-w-[700px]">
-                <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    <th className="text-left p-3">Criado</th>
-                    <th className="text-left p-3">Tipo</th>
-                    <th className="text-right p-3">Valor</th>
-                    <th className="text-right p-3">Desc. distrato</th>
-                    <th className="p-3">Status</th>
-                    <th className="text-left p-3">Motivo / Obs.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requests.map((r) => (
-                    <tr key={r.id} className="border-t border-border">
-                      <td className="p-3">{fmtBR(r.created_at)}</td>
-                      <td className="p-3">{r.tipo === "adiantamento" ? "Adiantamento" : "Comissão final"}</td>
-                      <td className="p-3 text-right tabular-nums">{BRL(r.valor_solicitado)}</td>
-                      <td className="p-3 text-right tabular-nums text-amber-500">
-                        {Number(r.desconto_distrato) > 0 ? `- ${BRL(r.desconto_distrato)}` : "—"}
-                      </td>
-                      <td className="p-3"><StatusBadge status={r.status} /></td>
-                      <td className="p-3 text-muted-foreground text-xs">
-                        {r.motivo_negacao ?? r.observacao_financeiro ?? r.observacao_corretor ?? "—"}
-                      </td>
+            <TabsContent value="equipe" className="space-y-3 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Kpi icon={<Users className="w-4 h-4" />} label="Corretores" value={String(equipeStats.length)} />
+                <Kpi icon={<Trophy className="w-4 h-4" />} label="Top VGV" value={equipeStats[0]?.corretor ?? "—"} hint={equipeStats[0] ? BRL(equipeStats[0].vgv) : ""} />
+                <Kpi icon={<Receipt className="w-4 h-4" />} label="Comissão total equipe" value={BRL(equipeStats.reduce((s, e) => s + e.comCorr, 0))} />
+              </div>
+              <div className="glass-card p-2 overflow-x-auto">
+                <table className="w-full text-sm min-w-[700px]">
+                  <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="text-left p-3">Corretor</th>
+                      <th className="text-right p-3">Vendas</th>
+                      <th className="text-right p-3">VGV</th>
+                      <th className="text-right p-3">Com. Corretor</th>
+                      <th className="text-right p-3">Com. Gerente</th>
                     </tr>
-                  ))}
-                  {requests.length === 0 && (
-                    <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhuma solicitação ainda.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
+                  </thead>
+                  <tbody>
+                    {equipeStats.map((e) => (
+                      <tr key={e.corretor} className="border-t border-border">
+                        <td className="p-3 font-medium">{e.corretor}</td>
+                        <td className="p-3 text-right tabular-nums">{e.vendas}</td>
+                        <td className="p-3 text-right tabular-nums">{BRL(e.vgv)}</td>
+                        <td className="p-3 text-right tabular-nums">{BRL(e.comCorr)}</td>
+                        <td className="p-3 text-right tabular-nums font-medium">{BRL(e.comGer)}</td>
+                      </tr>
+                    ))}
+                    {equipeStats.length === 0 && (
+                      <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Sem dados de equipe no período.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
 
-          {/* --------- EQUIPE --------- */}
-          <TabsContent value="equipe" className="space-y-3 mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <Kpi icon={<Users className="w-4 h-4" />} label="Corretores" value={String(equipeStats.length)} />
-              <Kpi icon={<Trophy className="w-4 h-4" />} label="Top VGV" value={equipeStats[0]?.corretor ?? "—"} sub={equipeStats[0] ? BRL(equipeStats[0].vgv) : ""} />
-              <Kpi icon={<Receipt className="w-4 h-4" />} label="Comissão total equipe" value={BRL(equipeStats.reduce((s, e) => s + e.comCorr, 0))} />
-            </div>
-            <div className="glass-card p-2 overflow-x-auto">
-              <table className="w-full text-sm min-w-[700px]">
-                <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    <th className="text-left p-3">Corretor</th>
-                    <th className="text-right p-3">Vendas</th>
-                    <th className="text-right p-3">VGV</th>
-                    <th className="text-right p-3">Com. Corretor</th>
-                    <th className="text-right p-3">Com. Gerente</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {equipeStats.map((e) => (
-                    <tr key={e.corretor} className="border-t border-border">
-                      <td className="p-3 font-medium">{e.corretor}</td>
-                      <td className="p-3 text-right tabular-nums">{e.vendas}</td>
-                      <td className="p-3 text-right tabular-nums">{BRL(e.vgv)}</td>
-                      <td className="p-3 text-right tabular-nums">{BRL(e.comCorr)}</td>
-                      <td className="p-3 text-right tabular-nums font-medium">{BRL(e.comGer)}</td>
+            <TabsContent value="distratos" className="space-y-3 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Kpi icon={<Ban className="w-4 h-4" />} label="Distratos ativos" value={String(kpis.distratosCount)} />
+                <Kpi icon={<CircleDollarSign className="w-4 h-4" />} label="Impacto na sua comissão" value={BRL(kpis.distratosImpacto)} />
+              </div>
+              <div className="glass-card p-2 overflow-x-auto">
+                <table className="w-full text-sm min-w-[800px]">
+                  <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="text-left p-3">Criado</th>
+                      <th className="text-left p-3">Cliente</th>
+                      <th className="text-left p-3">Empreend./Un.</th>
+                      <th className="text-left p-3">Corretor</th>
+                      <th className="text-right p-3">Devolver</th>
+                      <th className="text-right p-3">Sua comissão</th>
+                      <th className="p-3">Status</th>
                     </tr>
-                  ))}
-                  {equipeStats.length === 0 && (
-                    <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Sem dados de equipe no período.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
-
-          {/* --------- DISTRATOS --------- */}
-          <TabsContent value="distratos" className="space-y-3 mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Kpi icon={<Ban className="w-4 h-4" />} label="Distratos ativos" value={String(kpis.distratosCount)} />
-              <Kpi icon={<CircleDollarSign className="w-4 h-4" />} label="Impacto na sua comissão" value={BRL(kpis.distratosImpacto)} />
-            </div>
-            <div className="glass-card p-2 overflow-x-auto">
-              <table className="w-full text-sm min-w-[800px]">
-                <thead className="text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    <th className="text-left p-3">Criado</th>
-                    <th className="text-left p-3">Cliente</th>
-                    <th className="text-left p-3">Empreend./Un.</th>
-                    <th className="text-left p-3">Corretor</th>
-                    <th className="text-right p-3">Devolver</th>
-                    <th className="text-right p-3">Sua comissão</th>
-                    <th className="p-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {distratos.map((d) => (
-                    <tr key={d.id} className="border-t border-border">
-                      <td className="p-3">{fmtBR(d.created_at)}</td>
-                      <td className="p-3 font-medium">{d.comprador ?? "—"}</td>
-                      <td className="p-3 text-muted-foreground">
-                        {d.empreendimento ?? "—"} {d.unidade ? `· ${d.unidade}` : ""}
-                      </td>
-                      <td className="p-3">{d.corretor_nome ?? "—"}</td>
-                      <td className="p-3 text-right tabular-nums">{BRL(d.valor_devolver)}</td>
-                      <td className="p-3 text-right tabular-nums">{BRL(d.valor_comissao_gerente)}</td>
-                      <td className="p-3"><Badge variant="outline">{d.status}</Badge></td>
-                    </tr>
-                  ))}
-                  {distratos.length === 0 && (
-                    <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhum distrato impactando sua comissão.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
-        </Tabs>
+                  </thead>
+                  <tbody>
+                    {distratos.map((d) => (
+                      <tr key={d.id} className="border-t border-border">
+                        <td className="p-3">{fmtBR(d.created_at)}</td>
+                        <td className="p-3 font-medium">{d.comprador ?? "—"}</td>
+                        <td className="p-3 text-muted-foreground">
+                          {d.empreendimento ?? "—"} {d.unidade ? `· ${d.unidade}` : ""}
+                        </td>
+                        <td className="p-3">{d.corretor_nome ?? "—"}</td>
+                        <td className="p-3 text-right tabular-nums">{BRL(d.valor_devolver)}</td>
+                        <td className="p-3 text-right tabular-nums">{BRL(d.valor_comissao_gerente)}</td>
+                        <td className="p-3"><Badge variant="outline">{d.status}</Badge></td>
+                      </tr>
+                    ))}
+                    {distratos.length === 0 && (
+                      <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhum distrato impactando sua comissão.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </>
       )}
 
-      {/* Diálogo solicitação — mesmo design do corretor */}
+      {/* Diálogo solicitação */}
       <Dialog open={reqDialog.open} onOpenChange={(open) => !open && setReqDialog({ open: false, sale: null })}>
         <DialogContent>
           <DialogHeader>
@@ -623,12 +695,32 @@ function GerentesPage() {
   );
 }
 
-function Kpi({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub?: string }) {
+function Kpi({
+  icon, label, value, hint, accent, warn, premium,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+  accent?: boolean;
+  warn?: boolean;
+  premium?: boolean;
+}) {
+  const valueCls = accent
+    ? "text-primary"
+    : warn
+      ? "text-amber-400"
+      : premium
+        ? "bg-gradient-to-r from-[oklch(0.78_0.16_180)] to-[oklch(0.78_0.14_90)] bg-clip-text text-transparent"
+        : "";
   return (
     <div className="glass-card p-4">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">{icon}{label}</div>
-      <div className="mt-2 font-display text-2xl font-semibold tabular-nums">{value}</div>
-      {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className={`mt-2 font-display text-2xl font-semibold tabular-nums ${valueCls}`}>{value}</div>
+      {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
 }
