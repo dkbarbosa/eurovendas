@@ -148,8 +148,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {(user?.user_metadata?.display_name as string) ?? user?.email}
             </div>
             <div className="text-xs text-muted-foreground truncate">
-              {isAdmin ? "Administrador" : "Usuário"}
+              {roleLabel}
             </div>
+
           </div>
           <Button
             variant="ghost"
