@@ -919,8 +919,30 @@ function RequestNFTab() {
   const fnRequest = useServerFn(requestNF);
   const { data = [], isLoading } = useQuery({ queryKey: ["nf-eligible"], queryFn: () => fnList(), refetchInterval: 10_000, refetchOnWindowFocus: true });
 
-  const [dialog, setDialog] = useState<{ open: boolean; saleId: string | null; observacao: string }>({ open: false, saleId: null, observacao: "" });
+  const [dialog, setDialog] = useState<{
+    open: boolean;
+    saleId: string | null;
+    sale: { comprador?: string | null; empreendimento?: string | null; unidade?: string | null; corretor?: string | null } | null;
+    observacao: string;
+    distratoId: string;
+    valorDesc: string;
+    obsDesc: string;
+  }>({ open: false, saleId: null, sale: null, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" });
   const [search, setSearch] = useState("");
+
+  const fnDistList = useServerFn(listDistratosForSale);
+  const { data: distData, isLoading: loadingDist } = useQuery({
+    queryKey: ["sale-distratos", dialog.saleId],
+    queryFn: () => fnDistList({ data: { sale_id: dialog.saleId! } }),
+    enabled: !!dialog.saleId && dialog.open,
+  });
+  const pendDistratos = (distData?.distratos ?? []).filter((d) => d.saldo_restante > 0.001);
+  const historicoDistratos = distData?.distratos ?? [];
+  const descontosTodos = distData?.descontos ?? [];
+  const nfsDesconto = distData?.nfs_desconto ?? [];
+  const selectedDist = pendDistratos.find((d) => d.id === dialog.distratoId) ?? null;
+  const valorDescNum = Number((dialog.valorDesc || "").replace(",", "."));
+  const maxDesc = selectedDist?.saldo_restante ?? 0;
 
   const filtered = useMemo(() => {
     if (!search.trim()) return data;
@@ -931,12 +953,14 @@ function RequestNFTab() {
   }, [data, search]);
 
   const reqMut = useMutation({
-    mutationFn: (v: { sale_id: string; observacao?: string }) => fnRequest({ data: v }),
+    mutationFn: (v: { sale_id: string; observacao?: string; distrato_id?: string; desconto_distrato?: number; observacao_distrato?: string }) => fnRequest({ data: v }),
     onSuccess: () => {
       toast.success("NF solicitada ao corretor.");
       qc.invalidateQueries({ queryKey: ["nf-eligible"] });
       qc.invalidateQueries({ queryKey: ["all-nfs"] });
-      setDialog({ open: false, saleId: null, observacao: "" });
+      qc.invalidateQueries({ queryKey: ["distratos"] });
+      qc.invalidateQueries({ queryKey: ["pendencias-distrato"] });
+      setDialog({ open: false, saleId: null, sale: null, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -978,7 +1002,7 @@ function RequestNFTab() {
                 <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
                 <td className="p-3 text-right">
                   <Button size="sm" disabled={!s.mapped_user_id}
-                    onClick={() => setDialog({ open: true, saleId: s.id, observacao: "" })}
+                    onClick={() => setDialog({ open: true, saleId: s.id, sale: s, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}
                     style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
                     <FilePlus2 className="w-3.5 h-3.5 mr-1" />Solicitar NF
                   </Button>
@@ -990,16 +1014,143 @@ function RequestNFTab() {
       </div>
 
       <Dialog open={dialog.open} onOpenChange={(o) => setDialog({ ...dialog, open: o })}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Solicitar emissão de NF</DialogTitle><DialogDescription>O corretor será notificado.</DialogDescription></DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Solicitar emissão de NF</DialogTitle>
+            <DialogDescription>
+              {dialog.sale && (
+                <span>
+                  <b>{dialog.sale.comprador}</b> · {dialog.sale.empreendimento} / {dialog.sale.unidade} · Corretor: <b>{dialog.sale.corretor}</b>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* ===== PAINEL DE DISTRATOS DO CORRETOR ===== */}
+          {loadingDist ? (
+            <div className="rounded-lg border border-border/60 p-3 text-center">
+              <Loader2 className="w-4 h-4 animate-spin inline mr-2" />Verificando distratos…
+            </div>
+          ) : historicoDistratos.length > 0 ? (
+            <div className="rounded-lg border-2 border-rose-500/40 bg-rose-500/5 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-rose-300 font-semibold text-sm">
+                <Ban className="w-4 h-4" />
+                Este corretor possui {historicoDistratos.length} distrato{historicoDistratos.length > 1 ? "s" : ""} — desconto disponível
+              </div>
+
+              {/* Histórico completo */}
+              <div className="space-y-2">
+                {historicoDistratos.map((d) => {
+                  const descsDest = descontosTodos.filter((x) => x.distrato_id === d.id && x.status === "aplicado");
+                  const nfsDest = nfsDesconto.filter((x) => x.distrato_id === d.id);
+                  return (
+                    <div key={d.id} className="rounded-md border border-border/60 bg-background/40 p-3 text-xs space-y-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-sm">{d.comprador ?? "—"}</div>
+                          <div className="text-muted-foreground">{d.empreendimento} / {d.unidade}</div>
+                          <div className="text-muted-foreground">Criado em {fmtBR(d.created_at)}</div>
+                          {d.motivo && (
+                            <div className="mt-1.5 p-2 rounded bg-muted/40 border border-border/40">
+                              <div className="text-[10px] uppercase text-muted-foreground font-semibold">Motivo</div>
+                              <div className="text-sm whitespace-pre-wrap break-words">{d.motivo}</div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right whitespace-nowrap">
+                          <div className="text-[10px] uppercase text-muted-foreground">A devolver</div>
+                          <div className="font-bold text-rose-300">{BRL(d.valor_devolver)}</div>
+                          <div className="text-[10px] uppercase text-muted-foreground mt-1">Saldo</div>
+                          <div className={`font-bold ${d.saldo_restante > 0 ? "text-amber-300" : "text-emerald-400"}`}>{BRL(d.saldo_restante)}</div>
+                        </div>
+                      </div>
+                      {(descsDest.length > 0 || nfsDest.length > 0) && (
+                        <div className="border-t border-border/40 pt-2 space-y-1">
+                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">Histórico de descontos aplicados</div>
+                          {descsDest.map((dc) => (
+                            <div key={dc.id} className="text-[11px] flex justify-between gap-2">
+                              <span>Pedido · {fmtBR(dc.aplicado_at)}</span>
+                              <span className="font-semibold text-rose-300">−{BRL(dc.valor_desconto)}</span>
+                            </div>
+                          ))}
+                          {nfsDest.map((nf) => (
+                            <div key={nf.id} className="text-[11px] flex justify-between gap-2">
+                              <span>NF · {fmtBR(nf.created_at)} ({nf.status})</span>
+                              <span className="font-semibold text-rose-300">−{BRL(nf.desconto_distrato)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Aplicar desconto agora */}
+              {pendDistratos.length > 0 && (
+                <div className="border-t-2 border-rose-500/30 pt-3 space-y-2">
+                  <Label className="text-sm font-semibold">Aplicar desconto nesta NF</Label>
+                  <select
+                    value={dialog.distratoId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      const p = pendDistratos.find((x) => x.id === id);
+                      setDialog({
+                        ...dialog,
+                        distratoId: id,
+                        valorDesc: p ? p.saldo_restante.toFixed(2) : "",
+                        obsDesc: p ? `Desconto referente ao distrato — ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}` : "",
+                      });
+                    }}
+                    className="w-full rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">— Nenhum (NF sem desconto) —</option>
+                    {pendDistratos.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.comprador} — saldo {BRL(p.saldo_restante)}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedDist && (
+                    <>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Valor do desconto (máx. {BRL(maxDesc)})</Label>
+                        <Input
+                          type="number" step="0.01" min="0" max={maxDesc}
+                          value={dialog.valorDesc}
+                          onChange={(e) => setDialog({ ...dialog, valorDesc: e.target.value })}
+                          className="text-base font-semibold"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Observação do desconto</Label>
+                        <Textarea rows={2} value={dialog.obsDesc} onChange={(e) => setDialog({ ...dialog, obsDesc: e.target.value })} maxLength={2000} />
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+              Nenhum distrato vinculado a este corretor.
+            </div>
+          )}
+
           <div className="space-y-1.5">
-            <Label>Observações</Label>
+            <Label>Observações para o corretor</Label>
             <Textarea value={dialog.observacao} onChange={(e) => setDialog({ ...dialog, observacao: e.target.value })} rows={3} maxLength={2000} placeholder="Instruções, prazo, dados de faturamento…" />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialog({ open: false, saleId: null, observacao: "" })}>Cancelar</Button>
-            <Button disabled={reqMut.isPending}
-              onClick={() => reqMut.mutate({ sale_id: dialog.saleId!, observacao: dialog.observacao || undefined })}
+            <Button variant="ghost" onClick={() => setDialog({ open: false, saleId: null, sale: null, observacao: "", distratoId: "", valorDesc: "", obsDesc: "" })}>Cancelar</Button>
+            <Button disabled={reqMut.isPending || (!!selectedDist && (!(valorDescNum > 0) || valorDescNum > maxDesc + 0.001))}
+              onClick={() => reqMut.mutate({
+                sale_id: dialog.saleId!,
+                observacao: dialog.observacao || undefined,
+                distrato_id: selectedDist ? dialog.distratoId : undefined,
+                desconto_distrato: selectedDist && valorDescNum > 0 ? valorDescNum : undefined,
+                observacao_distrato: selectedDist ? (dialog.obsDesc || undefined) : undefined,
+              })}
               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}>
               {reqMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar"}
             </Button>
