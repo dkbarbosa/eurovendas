@@ -38,6 +38,11 @@ export function useLiveSync() {
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["sales-all"] });
       qc.invalidateQueries({ queryKey: ["sync-log"] });
+      qc.invalidateQueries({ queryKey: ["my-broker-sales"] });
+      qc.invalidateQueries({ queryKey: ["nf-eligible"] });
+      qc.invalidateQueries({ queryKey: ["all-nfs"] });
+      qc.invalidateQueries({ queryKey: ["all-requests"] });
+      qc.invalidateQueries({ queryKey: ["distratos"] });
     } catch (e) {
       if (!mounted.current) return;
       const msg = e instanceof Response ? await e.text() : e instanceof Error ? e.message : String(e);
@@ -51,15 +56,20 @@ export function useLiveSync() {
   useEffect(() => {
     mounted.current = true;
     if (!isAdmin || !session) return;
-    // Sincroniza apenas quando a página é carregada/recarregada.
-    // Sem intervalo de polling e sem refetch ao trocar de aba — assim os
-    // filtros e o estado da página são preservados durante a navegação.
     run();
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") run();
+    }, INTERVAL_MS);
+    const onVis = () => {
+      if (document.visibilityState === "visible") run();
+    };
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       mounted.current = false;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [isAdmin, session, run]);
-
 
   return { state, lastAt, lastError, rows, refresh: run };
 }
