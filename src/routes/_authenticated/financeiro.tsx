@@ -1022,9 +1022,9 @@ function RequestNFTab() {
   }, [data, search]);
 
   const reqMut = useMutation({
-    mutationFn: (v: { sale_id: string; observacao?: string; distrato_id?: string; desconto_distrato?: number; observacao_distrato?: string }) => fnRequest({ data: v }),
+    mutationFn: (v: { sale_id: string; requester_role: "corretor" | "gerente" | "diretor"; observacao?: string; distrato_id?: string; desconto_distrato?: number; observacao_distrato?: string }) => fnRequest({ data: v }),
     onSuccess: () => {
-      toast.success("NF solicitada ao corretor.");
+      toast.success("NF solicitada.");
       qc.invalidateQueries({ queryKey: ["nf-eligible"] });
       qc.invalidateQueries({ queryKey: ["all-nfs"] });
       qc.invalidateQueries({ queryKey: ["distratos"] });
