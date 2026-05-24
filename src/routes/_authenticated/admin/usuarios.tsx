@@ -6,6 +6,7 @@ import { listUsers, inviteUser, setUserRole, deleteUser, adminChangeUserPassword
 import { listBrokerMappings, setBrokerMapping } from "@/lib/broker-mapping.functions";
 import { adminSetCorretorGerente } from "@/lib/team.functions";
 import { listDistinctCorretores } from "@/lib/commissions.functions";
+import { listDistinctGerentes } from "@/lib/gerente.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
