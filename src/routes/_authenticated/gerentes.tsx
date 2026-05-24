@@ -492,46 +492,118 @@ function GerentesPage() {
         </Tabs>
       )}
 
-      {/* Diálogo solicitação */}
+      {/* Diálogo solicitação — mesmo design do corretor */}
       <Dialog open={reqDialog.open} onOpenChange={(open) => !open && setReqDialog({ open: false, sale: null })}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Solicitar comissão (gerente)</DialogTitle>
+            <DialogTitle>Solicitar adiantamento / comissão (gerente)</DialogTitle>
+            <DialogDescription>
+              {reqDialog.sale && (
+                <>Venda: <b>{reqDialog.sale.comprador}</b> · {reqDialog.sale.empreendimento} / {reqDialog.sale.unidade} · {fmtBR(reqDialog.sale.data)}</>
+              )}
+            </DialogDescription>
           </DialogHeader>
-          {reqDialog.sale && (
-            <div className="space-y-4">
-              <div className="text-sm space-y-1">
-                <div><b>Cliente:</b> {reqDialog.sale.comprador}</div>
-                <div><b>Empreend./Un.:</b> {reqDialog.sale.empreendimento} {reqDialog.sale.unidade ? `· ${reqDialog.sale.unidade}` : ""}</div>
-                <div><b>Comissão líq. gerente:</b> {BRL(reqDialog.sale.comissao_liq_gerente)}</div>
-              </div>
-              <div>
-                <Label>Tipo</Label>
-                <Select value={reqForm.tipo} onValueChange={(v) => setReqForm((f) => ({ ...f, tipo: v as "adiantamento" | "comissao_final" }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="adiantamento">Adiantamento</SelectItem>
-                    <SelectItem value="comissao_final">Comissão final</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Valor solicitado</Label>
-                <CurrencyInput value={reqForm.valor ?? 0} onValueChange={(v) => setReqForm((f) => ({ ...f, valor: v ?? 0 }))} />
-              </div>
-              <div>
-                <Label>Observação (opcional)</Label>
-                <Textarea value={reqForm.obs} onChange={(e) => setReqForm((f) => ({ ...f, obs: e.target.value }))} />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setReqDialog({ open: false, sale: null })}>Cancelar</Button>
-            <Button onClick={() => createMut.mutate()} disabled={createMut.isPending || !reqForm.valor}>
-              {createMut.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              Enviar
-            </Button>
-          </DialogFooter>
+          {(() => {
+            const sale = reqDialog.sale;
+            if (!sale) return null;
+            const comLiq = Number(sale.comissao_liq_gerente) || 0;
+            const valorVenda = Number(sale.valor_venda) || 0;
+            const statusUp = (sale.status ?? "").trim().toUpperCase();
+            const jaPago = paidByReq.get(sale.id) ?? 0;
+            const maxReceber = Math.max(0, comLiq - jaPago);
+            const valor = reqForm.valor ?? 0;
+            const sinal = Number((sale as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
+            const excedeu = valor > maxReceber + 0.01;
+            const minSinalComissao = valorVenda * 0.06;
+            const maxAdiant = Math.floor(sinal / 2999.99) * 500;
+            const isCaixa = statusUp === "CAIXA";
+            const isReservado = statusUp === "RESERVADO";
+            const ruleAdiantOk = isCaixa || reqForm.tipo !== "adiantamento" || (sinal >= 2999.99 && valor <= maxAdiant);
+            const ruleComissaoOk = isCaixa || reqForm.tipo !== "comissao_final" || valorVenda === 0 || sinal >= minSinalComissao;
+            const ruleViolated = isReservado || !ruleAdiantOk || !ruleComissaoOk;
+            return (
+              <>
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs grid grid-cols-3 gap-2">
+                    <div><div className="text-muted-foreground">Comissão Liq.</div><div className="font-semibold">{BRL(comLiq)}</div></div>
+                    <div><div className="text-muted-foreground">Já adiantado</div><div className={`font-semibold ${jaPago > 0 ? "text-amber-400" : ""}`}>{BRL(jaPago)}</div></div>
+                    <div><div className="text-muted-foreground">Máx. a solicitar</div><div className="font-semibold text-primary">{BRL(maxReceber)}</div></div>
+                  </div>
+                  <div className="rounded-lg border border-border/60 bg-secondary/20 p-3 text-xs space-y-1">
+                    <div className="font-semibold text-foreground">Regras por status da venda</div>
+                    {isReservado && (
+                      <div className="text-destructive">• <b>Reservado:</b> nenhuma solicitação permitida até a assinatura.</div>
+                    )}
+                    {isCaixa && (
+                      <div className="text-emerald-400">• <b>Caixa:</b> liberado solicitar a comissão integral, sem exigência de sinal.</div>
+                    )}
+                    {!isReservado && !isCaixa && (
+                      <>
+                        <div className="text-muted-foreground">• <b>Assinado:</b> adiantamento exige <b>R$ 2.999,99</b> de sinal a cada <b>R$ 500</b> (regra do gerente).</div>
+                        <div className="text-muted-foreground">• Comissão final exige sinal ≥ <b>6%</b> da venda{valorVenda > 0 ? <> (mín. <b>{BRL(minSinalComissao)}</b>)</> : null}.</div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Tipo</Label>
+                      <Select value={reqForm.tipo} onValueChange={(v) => setReqForm((f) => ({ ...f, tipo: v as "adiantamento" | "comissao_final" }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="adiantamento">Adiantamento</SelectItem>
+                          <SelectItem value="comissao_final">Comissão final</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Valor solicitado (R$)</Label>
+                      <CurrencyInput value={reqForm.valor} onValueChange={(v) => setReqForm((f) => ({ ...f, valor: v }))} />
+                      {excedeu && (
+                        <p className="text-xs text-destructive">Valor excede o saldo a receber ({BRL(maxReceber)}).</p>
+                      )}
+                      {!excedeu && valor > 0 && (
+                        <p className="text-xs text-muted-foreground">Restante após este pedido: {BRL(maxReceber - valor)}</p>
+                      )}
+                      {reqForm.tipo === "adiantamento" && sinal >= 2999.99 && valor > maxAdiant && (
+                        <p className="text-xs text-destructive">Adiantamento máximo permitido: {BRL(maxAdiant)} (R$ 500 a cada R$ 2.999,99 de sinal).</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Sinal recebido (R$)</Label>
+                      <CurrencyInput value={sinal} onValueChange={() => {}} disabled />
+                      {statusUp !== "CAIXA" && reqForm.tipo === "adiantamento" && sinal > 0 && sinal < 2999.99 && (
+                        <p className="text-xs text-destructive">Sinal precisa ser ≥ R$ 2.999,99 para liberar adiantamento.</p>
+                      )}
+                      {statusUp !== "CAIXA" && reqForm.tipo === "comissao_final" && valorVenda > 0 && sinal > 0 && sinal < minSinalComissao && (
+                        <p className="text-xs text-destructive">Sinal abaixo de 6% do valor da venda (mín. {BRL(minSinalComissao)}).</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Status da venda</Label>
+                      <div className="h-9 px-3 flex items-center rounded-md border border-border bg-secondary/20 text-sm">
+                        <Badge variant="outline">{sale.status ?? "—"}</Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Observações</Label>
+                    <Textarea value={reqForm.obs} onChange={(e) => setReqForm((f) => ({ ...f, obs: e.target.value }))} rows={3} maxLength={2000} placeholder="Detalhes para o financeiro…" />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setReqDialog({ open: false, sale: null })}>Cancelar</Button>
+                  <Button
+                    disabled={createMut.isPending || !reqForm.valor || excedeu || ruleViolated}
+                    onClick={() => createMut.mutate()}
+                    style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+                  >
+                    {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar pedido"}
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
