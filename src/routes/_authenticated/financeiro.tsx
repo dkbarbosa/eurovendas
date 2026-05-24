@@ -355,6 +355,22 @@ function AdvancesTab() {
   const fnDecide = useServerFn(decideRequest);
   const fnPaid = useServerFn(markRequestPaid);
   const fnDel = useServerFn(deleteCommissionRequest);
+  const fnDownload = useServerFn(downloadNFFile);
+  const handleDownloadNF = async (id: string, which: "1" | "2" = "1") => {
+    try {
+      const res = await fnDownload({ data: { id, which } }) as { base64: string; contentType: string; filename: string };
+      const bin = atob(res.base64);
+      const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([buf], { type: res.contentType }));
+      const a = document.createElement("a");
+      a.href = url; a.download = res.filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   const [statusFilter, setStatusFilter] = useState<"pendente" | "aprovado" | "negado" | "pago" | "todos">("pendente");
   const [search, setSearch] = useState("");
