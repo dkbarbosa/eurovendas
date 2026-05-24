@@ -220,7 +220,8 @@ export const listAllRequests = createServerFn({ method: "POST" })
     const saleIds = [...new Set((reqs ?? []).map((r) => r.sale_id).filter((v): v is string => !!v))];
     const corretorIds = (reqs ?? []).map((r) => r.corretor_user_id).filter((v): v is string => !!v);
     const gerenteIds = (reqs ?? []).map((r) => r.gerente_user_id).filter((v): v is string => !!v);
-    const userIds = [...new Set([...corretorIds, ...gerenteIds])];
+    const diretorIds = (reqs ?? []).map((r) => r.diretor_user_id).filter((v): v is string => !!v);
+    const userIds = [...new Set([...corretorIds, ...gerenteIds, ...diretorIds])];
     const safeIds = saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"];
     const [{ data: sales }, { data: profs }, { data: paidReqs }, { data: nfRows }] = await Promise.all([
       supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,comissao_liq_corretor,status,valor_sinal_negocio").in("id", safeIds),
@@ -277,6 +278,7 @@ export const listAllRequests = createServerFn({ method: "POST" })
         sale,
         corretor_profile: r.corretor_user_id ? pMap.get(r.corretor_user_id) ?? null : null,
         gerente_profile: r.gerente_user_id ? pMap.get(r.gerente_user_id) ?? null : null,
+        diretor_profile: r.diretor_user_id ? pMap.get(r.diretor_user_id) ?? null : null,
         comissao_liq: comissaoLiq,
         adiantado_pago: p.adiantado,
         final_pago: p.final,
