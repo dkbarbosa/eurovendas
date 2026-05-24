@@ -108,6 +108,7 @@ async function resolveDiretorUserId(): Promise<string | null> {
 // ---------- SOLICITAR NF (financeiro) ----------
 const RequestNFSchema = z.object({
   sale_id: z.string().uuid(),
+  requester_role: z.enum(["corretor", "gerente", "diretor"]).default("corretor"),
   observacao: z.string().trim().max(2000).optional(),
   distrato_id: z.string().uuid().optional(),
   desconto_distrato: z.number().nonnegative().max(99999999).optional(),
@@ -119,22 +120,43 @@ export const requestNF = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => RequestNFSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertFinanceiro(context.userId);
-    const { data: sale } = await supabaseAdmin.from("sales").select("corretor").eq("id", data.sale_id).maybeSingle();
+    const { data: sale } = await supabaseAdmin
+      .from("sales")
+      .select("corretor,gerente")
+      .eq("id", data.sale_id)
+      .maybeSingle();
     if (!sale) throw new Error("Venda não encontrada.");
-    if (!sale.corretor) throw new Error("Venda sem corretor definido na planilha.");
-    const { data: maps } = await supabaseAdmin
-      .from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
-    const userId = resolveBrokerUserId(sale.corretor, (maps ?? []) as { user_id: string; corretor_nome: string }[]);
-    if (!userId) throw new Error(`O corretor "${sale.corretor}" não está vinculado a nenhum usuário. Vincule em Admin → Usuários.`);
-    // verifica NF ativa
-    const { data: active } = await supabaseAdmin
-      .from("nf_requests").select("id").eq("sale_id", data.sale_id).in("status", ["solicitada", "emitida"]).maybeSingle();
-    if (active) throw new Error("Já existe uma NF ativa para esta venda.");
 
-    // Valida desconto se vinculado a um distrato
+    let corretorUserId: string | null = null;
+    let gerenteUserId: string | null = null;
+    let diretorUserId: string | null = null;
+
+    if (data.requester_role === "corretor") {
+      if (!sale.corretor) throw new Error("Venda sem corretor definido na planilha.");
+      const { data: maps } = await supabaseAdmin
+        .from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
+      corretorUserId = resolveBrokerUserId(sale.corretor, (maps ?? []) as { user_id: string; corretor_nome: string }[]);
+      if (!corretorUserId) throw new Error(`O corretor "${sale.corretor}" não está vinculado a nenhum usuário. Vincule em Admin → Usuários.`);
+    } else if (data.requester_role === "gerente") {
+      if (!sale.gerente) throw new Error("Venda sem gerente definido na planilha.");
+      gerenteUserId = await resolveGerenteUserIdForSale(sale.gerente);
+      if (!gerenteUserId) throw new Error(`O gerente "${sale.gerente}" não está vinculado a nenhum usuário.`);
+    } else {
+      diretorUserId = await resolveDiretorUserId();
+      if (!diretorUserId) throw new Error(`Nenhum usuário com perfil "Gestão" cadastrado.`);
+    }
+
+    // verifica NF ativa para esta venda + papel
+    const { data: active } = await supabaseAdmin
+      .from("nf_requests").select("id").eq("sale_id", data.sale_id)
+      .eq("requester_role", data.requester_role)
+      .in("status", ["solicitada", "emitida"]).maybeSingle();
+    if (active) throw new Error("Já existe uma NF ativa para esta venda neste perfil.");
+
+    // Valida desconto se vinculado a um distrato (apenas para corretor)
     let distratoId: string | null = null;
     let desconto = 0;
-    if (data.distrato_id && (data.desconto_distrato ?? 0) > 0) {
+    if (data.requester_role === "corretor" && data.distrato_id && (data.desconto_distrato ?? 0) > 0) {
       const { data: dist } = await supabaseAdmin
         .from("distratos")
         .select("id,corretor_user_id,valor_devolver,valor_devolvido,status")
@@ -142,7 +164,7 @@ export const requestNF = createServerFn({ method: "POST" })
         .maybeSingle();
       if (!dist) throw new Error("Distrato não encontrado.");
       if (dist.status === "cancelado") throw new Error("Distrato cancelado.");
-      if (dist.corretor_user_id && dist.corretor_user_id !== userId)
+      if (dist.corretor_user_id && dist.corretor_user_id !== corretorUserId)
         throw new Error("Distrato pertence a outro corretor.");
       const saldo = Math.max(0, Number(dist.valor_devolver) - Number(dist.valor_devolvido));
       if ((data.desconto_distrato ?? 0) > saldo + 0.001)
@@ -150,7 +172,6 @@ export const requestNF = createServerFn({ method: "POST" })
       distratoId = data.distrato_id;
       desconto = data.desconto_distrato ?? 0;
 
-      // Debita imediatamente do distrato (reserva)
       const novoDevolvido = Number(dist.valor_devolvido) + desconto;
       const quitado = novoDevolvido >= Number(dist.valor_devolver) - 0.001;
       await supabaseAdmin
@@ -164,7 +185,10 @@ export const requestNF = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin.from("nf_requests").insert({
       sale_id: data.sale_id,
-      corretor_user_id: userId,
+      requester_role: data.requester_role,
+      corretor_user_id: corretorUserId,
+      gerente_user_id: gerenteUserId,
+      diretor_user_id: diretorUserId,
       solicitado_por: context.userId,
       status: "solicitada",
       observacao_financeiro: data.observacao ?? null,
@@ -173,7 +197,6 @@ export const requestNF = createServerFn({ method: "POST" })
       observacao_distrato: data.observacao_distrato ?? null,
     });
     if (error) {
-      // rollback do débito no distrato em caso de falha
       if (distratoId && desconto > 0) {
         const { data: dist } = await supabaseAdmin
           .from("distratos").select("valor_devolvido,valor_devolver,status")
