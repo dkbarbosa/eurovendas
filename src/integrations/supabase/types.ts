@@ -17,22 +17,25 @@ export type Database = {
       broker_mapping: {
         Row: {
           ativo: boolean
-          corretor_nome: string
+          corretor_nome: string | null
           created_at: string
+          gerente_nome: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           ativo?: boolean
-          corretor_nome: string
+          corretor_nome?: string | null
           created_at?: string
+          gerente_nome?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           ativo?: boolean
-          corretor_nome?: string
+          corretor_nome?: string | null
           created_at?: string
+          gerente_nome?: string | null
           updated_at?: string
           user_id?: string
         }

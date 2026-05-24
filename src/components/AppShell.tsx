@@ -24,15 +24,16 @@ import { Button } from "@/components/ui/button";
 import { LiveSyncBadge } from "@/components/LiveSyncBadge";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
-const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/vendas", label: "Vendas", icon: Table2 },
-  { to: "/agendamentos", label: "Agendamentos", icon: CalendarDays },
-  { to: "/corretores", label: "Corretores", icon: Users },
-  { to: "/gerentes", label: "Gerentes", icon: UserCog },
-  { to: "/empreendimentos", label: "Empreendimentos", icon: Building2 },
-  { to: "/aprovacoes", label: "Aprovações", icon: ClipboardCheck },
-  { to: "/insights", label: "Insights", icon: Sparkles },
+// Visão da gestão (admin OU gerente). /gerentes só para admin.
+const MANAGEMENT_NAV = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
+  { to: "/vendas", label: "Vendas", icon: Table2, adminOnly: false },
+  { to: "/agendamentos", label: "Agendamentos", icon: CalendarDays, adminOnly: false },
+  { to: "/corretores", label: "Corretores", icon: Users, adminOnly: false },
+  { to: "/gerentes", label: "Gerentes", icon: UserCog, adminOnly: true },
+  { to: "/empreendimentos", label: "Empreendimentos", icon: Building2, adminOnly: false },
+  { to: "/aprovacoes", label: "Aprovações", icon: ClipboardCheck, adminOnly: false },
+  { to: "/insights", label: "Insights", icon: Sparkles, adminOnly: false },
 ] as const;
 
 const ADMIN_NAV = [
@@ -41,10 +42,24 @@ const ADMIN_NAV = [
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, isFinanceiro, isCorretor, isStaff, signOut } = useAuth();
+  const { user, isAdmin, isFinanceiro, isGerente, isCorretor, signOut } = useAuth();
   const loc = useLocation();
   const nav = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const canManagement = isAdmin || isGerente;
+  const canFinanceiro = isAdmin || isFinanceiro;
+  const canCommissions = isAdmin || isGerente || isCorretor;
+
+  const roleLabel = isAdmin
+    ? "Administrador"
+    : isGerente
+    ? "Gerente"
+    : isFinanceiro
+    ? "Financeiro"
+    : isCorretor
+    ? "Corretor"
+    : "Usuário";
 
   const initials = (user?.user_metadata?.display_name as string | undefined)
     ?.split(" ")
@@ -73,13 +88,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-        {isStaff && (
+        {canManagement && (
           <>
             <SectionLabel>Visão da Gestão</SectionLabel>
-            {NAV.map((item) => (
+            {MANAGEMENT_NAV.filter((item) => isAdmin || !item.adminOnly).map((item) => (
               <NavLink
                 key={item.to}
-                {...item}
+                to={item.to}
+                label={item.label}
+                icon={item.icon}
                 active={loc.pathname === item.to}
                 onNavigate={() => setMobileOpen(false)}
               />
@@ -87,7 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </>
         )}
 
-        {(isCorretor || isStaff) && (
+        {canCommissions && (
           <>
             <SectionLabel className="mt-6">Painel Corretor</SectionLabel>
             <NavLink to="/comissoes" label="Comissões" icon={Wallet}
@@ -95,7 +112,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </>
         )}
 
-        {(isFinanceiro || isAdmin) && (
+        {canFinanceiro && (
           <>
             <SectionLabel className="mt-6">Painel Financeiro</SectionLabel>
             <NavLink to="/financeiro" label="Financeiro Euro" icon={Receipt}
@@ -120,6 +137,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </nav>
 
+
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3 p-2 rounded-lg">
           <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-semibold shrink-0">
@@ -130,8 +148,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {(user?.user_metadata?.display_name as string) ?? user?.email}
             </div>
             <div className="text-xs text-muted-foreground truncate">
-              {isAdmin ? "Administrador" : "Usuário"}
+              {roleLabel}
             </div>
+
           </div>
           <Button
             variant="ghost"

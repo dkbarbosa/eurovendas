@@ -1,0 +1,1 @@
+ALTER TABLE public.broker_mapping ALTER COLUMN corretor_nome DROP NOT NULL;
