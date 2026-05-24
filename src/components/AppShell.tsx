@@ -26,16 +26,15 @@ import { Button } from "@/components/ui/button";
 import { LiveSyncBadge } from "@/components/LiveSyncBadge";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
-// Visão da gestão (admin OU gerente). /gerentes só para admin.
+// Visão da gestão — SOMENTE admin (controle total do mecanismo da empresa).
 const MANAGEMENT_NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
-  { to: "/vendas", label: "Vendas", icon: Table2, adminOnly: false },
-  { to: "/agendamentos", label: "Agendamentos", icon: CalendarDays, adminOnly: false },
-  { to: "/corretores", label: "Corretores", icon: Users, adminOnly: false },
-  { to: "/gerentes", label: "Gerentes", icon: UserCog, adminOnly: false },
-  { to: "/empreendimentos", label: "Empreendimentos", icon: Building2, adminOnly: false },
-  { to: "/aprovacoes", label: "Aprovações", icon: ClipboardCheck, adminOnly: false },
-  { to: "/insights", label: "Insights", icon: Sparkles, adminOnly: false },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/vendas", label: "Vendas", icon: Table2 },
+  { to: "/agendamentos", label: "Agendamentos", icon: CalendarDays },
+  { to: "/corretores", label: "Corretores", icon: Users },
+  { to: "/empreendimentos", label: "Empreendimentos", icon: Building2 },
+  { to: "/aprovacoes", label: "Aprovações", icon: ClipboardCheck },
+  { to: "/insights", label: "Insights", icon: Sparkles },
 ] as const;
 
 const ADMIN_NAV = [
@@ -49,9 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const nav = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const canManagement = isAdmin || isGerente;
   const canFinanceiro = isAdmin || isFinanceiro;
-  const canCommissions = isAdmin || isGerente || isCorretor;
 
   const roleLabel = isAdmin
     ? "Administrador"
