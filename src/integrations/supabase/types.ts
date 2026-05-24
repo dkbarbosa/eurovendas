@@ -20,6 +20,7 @@ export type Database = {
           corretor_nome: string | null
           created_at: string
           gerente_nome: string | null
+          team_gerente_user_id: string | null
           updated_at: string
           user_id: string
         }
@@ -28,6 +29,7 @@ export type Database = {
           corretor_nome?: string | null
           created_at?: string
           gerente_nome?: string | null
+          team_gerente_user_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -36,6 +38,7 @@ export type Database = {
           corretor_nome?: string | null
           created_at?: string
           gerente_nome?: string | null
+          team_gerente_user_id?: string | null
           updated_at?: string
           user_id?: string
         }
