@@ -14,7 +14,7 @@ export const listBrokerMappings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
     const { data } = await supabaseAdmin
-      .from("broker_mapping").select("user_id,corretor_nome,gerente_nome,ativo,updated_at");
+      .from("broker_mapping").select("user_id,corretor_nome,gerente_nome,team_gerente_user_id,ativo,updated_at");
     return data ?? [];
   });
 
