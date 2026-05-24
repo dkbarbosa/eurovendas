@@ -524,28 +524,8 @@ function AdvancesTab() {
                         </div>
                         {/* Bloco de identificação: status da venda + sinal de negócio */}
                         <div className="mt-2 inline-flex flex-wrap items-center gap-x-4 gap-y-2">
-                          {(() => {
-                            const raw = (head.sale?.status ?? "").trim();
-                            const up = raw.toUpperCase();
-                            const cfg: Record<string, { text: string; border: string; bg: string; dot: string }> = {
-                              CAIXA:     { text: "text-emerald-300", border: "border-emerald-400/40", bg: "bg-emerald-500/10", dot: "bg-emerald-400" },
-                              PAGO:      { text: "text-emerald-300", border: "border-emerald-400/40", bg: "bg-emerald-500/10", dot: "bg-emerald-400" },
-                              ASSINADO:  { text: "text-amber-300",   border: "border-amber-400/40",   bg: "bg-amber-500/10",   dot: "bg-amber-400" },
-                              ASSINADA:  { text: "text-amber-300",   border: "border-amber-400/40",   bg: "bg-amber-500/10",   dot: "bg-amber-400" },
-                              RESERVADO: { text: "text-amber-300",   border: "border-amber-400/40",   bg: "bg-amber-500/10",   dot: "bg-amber-400" },
-                              DISTRATO:  { text: "text-rose-300",    border: "border-rose-400/40",    bg: "bg-rose-500/10",    dot: "bg-rose-400" },
-                            };
-                            const s = cfg[up] ?? { text: "text-foreground", border: "border-border/60", bg: "bg-secondary/40", dot: "bg-muted-foreground" };
-                            return (
-                              <div className="inline-flex items-center gap-2">
-                                <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Status venda</span>
-                                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${s.text} ${s.border} ${s.bg}`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full ${s.dot} shadow-[0_0_8px_currentColor]`} />
-                                  {raw || "—"}
-                                </span>
-                              </div>
-                            );
-                          })()}
+                          <SaleStatusEditor saleId={head.sale?.id ?? null} status={head.sale?.status ?? null} canEdit={allowed} />
+
                           <div className="inline-flex items-center gap-2">
                             <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Sinal de negócio</span>
                             <span className="inline-flex items-center rounded-full border border-sky-400/40 bg-sky-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-sky-300">{BRL(Number(head.sale?.valor_sinal_negocio) || 0)}</span>
