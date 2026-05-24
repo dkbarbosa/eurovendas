@@ -53,7 +53,6 @@ export const getGerenteOverview = createServerFn({ method: "POST" })
 
     if (isAdmin && data?.gerente_nome) {
       gerenteNome = data.gerente_nome;
-      // Tenta achar o user_id para puxar requests do gerente
       const { data: map } = await supabaseAdmin
         .from("broker_mapping")
         .select("user_id")
@@ -65,18 +64,21 @@ export const getGerenteOverview = createServerFn({ method: "POST" })
     } else if (isGer) {
       gerenteNome = await getGerenteNome(context.userId);
       gerenteUserId = context.userId;
-    } else if (isAdmin) {
-      // admin sem seleção — retorna vazio
-      return { gerenteNome: null, sales: [], requests: [], distratos: [], descontos: [] };
     }
 
-    if (!gerenteNome) {
-      return { gerenteNome: null, sales: [], requests: [], distratos: [], descontos: [] };
-    }
+    const empty = {
+      gerenteNome: null as string | null,
+      gerenteUserId: null as string | null,
+      sales: [] as Array<Record<string, unknown>>,
+      requests: [] as Array<Record<string, unknown>>,
+      distratos: [] as Array<Record<string, unknown>>,
+      descontos: [] as Array<Record<string, unknown>>,
+    };
+
+    if (!gerenteNome) return empty;
 
     const nomeNorm = gerenteNome.trim().toLowerCase();
 
-    // Vendas onde ele é o gerente
     const { data: salesData, error: salesErr } = await supabaseAdmin
       .from("sales")
       .select("*")
@@ -88,7 +90,6 @@ export const getGerenteOverview = createServerFn({ method: "POST" })
       (s) => (s.gerente ?? "").trim().toLowerCase() === nomeNorm,
     );
 
-    // Requests do gerente (próprios, requester_role='gerente')
     let requests: Array<Record<string, unknown>> = [];
     if (gerenteUserId) {
       const { data: reqs } = await supabaseAdmin
@@ -98,10 +99,9 @@ export const getGerenteOverview = createServerFn({ method: "POST" })
         .eq("requester_role", "gerente")
         .order("created_at", { ascending: false })
         .limit(2000);
-      requests = reqs ?? [];
+      requests = (reqs ?? []) as unknown as Array<Record<string, unknown>>;
     }
 
-    // Distratos que impactam comissão deste gerente
     const { data: dists } = await supabaseAdmin
       .from("distratos")
       .select("*")
@@ -111,9 +111,8 @@ export const getGerenteOverview = createServerFn({ method: "POST" })
       .limit(1000);
     const distratos = (dists ?? []).filter(
       (d) => (d.gerente_nome ?? "").trim().toLowerCase() === nomeNorm,
-    );
+    ) as unknown as Array<Record<string, unknown>>;
 
-    // Descontos aplicados sobre pedidos do gerente
     const reqIds = requests.map((r) => r.id as string);
     let descontos: Array<Record<string, unknown>> = [];
     if (reqIds.length > 0) {
@@ -121,11 +120,19 @@ export const getGerenteOverview = createServerFn({ method: "POST" })
         .from("distrato_descontos")
         .select("*")
         .in("commission_request_id", reqIds);
-      descontos = dRows ?? [];
+      descontos = (dRows ?? []) as unknown as Array<Record<string, unknown>>;
     }
 
-    return { gerenteNome, gerenteUserId, sales, requests, distratos, descontos };
+    return {
+      gerenteNome,
+      gerenteUserId,
+      sales: sales as unknown as Array<Record<string, unknown>>,
+      requests,
+      distratos,
+      descontos,
+    };
   });
+
 
 // --------- Criar pedido de comissão do gerente ----------
 const CreateGerReqSchema = z.object({
