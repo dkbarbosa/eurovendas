@@ -355,6 +355,22 @@ function AdvancesTab() {
   const fnDecide = useServerFn(decideRequest);
   const fnPaid = useServerFn(markRequestPaid);
   const fnDel = useServerFn(deleteCommissionRequest);
+  const fnDownload = useServerFn(downloadNFFile);
+  const handleDownloadNF = async (id: string, which: "1" | "2" = "1") => {
+    try {
+      const res = await fnDownload({ data: { id, which } }) as { base64: string; contentType: string; filename: string };
+      const bin = atob(res.base64);
+      const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([buf], { type: res.contentType }));
+      const a = document.createElement("a");
+      a.href = url; a.download = res.filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   const [statusFilter, setStatusFilter] = useState<"pendente" | "aprovado" | "negado" | "pago" | "todos">("pendente");
   const [search, setSearch] = useState("");
@@ -658,6 +674,26 @@ function AdvancesTab() {
                                     >
                                       <Paperclip className="w-3 h-3" /> Comprovante
                                     </a>
+                                  )}
+                                  {(r as { nf_info?: { id: string; numero: string | null; hasFile1: boolean; hasFile2: boolean } | null }).nf_info?.hasFile1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadNF((r as { nf_info: { id: string } }).nf_info.id, "1")}
+                                      className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition"
+                                      title={`Baixar nota fiscal${(r as { nf_info?: { numero?: string | null } }).nf_info?.numero ? ` #${(r as { nf_info: { numero: string } }).nf_info.numero}` : ""}`}
+                                    >
+                                      <Download className="w-3 h-3" /> Nota fiscal
+                                    </button>
+                                  )}
+                                  {(r as { nf_info?: { id: string; hasFile2: boolean } | null }).nf_info?.hasFile2 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadNF((r as { nf_info: { id: string } }).nf_info.id, "2")}
+                                      className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition"
+                                      title="Baixar promissória"
+                                    >
+                                      <Download className="w-3 h-3" /> Promissória
+                                    </button>
                                   )}
                                 </div>
                                 {r.observacao_corretor && (

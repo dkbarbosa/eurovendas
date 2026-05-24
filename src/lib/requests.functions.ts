@@ -231,17 +231,25 @@ export const listAllRequests = createServerFn({ method: "POST" })
         .eq("status", "pago"),
       supabaseAdmin
         .from("nf_requests")
-        .select("sale_id,status,created_at")
+        .select("id,sale_id,status,created_at,numero_nf,arquivo_nf_url,arquivo_nf_url_2")
         .in("sale_id", safeIds)
         .order("created_at", { ascending: false }),
     ]);
     const sMap = new Map((sales ?? []).map((s) => [s.id, s]));
     const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
-    // Para cada venda, status da NF "ativa" mais recente (ignora canceladas).
-    const nfBySale = new Map<string, string>();
+    // Para cada venda, NF "ativa" mais recente (ignora canceladas) com arquivos disponíveis.
+    const nfBySale = new Map<string, { id: string; status: string; numero: string | null; hasFile1: boolean; hasFile2: boolean }>();
     for (const n of nfRows ?? []) {
       if (n.status === "cancelada") continue;
-      if (!nfBySale.has(n.sale_id)) nfBySale.set(n.sale_id, n.status as string);
+      if (!nfBySale.has(n.sale_id)) {
+        nfBySale.set(n.sale_id, {
+          id: n.id as string,
+          status: n.status as string,
+          numero: (n.numero_nf as string | null) ?? null,
+          hasFile1: !!n.arquivo_nf_url,
+          hasFile2: !!n.arquivo_nf_url_2,
+        });
+      }
     }
     const paidBySale = new Map<string, { adiantado: number; final: number; items: Array<{ id: string; tipo: string; valor: number; data: string | null }> }>();
     for (const pr of paidReqs ?? []) {
@@ -271,7 +279,8 @@ export const listAllRequests = createServerFn({ method: "POST" })
         final_pago: p.final,
         a_receber: aReceber,
         historico: p.items.slice().sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "")),
-        nf_status: nfBySale.get(r.sale_id) ?? null,
+        nf_status: nfBySale.get(r.sale_id)?.status ?? null,
+        nf_info: nfBySale.get(r.sale_id) ?? null,
       };
     });
 
