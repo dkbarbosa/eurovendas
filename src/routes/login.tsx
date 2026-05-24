@@ -197,7 +197,7 @@ function LoginPage() {
               />
 
               {/* role tabs */}
-              <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-secondary/40 border border-border/60 mb-6">
+              <div className="grid grid-cols-5 gap-1 p-1 rounded-xl bg-secondary/40 border border-border/60 mb-6">
                 {ROLES.map((r) => {
                   const Icon = r.icon;
                   const isActive = r.key === role;
