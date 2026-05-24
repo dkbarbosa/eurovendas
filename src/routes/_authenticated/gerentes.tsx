@@ -540,7 +540,7 @@ function GerentesPage() {
         </>
       )}
 
-      <MinhasNFsSection title="Minhas Notas Fiscais" />
+      
 
       {/* Diálogo solicitação */}
       <Dialog open={reqDialog.open} onOpenChange={(open) => !open && setReqDialog({ open: false, sale: null })}>
