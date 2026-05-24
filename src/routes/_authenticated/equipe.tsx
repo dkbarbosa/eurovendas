@@ -88,7 +88,7 @@ function Page() {
   const [activeStatuses, setActiveStatuses] = useState<string[]>([]);
   const [corretorFilter, setCorretorFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
-  const [growthPeriod, setGrowthPeriod] = useState<"quarter" | "semester" | "year">("quarter");
+  const [growthPeriod, setGrowthPeriod] = useState<"month" | "quarter" | "semester" | "year">("month");
 
   const years = useMemo(() => {
     const set = new Set<number>();
@@ -147,7 +147,14 @@ function Page() {
     const y = td.getUTCFullYear();
     const mo = td.getUTCMonth();
     let curStart: Date, curEnd: Date, prevStart: Date, prevEnd: Date, label: string;
-    if (growthPeriod === "quarter") {
+    if (growthPeriod === "month") {
+      curStart = new Date(Date.UTC(y, mo, 1));
+      curEnd = new Date(Date.UTC(y, mo + 1, 1));
+      prevStart = new Date(Date.UTC(y, mo - 1, 1));
+      prevEnd = curStart;
+      const mes = curStart.toLocaleDateString("pt-BR", { month: "short", year: "numeric", timeZone: "UTC" });
+      label = mes;
+    } else if (growthPeriod === "quarter") {
       const q = Math.floor(mo / 3);
       curStart = new Date(Date.UTC(y, q * 3, 1));
       curEnd = new Date(Date.UTC(y, q * 3 + 3, 1));

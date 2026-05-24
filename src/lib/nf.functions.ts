@@ -54,27 +54,61 @@ function resolveBrokerUserId(
 }
 
 // ---------- VENDAS ELEGÍVEIS PARA NF (financeiro) ----------
+// Vendas elegíveis para solicitação de NF — uma por papel (corretor/gerente/diretor).
 export const listEligibleSalesForNF = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFinanceiro(context.userId);
     const [{ data: sales }, { data: nfs }] = await Promise.all([
-      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,comissao_liq_corretor,status").order("data", { ascending: false }).limit(2000),
-      supabaseAdmin.from("nf_requests").select("sale_id,status"),
+      supabaseAdmin
+        .from("sales")
+        .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,coaphar,comissao_liq_corretor,comissao_liq_gerente,status")
+        .order("data", { ascending: false })
+        .limit(2000),
+      supabaseAdmin.from("nf_requests").select("sale_id,status,requester_role"),
     ]);
-    const activeSaleIds = new Set(
-      (nfs ?? []).filter((n) => n.status === "solicitada" || n.status === "emitida" || n.status === "recebida").map((n) => n.sale_id),
-    );
+    const activeByRole = new Set<string>();
+    for (const n of nfs ?? []) {
+      if (n.status === "solicitada" || n.status === "emitida" || n.status === "recebida") {
+        activeByRole.add(`${n.sale_id}::${n.requester_role ?? "corretor"}`);
+      }
+    }
     const { data: maps } = await supabaseAdmin.from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
     const mapList = (maps ?? []) as { user_id: string; corretor_nome: string }[];
-    return (sales ?? [])
-      .filter((s) => !activeSaleIds.has(s.id))
-      .map((s) => ({ ...s, mapped_user_id: resolveBrokerUserId(s.corretor, mapList) }));
+    return (sales ?? []).map((s) => ({
+      ...s,
+      mapped_user_id: resolveBrokerUserId(s.corretor, mapList),
+      has_active_nf_corretor: activeByRole.has(`${s.id}::corretor`),
+      has_active_nf_gerente: activeByRole.has(`${s.id}::gerente`),
+      has_active_nf_diretor: activeByRole.has(`${s.id}::diretor`),
+    }));
   });
+
+// ---------- RESOLVERS PARA GERENTE/DIRETOR ----------
+async function resolveGerenteUserIdForSale(saleGerenteNome: string | null | undefined): Promise<string | null> {
+  if (!saleGerenteNome?.trim()) return null;
+  const { data } = await supabaseAdmin
+    .from("broker_mapping")
+    .select("user_id,gerente_nome")
+    .ilike("gerente_nome", saleGerenteNome.trim())
+    .eq("ativo", true)
+    .not("gerente_nome", "is", null)
+    .limit(1);
+  return data?.[0]?.user_id ?? null;
+}
+async function resolveDiretorUserId(): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "diretor")
+    .limit(1);
+  return data?.[0]?.user_id ?? null;
+}
 
 // ---------- SOLICITAR NF (financeiro) ----------
 const RequestNFSchema = z.object({
   sale_id: z.string().uuid(),
+  requester_role: z.enum(["corretor", "gerente", "diretor"]).default("corretor"),
   observacao: z.string().trim().max(2000).optional(),
   distrato_id: z.string().uuid().optional(),
   desconto_distrato: z.number().nonnegative().max(99999999).optional(),
@@ -86,22 +120,43 @@ export const requestNF = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => RequestNFSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertFinanceiro(context.userId);
-    const { data: sale } = await supabaseAdmin.from("sales").select("corretor").eq("id", data.sale_id).maybeSingle();
+    const { data: sale } = await supabaseAdmin
+      .from("sales")
+      .select("corretor,gerente")
+      .eq("id", data.sale_id)
+      .maybeSingle();
     if (!sale) throw new Error("Venda não encontrada.");
-    if (!sale.corretor) throw new Error("Venda sem corretor definido na planilha.");
-    const { data: maps } = await supabaseAdmin
-      .from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
-    const userId = resolveBrokerUserId(sale.corretor, (maps ?? []) as { user_id: string; corretor_nome: string }[]);
-    if (!userId) throw new Error(`O corretor "${sale.corretor}" não está vinculado a nenhum usuário. Vincule em Admin → Usuários.`);
-    // verifica NF ativa
-    const { data: active } = await supabaseAdmin
-      .from("nf_requests").select("id").eq("sale_id", data.sale_id).in("status", ["solicitada", "emitida"]).maybeSingle();
-    if (active) throw new Error("Já existe uma NF ativa para esta venda.");
 
-    // Valida desconto se vinculado a um distrato
+    let corretorUserId: string | null = null;
+    let gerenteUserId: string | null = null;
+    let diretorUserId: string | null = null;
+
+    if (data.requester_role === "corretor") {
+      if (!sale.corretor) throw new Error("Venda sem corretor definido na planilha.");
+      const { data: maps } = await supabaseAdmin
+        .from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
+      corretorUserId = resolveBrokerUserId(sale.corretor, (maps ?? []) as { user_id: string; corretor_nome: string }[]);
+      if (!corretorUserId) throw new Error(`O corretor "${sale.corretor}" não está vinculado a nenhum usuário. Vincule em Admin → Usuários.`);
+    } else if (data.requester_role === "gerente") {
+      if (!sale.gerente) throw new Error("Venda sem gerente definido na planilha.");
+      gerenteUserId = await resolveGerenteUserIdForSale(sale.gerente);
+      if (!gerenteUserId) throw new Error(`O gerente "${sale.gerente}" não está vinculado a nenhum usuário.`);
+    } else {
+      diretorUserId = await resolveDiretorUserId();
+      if (!diretorUserId) throw new Error(`Nenhum usuário com perfil "Gestão" cadastrado.`);
+    }
+
+    // verifica NF ativa para esta venda + papel
+    const { data: active } = await supabaseAdmin
+      .from("nf_requests").select("id").eq("sale_id", data.sale_id)
+      .eq("requester_role", data.requester_role)
+      .in("status", ["solicitada", "emitida"]).maybeSingle();
+    if (active) throw new Error("Já existe uma NF ativa para esta venda neste perfil.");
+
+    // Valida desconto se vinculado a um distrato (apenas para corretor)
     let distratoId: string | null = null;
     let desconto = 0;
-    if (data.distrato_id && (data.desconto_distrato ?? 0) > 0) {
+    if (data.requester_role === "corretor" && data.distrato_id && (data.desconto_distrato ?? 0) > 0) {
       const { data: dist } = await supabaseAdmin
         .from("distratos")
         .select("id,corretor_user_id,valor_devolver,valor_devolvido,status")
@@ -109,7 +164,7 @@ export const requestNF = createServerFn({ method: "POST" })
         .maybeSingle();
       if (!dist) throw new Error("Distrato não encontrado.");
       if (dist.status === "cancelado") throw new Error("Distrato cancelado.");
-      if (dist.corretor_user_id && dist.corretor_user_id !== userId)
+      if (dist.corretor_user_id && dist.corretor_user_id !== corretorUserId)
         throw new Error("Distrato pertence a outro corretor.");
       const saldo = Math.max(0, Number(dist.valor_devolver) - Number(dist.valor_devolvido));
       if ((data.desconto_distrato ?? 0) > saldo + 0.001)
@@ -117,7 +172,6 @@ export const requestNF = createServerFn({ method: "POST" })
       distratoId = data.distrato_id;
       desconto = data.desconto_distrato ?? 0;
 
-      // Debita imediatamente do distrato (reserva)
       const novoDevolvido = Number(dist.valor_devolvido) + desconto;
       const quitado = novoDevolvido >= Number(dist.valor_devolver) - 0.001;
       await supabaseAdmin
@@ -131,7 +185,10 @@ export const requestNF = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin.from("nf_requests").insert({
       sale_id: data.sale_id,
-      corretor_user_id: userId,
+      requester_role: data.requester_role,
+      corretor_user_id: corretorUserId,
+      gerente_user_id: gerenteUserId,
+      diretor_user_id: diretorUserId,
       solicitado_por: context.userId,
       status: "solicitada",
       observacao_financeiro: data.observacao ?? null,
@@ -140,7 +197,6 @@ export const requestNF = createServerFn({ method: "POST" })
       observacao_distrato: data.observacao_distrato ?? null,
     });
     if (error) {
-      // rollback do débito no distrato em caso de falha
       if (distratoId && desconto > 0) {
         const { data: dist } = await supabaseAdmin
           .from("distratos").select("valor_devolvido,valor_devolver,status")
@@ -214,18 +270,63 @@ export const listAllNFs = createServerFn({ method: "GET" })
     const { data: nfs } = await supabaseAdmin
       .from("nf_requests").select("*").order("created_at", { ascending: false }).limit(2000);
     const saleIds = [...new Set((nfs ?? []).map((n) => n.sale_id).filter((v): v is string => !!v))];
-    const userIds = [...new Set((nfs ?? []).map((n) => n.corretor_user_id).filter((v): v is string => !!v))];
+    const ownerIds = [
+      ...new Set(
+        (nfs ?? [])
+          .flatMap((n) => [n.corretor_user_id, n.gerente_user_id, n.diretor_user_id])
+          .filter((v): v is string => !!v),
+      ),
+    ];
     const [{ data: sales }, { data: profs }] = await Promise.all([
-      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor").in("id", saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"]),
-      supabaseAdmin.from("profiles").select("id,display_name,email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
+      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente").in("id", saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"]),
+      supabaseAdmin.from("profiles").select("id,display_name,email").in("id", ownerIds.length ? ownerIds : ["00000000-0000-0000-0000-000000000000"]),
     ]);
     const sMap = new Map((sales ?? []).map((s) => [s.id, s]));
     const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
-    return (nfs ?? []).map((n) => ({
-      ...n,
-      sale: sMap.get(n.sale_id) ?? null,
-      corretor_profile: n.corretor_user_id ? pMap.get(n.corretor_user_id) ?? null : null,
-    }));
+    return (nfs ?? []).map((n) => {
+      const ownerId = n.requester_role === "gerente"
+        ? n.gerente_user_id
+        : n.requester_role === "diretor"
+          ? n.diretor_user_id
+          : n.corretor_user_id;
+      return {
+        ...n,
+        sale: sMap.get(n.sale_id) ?? null,
+        corretor_profile: n.corretor_user_id ? pMap.get(n.corretor_user_id) ?? null : null,
+        owner_profile: ownerId ? pMap.get(ownerId) ?? null : null,
+      };
+    });
+  });
+
+// ---------- LISTAR MINHAS NFs (gerente ou diretor) ----------
+export const listMyNFs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const roles = await getRoles(context.userId);
+    const isGer = roles.includes("gerente");
+    const isDir = roles.includes("diretor");
+    if (!isGer && !isDir) return [];
+
+    const filter = isGer && isDir
+      ? `gerente_user_id.eq.${context.userId},diretor_user_id.eq.${context.userId}`
+      : isGer
+        ? `gerente_user_id.eq.${context.userId}`
+        : `diretor_user_id.eq.${context.userId}`;
+
+    const { data: nfs } = await supabaseAdmin
+      .from("nf_requests")
+      .select("*")
+      .or(filter)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+
+    const saleIds = [...new Set((nfs ?? []).map((n) => n.sale_id).filter((v): v is string => !!v))];
+    const { data: sales } = await supabaseAdmin
+      .from("sales")
+      .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente")
+      .in("id", saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"]);
+    const sMap = new Map((sales ?? []).map((s) => [s.id, s]));
+    return (nfs ?? []).map((n) => ({ ...n, sale: sMap.get(n.sale_id) ?? null }));
   });
 
 // ---------- CORRETOR EMITE NF (faz upload para o Google Drive) ----------
@@ -272,24 +373,37 @@ export const markNFEmitted = createServerFn({ method: "POST" })
 
     const ownerCheck = supabaseAdmin
       .from("nf_requests")
-      .select("id,corretor_user_id,status,drive_file_id,sale_id")
+      .select("id,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,status,drive_file_id,sale_id")
       .eq("id", data.id)
       .maybeSingle();
     const { data: nfRow } = await ownerCheck;
     if (!nfRow) throw new Error("NF não encontrada.");
     if (nfRow.status !== "solicitada") throw new Error("NF não está mais aguardando emissão.");
-    if (!isAdmin && nfRow.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
+    const isOwner =
+      nfRow.corretor_user_id === context.userId ||
+      nfRow.gerente_user_id === context.userId ||
+      nfRow.diretor_user_id === context.userId;
+    if (!isAdmin && !isOwner) throw new Error("Acesso negado.");
 
-    // Resolver/criar subpasta no Drive: {Corretor}/NF/{Empreendimento}/{Cliente}
+    // Resolver/criar subpasta no Drive: {Solicitante}/NF/{Empreendimento}/{Cliente}
     let folderId: string | undefined;
     if (nfRow.sale_id) {
       const { data: sale } = await supabaseAdmin
-        .from("sales").select("corretor,empreendimento,unidade,comprador")
+        .from("sales").select("corretor,gerente,empreendimento,unidade,comprador")
         .eq("id", nfRow.sale_id).maybeSingle();
-      if (sale?.corretor) {
+      // Para gerente/diretor usa display_name do profile; corretor usa nome da planilha.
+      let folderOwnerName: string | null = null;
+      if (nfRow.requester_role === "corretor") folderOwnerName = sale?.corretor ?? null;
+      else if (nfRow.requester_role === "gerente") folderOwnerName = sale?.gerente ?? null;
+      else if (nfRow.requester_role === "diretor") {
+        const { data: prof } = await supabaseAdmin
+          .from("profiles").select("display_name").eq("id", nfRow.diretor_user_id ?? "").maybeSingle();
+        folderOwnerName = prof?.display_name ?? "Gestao";
+      }
+      if (sale && folderOwnerName) {
         try {
           folderId = await getCorretorDocFolder({
-            corretor: sale.corretor,
+            corretor: folderOwnerName,
             tipo: "NF",
             empreendimento: sale.empreendimento,
             cliente: sale.comprador ?? sale.unidade,
@@ -299,6 +413,7 @@ export const markNFEmitted = createServerFn({ method: "POST" })
         }
       }
     }
+
 
     const buf1 = b64ToBytes(data.file_base64);
     const safeName1 = `${data.id}-${data.file_name.replace(/[^\w.\-]+/g, "_")}`;
@@ -358,11 +473,15 @@ export const downloadNFFile = createServerFn({ method: "POST" })
     const isStaff = roles.includes("financeiro") || roles.includes("admin");
     const { data: nf } = await supabaseAdmin
       .from("nf_requests")
-      .select("drive_file_id,drive_file_id_2,corretor_user_id")
+      .select("drive_file_id,drive_file_id_2,corretor_user_id,gerente_user_id,diretor_user_id")
       .eq("id", data.id)
       .maybeSingle();
     if (!nf) throw new Error("NF não encontrada.");
-    if (!isStaff && nf.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
+    const isOwner =
+      nf.corretor_user_id === context.userId ||
+      nf.gerente_user_id === context.userId ||
+      nf.diretor_user_id === context.userId;
+    if (!isStaff && !isOwner) throw new Error("Acesso negado.");
     const fileId = data.which === "2" ? nf.drive_file_id_2 : nf.drive_file_id;
     if (!fileId) throw new Error("Arquivo não encontrado.");
 
@@ -473,11 +592,15 @@ export const markNFPaid = createServerFn({ method: "POST" })
     const isStaff = roles.includes("financeiro") || roles.includes("admin");
     const { data: nf } = await supabaseAdmin
       .from("nf_requests")
-      .select("id,status,corretor_user_id,sale_id")
+      .select("id,status,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,sale_id")
       .eq("id", data.id)
       .maybeSingle();
     if (!nf) throw new Error("NF não encontrada.");
-    if (!isStaff && nf.corretor_user_id !== context.userId) throw new Error("Acesso negado.");
+    const isOwner =
+      nf.corretor_user_id === context.userId ||
+      nf.gerente_user_id === context.userId ||
+      nf.diretor_user_id === context.userId;
+    if (!isStaff && !isOwner) throw new Error("Acesso negado.");
     if (nf.status !== "paga" && nf.status !== "recebida")
       throw new Error("NF precisa estar recebida para ser marcada como paga.");
 
@@ -490,14 +613,15 @@ export const markNFPaid = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
-    // Cascata: marcar pedidos vinculados (aprovado/pendente) como pagos para sinalizar
-    // no painel do corretor que o processo foi finalizado.
+    // Cascata: marcar como pago apenas os pedidos do MESMO papel para esta venda.
+    // (Pagamento de NF do gerente não fecha pedidos do corretor e vice-versa.)
     if (nf.sale_id) {
       try {
         await supabaseAdmin
           .from("commission_requests")
           .update({ status: "pago", paid_at: new Date().toISOString() })
           .eq("sale_id", nf.sale_id)
+          .eq("requester_role", nf.requester_role ?? "corretor")
           .in("status", ["aprovado", "pendente"]);
       } catch (e) {
         console.error("cascade markRequestPaid from NF:", e);
