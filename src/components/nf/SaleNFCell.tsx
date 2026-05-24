@@ -33,6 +33,7 @@ export type MyNFItem = {
   drive_file_id_2: string | null;
   created_at: string;
   sale_id: string;
+  requester_role: "corretor" | "gerente" | "diretor" | string;
   sale: {
     id: string;
     data: string | null;
@@ -42,6 +43,46 @@ export type MyNFItem = {
     valor_venda: number | null;
   } | null;
 };
+
+const ROLE_LABEL: Record<string, string> = {
+  corretor: "Corretor",
+  gerente: "Gerente",
+  diretor: "Gestão",
+};
+
+function RoleRulesBlock({ role }: { role: string }) {
+  const rules =
+    role === "gerente"
+      ? [
+          "Adiantamento: sinal mínimo R$ 2.999,99 — R$ 500 a cada R$ 2.999,99 de sinal.",
+          "Comissão final: sinal ≥ 6% do VGV.",
+        ]
+      : role === "diretor"
+        ? [
+            "Comissão de 0,4% sobre o VGV (4,5% de desconto quando COAPHAR = Sim).",
+            "Adiantamento: sinal mínimo R$ 300,00.",
+            "Comissão final: sinal ≥ 6% do VGV.",
+          ]
+        : [
+            "Adiantamento: sinal mínimo R$ 300,00.",
+            "Comissão final: sinal ≥ 6% do VGV.",
+          ];
+  return (
+    <div className="rounded-lg border border-amber-400/30 bg-amber-500/5 p-3 text-xs space-y-1.5">
+      <div className="font-medium text-amber-300 inline-flex items-center gap-1.5">
+        <Receipt className="w-3.5 h-3.5" />
+        Regras de adiantamento · {ROLE_LABEL[role] ?? "Corretor"}
+      </div>
+      <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+        {rules.map((r, i) => <li key={i}>{r}</li>)}
+      </ul>
+      <p className="text-[11px] text-muted-foreground/80 pt-1 border-t border-amber-400/20">
+        O valor já foi aprovado pelo financeiro e não pode ser alterado.
+      </p>
+    </div>
+  );
+}
+
 
 export function NFPill({ n }: { n: { status: string; numero_nf: string | null } }) {
   const label = n.status === "paga" ? "finalizado" : n.status;
