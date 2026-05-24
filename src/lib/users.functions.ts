@@ -33,6 +33,12 @@ const ChangePwSchema = z.object({
   password: z.string().min(8, "Senha precisa de no mínimo 8 caracteres").max(128),
 });
 
+const UpdateProfileSchema = z.object({
+  userId: z.string().uuid("ID de usuário inválido"),
+  email: z.string().trim().toLowerCase().email("E-mail inválido").max(254),
+  displayName: z.string().trim().min(1, "Nome obrigatório").max(120),
+});
+
 
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
