@@ -598,7 +598,7 @@ function AdvancesTab() {
                       <thead className="text-[10px] uppercase tracking-[0.12em] text-foreground/70 bg-secondary/30 border-b border-border/60">
                         <tr>
                           <th className="text-left px-3 py-2.5 w-24 font-semibold">Data</th>
-                          <th className="text-left px-3 py-2.5 w-24 font-semibold">Tipo</th>
+                          <th className="text-left px-3 py-2.5 w-56 font-semibold">Tipo / Origem</th>
                           <th className="text-right px-3 py-2.5 w-32 font-semibold">Solicitado</th>
                           <th className="text-right px-3 py-2.5 w-44 font-semibold">Restante após</th>
                           <th className="text-left px-3 py-2.5 w-28 font-semibold">Status</th>
