@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { addAdvanceToSheet } from "./sheets-write.server";
+import { addAdvanceToSheet, addManagerAdvanceToSheet } from "./sheets-write.server";
 import { uploadFileToDriveFolder, getOrCreateDriveFolder } from "./drive.server";
 
 function b64ToBytes(s: string): Uint8Array {
@@ -344,16 +344,22 @@ export const decideRequest = createServerFn({ method: "POST" })
           .eq("id", req.sale_id)
           .single();
 
-        // Soma o adiantamento na coluna "Adiant. Corr." da planilha (apenas pedidos do corretor).
-        if (sale && req.tipo === "adiantamento" && (req.requester_role ?? "corretor") === "corretor") {
+        // Soma o adiantamento na planilha:
+        //  - Pedido do corretor → coluna K ("Adiant. Corr.")
+        //  - Pedido do gerente  → coluna P ("Adiant. Gerente")
+        if (sale && req.tipo === "adiantamento") {
+          const role = (req.requester_role ?? "corretor") as "corretor" | "gerente" | "diretor";
+          const valor = Number(req.valor_solicitado) || 0;
           try {
-            const res = await addAdvanceToSheet(sale, Number(req.valor_solicitado) || 0);
-            if (!res.ok) {
+            let res: { ok: boolean; error?: string } | null = null;
+            if (role === "corretor") res = await addAdvanceToSheet(sale, valor);
+            else if (role === "gerente") res = await addManagerAdvanceToSheet(sale, valor);
+            if (res && !res.ok) {
               sheetWarning = res.error;
-              console.error("addAdvanceToSheet (aprovação):", res.error);
+              console.error(`addAdvance(${role}) (aprovação):`, res.error);
             }
           } catch (e) {
-            console.error("addAdvanceToSheet exception:", e);
+            console.error("addAdvance exception:", e);
             sheetWarning = e instanceof Error ? e.message : String(e);
           }
         }
