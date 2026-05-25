@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   listAllRequests,
@@ -486,6 +486,8 @@ function AdvancesTab() {
   const fnPaid = useServerFn(markRequestPaid);
   const fnDel = useServerFn(deleteCommissionRequest);
   const fnDownload = useServerFn(downloadNFFile);
+  const fnApplyDesc = useServerFn(aplicarDescontoDistrato);
+  const fnListPend = useServerFn(listPendenciasDistrato);
   const handleDownloadNF = async (id: string, which: "1" | "2" = "1") => {
     try {
       const res = (await fnDownload({ data: { id, which } })) as {
@@ -617,6 +619,17 @@ function AdvancesTab() {
   const aprovMaxApply = aprovSelected ? Math.min(aprovSelected.saldo_restante, aprovRestReq) : 0;
   const aprovValorNum = Number((aprovDesc.valor || "").replace(",", "."));
 
+  useEffect(() => {
+    if (!obsEligibleDistrato || aprovPendLoading || aprovPendencias.length === 0 || aprovDesc.distratoId) return;
+    const p = aprovPendencias[0];
+    const sugerido = Math.min(Number(p.saldo_restante) || 0, aprovRestReq);
+    setAprovDesc({
+      distratoId: p.id,
+      valor: sugerido.toFixed(2),
+      obs: `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`,
+    });
+  }, [obsEligibleDistrato, aprovPendLoading, aprovPendencias, aprovDesc.distratoId, aprovRestReq]);
+
   const decideMut = useMutation({
     mutationFn: async (v: {
       id: string;
@@ -678,9 +691,6 @@ function AdvancesTab() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
-  const fnApplyDesc = useServerFn(aplicarDescontoDistrato);
-  const fnListPend = useServerFn(listPendenciasDistrato);
-
   return (
     <>
       <div className="flex flex-col md:flex-row gap-3 mb-4">
@@ -1420,7 +1430,19 @@ function AdvancesTab() {
                                           <div className="flex gap-1 items-center">
                                             <AplicarDescontoButton
                                               commissionRequestId={r.id}
-                                              corretorUserId={r.corretor_user_id}
+                                              beneficiaryUserId={
+                                                ((r as { requester_role?: string | null }).requester_role ?? "corretor") === "gerente"
+                                                  ? (r as { gerente_user_id?: string | null }).gerente_user_id
+                                                  : ((r as { requester_role?: string | null }).requester_role ?? "corretor") === "diretor"
+                                                    ? (r as { diretor_user_id?: string | null }).diretor_user_id
+                                                    : r.corretor_user_id
+                                              }
+                                              beneficiaryRole={
+                                                (((r as { requester_role?: string | null }).requester_role ?? "corretor") || "corretor") as
+                                                  | "corretor"
+                                                  | "gerente"
+                                                  | "diretor"
+                                              }
                                               valorSolicitado={valor}
                                               descontoAtual={desconto}
                                             />

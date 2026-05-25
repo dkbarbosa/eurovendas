@@ -117,8 +117,15 @@ function DiretorPage() {
       }
       if (q && !`${s.comprador ?? ""} ${s.empreendimento ?? ""} ${s.corretor ?? ""}`.toLowerCase().includes(q)) return false;
       return true;
+    }).sort((a, b) => {
+      const aTemPedidoAberto = requests.some((r) => r.sale_id === a.id && r.status === "pendente");
+      const bTemPedidoAberto = requests.some((r) => r.sale_id === b.id && r.status === "pendente");
+      const aPodeSolicitar = eligibleSaleIds.has(a.id) && !aTemPedidoAberto;
+      const bPodeSolicitar = eligibleSaleIds.has(b.id) && !bTemPedidoAberto;
+      if (aPodeSolicitar !== bPodeSolicitar) return aPodeSolicitar ? -1 : 1;
+      return String(b.data ?? "").localeCompare(String(a.data ?? ""));
     });
-  }, [sales, dateFrom, dateTo, search, eligibleSaleIds]);
+  }, [sales, dateFrom, dateTo, search, eligibleSaleIds, requests]);
 
   const kpis = useMemo(() => {
     let comTotal = 0;

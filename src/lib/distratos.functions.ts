@@ -435,8 +435,7 @@ export const listMyDistratoRecipientPendencias = createServerFn({ method: "GET" 
   });
 
 // ---------- LISTAR PENDÊNCIAS (com saldo > 0) ----------
-// Suporta beneficiário corretor (distratos.corretor_user_id), gerente
-// (distratos.gerente_user_id) e diretor (via distrato_recipients).
+// Usa o beneficiário individual do distrato_recipients para corretor, gerente e gestão.
 export const listPendenciasDistrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -452,41 +451,53 @@ export const listPendenciasDistrato = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const roles = await getRoles(context.userId);
     const isStaff = roles.includes("financeiro") || roles.includes("admin");
+    const target = isStaff
+      ? data?.corretor_user_id
+        ? { userId: data.corretor_user_id, role: "corretor" as const }
+        : data?.gerente_user_id
+          ? { userId: data.gerente_user_id, role: "gerente" as const }
+          : data?.diretor_user_id
+            ? { userId: data.diretor_user_id, role: "diretor" as const }
+            : null
+      : { userId: context.userId, role: undefined };
 
-    // Diretor: distratos.* não tem coluna diretor_user_id, então olhamos recipients
-    if (isStaff && data?.diretor_user_id) {
-      const { data: recs } = await supabaseAdmin
+    if (target?.userId) {
+      let recQ = supabaseAdmin
         .from("distrato_recipients")
-        .select("distrato_id,valor_devolver,valor_devolvido,status")
-        .eq("user_id", data.diretor_user_id)
-        .eq("role", "diretor")
+        .select("id,distrato_id,user_id,role,nome,valor_devolver,valor_devolvido,status,observacao_recebimento,created_at")
+        .eq("user_id", target.userId)
         .eq("status", "pendente");
+      if (target.role) recQ = recQ.eq("role", target.role);
+      const { data: recs, error: recErr } = await recQ;
+      if (recErr) throw new Error(recErr.message);
       const pend = (recs ?? []).filter(
         (r) => Number(r.valor_devolver) - Number(r.valor_devolvido) > 0.001,
       );
-      if (pend.length === 0) return [];
-      const saldoMap = new Map<string, number>();
-      for (const r of pend) {
-        saldoMap.set(
-          r.distrato_id,
-          (saldoMap.get(r.distrato_id) ?? 0) +
-            (Number(r.valor_devolver) - Number(r.valor_devolvido)),
-        );
+      if (pend.length > 0) {
+        const ids = [...new Set(pend.map((r) => r.distrato_id))];
+        const { data: dists } = await supabaseAdmin
+          .from("distratos")
+          .select("id,sale_id,corretor_user_id,gerente_user_id,corretor_nome,gerente_nome,comprador,empreendimento,unidade,status,created_at,motivo,observacao_financeiro")
+          .in("id", ids)
+          .neq("status", "cancelado");
+        const dMap = new Map((dists ?? []).map((d) => [d.id, d]));
+        return pend
+          .map((r) => {
+            const d = dMap.get(r.distrato_id);
+            if (!d) return null;
+            const saldo = Math.max(0, Number(r.valor_devolver) - Number(r.valor_devolvido));
+            return {
+              ...d,
+              recipient_id: r.id,
+              recipient_role: r.role,
+              recipient_nome: r.nome,
+              valor_devolver: Number(r.valor_devolver) || 0,
+              valor_devolvido: Number(r.valor_devolvido) || 0,
+              saldo_restante: saldo,
+            };
+          })
+          .filter((r): r is NonNullable<typeof r> => !!r && r.saldo_restante > 0.001);
       }
-      const ids = [...saldoMap.keys()];
-      const { data: dists } = await supabaseAdmin
-        .from("distratos")
-        .select("id,sale_id,comprador,empreendimento,unidade,status,created_at")
-        .in("id", ids)
-        .neq("status", "cancelado");
-      return (dists ?? []).map((d) => ({
-        ...d,
-        corretor_user_id: null,
-        corretor_nome: null,
-        valor_devolver: saldoMap.get(d.id) ?? 0,
-        valor_devolvido: 0,
-        saldo_restante: saldoMap.get(d.id) ?? 0,
-      }));
     }
 
     let q = supabaseAdmin
@@ -528,7 +539,7 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
         .maybeSingle(),
       supabaseAdmin
         .from("commission_requests")
-        .select("id,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,valor_solicitado,desconto_distrato,status,sale_id")
+        .select("id,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,valor_solicitado,desconto_distrato,observacao_financeiro,status,sale_id")
         .eq("id", data.commission_request_id)
         .maybeSingle(),
     ]);
@@ -540,28 +551,23 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
 
     const isGerReq = req.requester_role === "gerente";
     const isDirReq = req.requester_role === "diretor";
-    if (isGerReq) {
-      if (dist.gerente_user_id && req.gerente_user_id && dist.gerente_user_id !== req.gerente_user_id)
-        throw new Error("Distrato e pedido pertencem a gerentes diferentes.");
-    } else if (isDirReq) {
-      // Para diretor validamos via distrato_recipients (sem coluna direta)
-      const { data: recDir } = await supabaseAdmin
-        .from("distrato_recipients")
-        .select("id,valor_devolver,valor_devolvido")
-        .eq("distrato_id", data.distrato_id)
-        .eq("role", "diretor")
-        .eq("user_id", req.diretor_user_id as string)
-        .eq("status", "pendente")
-        .maybeSingle();
-      if (!recDir) throw new Error("Distrato sem pendência para este diretor.");
-    } else {
-      if (dist.corretor_user_id && req.corretor_user_id && dist.corretor_user_id !== req.corretor_user_id)
-        throw new Error("Distrato e pedido pertencem a corretores diferentes.");
-    }
+    const role = isGerReq ? "gerente" : isDirReq ? "diretor" : "corretor";
+    const beneficiaryId = isGerReq ? req.gerente_user_id : isDirReq ? req.diretor_user_id : req.corretor_user_id;
+    if (!beneficiaryId) throw new Error("Pedido sem beneficiário vinculado.");
+    const { data: rec } = await supabaseAdmin
+      .from("distrato_recipients")
+      .select("id,valor_devolver,valor_devolvido,status")
+      .eq("distrato_id", data.distrato_id)
+      .eq("role", role)
+      .eq("user_id", beneficiaryId as string)
+      .eq("status", "pendente")
+      .maybeSingle();
+    if (!rec) throw new Error("Distrato sem pendência individual para este beneficiário.");
 
-    const saldoDist = Math.max(0, Number(dist.valor_devolver) - Number(dist.valor_devolvido));
+    const saldoDist = Math.max(0, Number(rec.valor_devolver) - Number(rec.valor_devolvido));
     const descontoAtual = Number(req.desconto_distrato) || 0;
     const restanteRequest = Math.max(0, Number(req.valor_solicitado) - descontoAtual);
+    const descontoStamp = data.observacao || `Desconto de distrato aplicado: R$ ${data.valor_desconto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
     if (data.valor_desconto > saldoDist + 0.001)
       throw new Error(`Valor excede o saldo do distrato.`);
     if (data.valor_desconto > restanteRequest + 0.001)
@@ -581,42 +587,61 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
 
     await supabaseAdmin
       .from("commission_requests")
-      .update({ desconto_distrato: descontoAtual + data.valor_desconto })
+      .update({
+        desconto_distrato: descontoAtual + data.valor_desconto,
+        observacao_financeiro: [req.observacao_financeiro, descontoStamp].filter(Boolean).join("\n"),
+      })
       .eq("id", data.commission_request_id);
 
-    const novoDevolvido = Number(dist.valor_devolvido) + data.valor_desconto;
-    const quitado = novoDevolvido >= Number(dist.valor_devolver) - 0.001;
+    // Leva o desconto/histórico do distrato para a NF aberta automaticamente
+    // no mesmo papel, para o beneficiário enxergar o valor correto no "papel".
+    const { data: activeNfs } = await supabaseAdmin
+      .from("nf_requests")
+      .select("id,desconto_distrato,observacao_distrato")
+      .eq("sale_id", req.sale_id)
+      .eq("requester_role", role)
+      .in("status", ["solicitada", "emitida", "recebida"])
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const activeNf = activeNfs?.[0];
+    if (activeNf) {
+      await supabaseAdmin
+        .from("nf_requests")
+        .update({
+          distrato_id: data.distrato_id,
+          desconto_distrato: (Number(activeNf.desconto_distrato) || 0) + data.valor_desconto,
+          observacao_distrato: [activeNf.observacao_distrato, descontoStamp].filter(Boolean).join("\n"),
+        })
+        .eq("id", activeNf.id);
+    }
+
+    const novoRecDevolvido = Number(rec.valor_devolvido) + data.valor_desconto;
+    const recQuitado = novoRecDevolvido >= Number(rec.valor_devolver) - 0.001;
+    await supabaseAdmin
+      .from("distrato_recipients")
+      .update({
+        valor_devolvido: novoRecDevolvido,
+        status: recQuitado ? "devolvido" : "pendente",
+        devolvido_at: recQuitado ? new Date().toISOString() : null,
+        devolvido_por: recQuitado ? context.userId : null,
+      })
+      .eq("id", rec.id);
+
+    const { data: allRecs } = await supabaseAdmin
+      .from("distrato_recipients")
+      .select("valor_devolver,valor_devolvido")
+      .eq("distrato_id", data.distrato_id);
+    const totalDevolver = (allRecs ?? []).reduce((s, r) => s + (Number(r.valor_devolver) || 0), 0);
+    const totalDevolvido = (allRecs ?? []).reduce((s, r) => s + (Number(r.valor_devolvido) || 0), 0);
+    const quitado = totalDevolver > 0 && totalDevolvido >= totalDevolver - 0.001;
     await supabaseAdmin
       .from("distratos")
       .update({
-        valor_devolvido: novoDevolvido,
+        valor_devolvido: totalDevolvido,
+        valor_devolver: totalDevolver || Number(dist.valor_devolver) || 0,
         status: quitado ? "quitado_por_desconto" : "pendente_devolucao",
       })
       .eq("id", data.distrato_id);
-
-    // Para diretor: também marca o recipient como devolvido (parcial/total)
-    if (isDirReq) {
-      const { data: recDir2 } = await supabaseAdmin
-        .from("distrato_recipients")
-        .select("id,valor_devolver,valor_devolvido")
-        .eq("distrato_id", data.distrato_id)
-        .eq("role", "diretor")
-        .eq("user_id", req.diretor_user_id as string)
-        .maybeSingle();
-      if (recDir2) {
-        const novo = Number(recDir2.valor_devolvido) + data.valor_desconto;
-        const quit = novo >= Number(recDir2.valor_devolver) - 0.001;
-        await supabaseAdmin
-          .from("distrato_recipients")
-          .update({
-            valor_devolvido: novo,
-            status: quit ? "devolvido" : "pendente",
-            devolvido_at: quit ? new Date().toISOString() : null,
-            devolvido_por: quit ? context.userId : null,
-          })
-          .eq("id", recDir2.id);
-      }
-    }
 
     return { ok: true };
   });

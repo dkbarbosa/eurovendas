@@ -119,8 +119,15 @@ function GerentesPage() {
       if (q && !`${s.comprador ?? ""} ${s.empreendimento ?? ""}`.toLowerCase().includes(q)) return false;
       if (corretorFilter !== "all" && (s.corretor ?? "") !== corretorFilter) return false;
       return true;
+    }).sort((a, b) => {
+      const aTemPedidoAberto = requests.some((r) => r.sale_id === a.id && (r.status === "pendente" || r.status === "aprovado"));
+      const bTemPedidoAberto = requests.some((r) => r.sale_id === b.id && (r.status === "pendente" || r.status === "aprovado"));
+      const aPodeSolicitar = eligibleSaleIds.has(a.id) && !aTemPedidoAberto;
+      const bPodeSolicitar = eligibleSaleIds.has(b.id) && !bTemPedidoAberto;
+      if (aPodeSolicitar !== bPodeSolicitar) return aPodeSolicitar ? -1 : 1;
+      return String(b.data ?? "").localeCompare(String(a.data ?? ""));
     });
-  }, [sales, dateFrom, dateTo, search, corretorFilter, eligibleSaleIds]);
+  }, [sales, dateFrom, dateTo, search, corretorFilter, eligibleSaleIds, requests]);
 
   const corretoresDaEquipe = useMemo(() => {
     const set = new Set<string>();
