@@ -760,23 +760,29 @@ function AdvancesTab() {
               <div className="space-y-4">
                 {groupList.map(({ key, items }) => {
                   const head = items[0];
-                  const headRole =
-                    ((head as { requester_role?: string | null }).requester_role ?? "corretor") ||
-                    "corretor";
-                  const headRoleLabel =
-                    headRole === "gerente"
-                      ? "Gerente"
-                      : headRole === "diretor"
-                        ? "Gestão"
-                        : "Corretor";
-                  const comissaoLiq = Number(head.comissao_liq) || 0;
-                  const adiantadoTot = Number(head.adiantado_pago) || 0;
-                  const finalPago = Number(head.final_pago) || 0;
-                  const aReceber = Number(head.a_receber) || 0;
-                  const finalizado = comissaoLiq > 0 && aReceber === 0;
 
-                  // Saldo corrente p/ exibir "Restante após" cada pagamento
-                  let saldoCorrente = comissaoLiq;
+                  // Agrupa itens por papel dentro desta venda
+                  const byRole = new Map<string, typeof items>();
+                  for (const it of items) {
+                    const role =
+                      ((it as { requester_role?: string | null }).requester_role ?? "corretor") ||
+                      "corretor";
+                    if (!byRole.has(role)) byRole.set(role, [] as typeof items);
+                    byRole.get(role)!.push(it);
+                  }
+                  // Ordem fixa: corretor → gerente → diretor (gestão)
+                  const roleOrder = ["corretor", "gerente", "diretor"] as const;
+                  const rolesWithItems = roleOrder.filter((r) => byRole.has(r));
+                  const rootRole = rolesWithItems[0];
+
+                  // Totais agregados (soma entre os 3 papéis) para o cabeçalho da venda
+                  const sidAgg = head.sale_id ?? "";
+                  const stAgg = statusBySale.get(sidAgg) ?? {};
+                  const comissaoLiq = Object.values(stAgg).reduce((s, x) => s + (x?.liq ?? 0), 0);
+                  const adiantadoTot = Object.values(stAgg).reduce((s, x) => s + (x?.adiant ?? 0), 0);
+                  const finalPago = Object.values(stAgg).reduce((s, x) => s + (x?.final ?? 0), 0);
+                  const aReceber = Object.values(stAgg).reduce((s, x) => s + (x?.falta ?? 0), 0);
+                  const finalizado = comissaoLiq > 0 && aReceber === 0;
 
                   return (
                     <div
@@ -789,12 +795,6 @@ function AdvancesTab() {
                         <div className="min-w-0 pl-2">
                           <div className="font-display text-base md:text-lg font-semibold tracking-tight text-foreground truncate">
                             {head.sale?.comprador ?? "—"}
-                            <Badge
-                              variant="outline"
-                              className="ml-2 align-middle text-[10px] bg-primary/10 text-primary border-primary/30"
-                            >
-                              {headRoleLabel}
-                            </Badge>
                           </div>
                           <div className="text-xs text-foreground/80 truncate mt-0.5">
                             <span className="text-foreground/95 font-medium">
