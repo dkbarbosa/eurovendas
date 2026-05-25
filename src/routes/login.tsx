@@ -100,16 +100,8 @@ function LoginPage() {
         />
       </div>
 
-      <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
-        {/* Brand panel */}
-        <motion.div
-          initial={{ opacity: 0, x: -16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="hidden lg:flex flex-col justify-between p-12 xl:p-16 relative"
-        >
-          <div className="flex items-center gap-3">
-            <div
+      <div className="min-h-screen flex items-center justify-center p-6 sm:p-10">
+
               className="w-12 h-12 rounded-2xl glow-primary flex items-center justify-center"
               style={{ background: "var(--gradient-primary)" }}
             >
