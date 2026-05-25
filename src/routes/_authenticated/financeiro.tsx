@@ -567,12 +567,8 @@ function AdvancesTab() {
     action: "aprovar",
     text: "",
   });
-  // Distrato vinculado durante a aprovação
-  const [aprovDesc, setAprovDesc] = useState<{ distratoId: string; valor: string; obs: string }>({
-    distratoId: "",
-    valor: "",
-    obs: "",
-  });
+  // Distratos vinculados durante a aprovação: o sistema pré-preenche todos os saldos possíveis.
+  const [aprovDescs, setAprovDescs] = useState<Record<string, { valor: string; obs: string }>>({});
 
   // Pedido em foco no diálogo de obs (para checar elegibilidade de distrato)
   const obsRequest = useMemo(() => data.find((r) => r.id === obs.id) ?? null, [data, obs.id]);
@@ -608,25 +604,37 @@ function AdvancesTab() {
     enabled: obs.open && obsEligibleDistrato && !!obsBenefId,
   });
 
-  const aprovSelected = aprovPendencias.find((p) => p.id === aprovDesc.distratoId) ?? null;
   const aprovValorReq = Number(obsRequest?.valor_solicitado) || 0;
   const aprovDescAtual =
     Number((obsRequest as { desconto_distrato?: number } | null)?.desconto_distrato) || 0;
   const aprovRestReq = Math.max(0, aprovValorReq - aprovDescAtual);
-  const aprovMaxApply = aprovSelected ? Math.min(aprovSelected.saldo_restante, aprovRestReq) : 0;
-  const aprovValorNum = Number((aprovDesc.valor || "").replace(",", "."));
+  const aprovDescontosSelecionados = aprovPendencias
+    .map((p) => {
+      const form = aprovDescs[p.id];
+      const valor = Number((form?.valor || "").replace(",", "."));
+      return { pendencia: p, valor, obs: form?.obs ?? "" };
+    })
+    .filter((d) => d.valor > 0);
+  const aprovValorNum = aprovDescontosSelecionados.reduce((s, d) => s + d.valor, 0);
+  const aprovDescInvalido = aprovDescontosSelecionados.some(
+    (d) => d.valor > Math.min(Number(d.pendencia.saldo_restante) || 0, aprovRestReq) + 0.001,
+  ) || aprovValorNum > aprovRestReq + 0.001;
   const mustApplyDistrato = obsEligibleDistrato && !aprovPendLoading && aprovPendencias.length > 0;
 
   useEffect(() => {
-    if (!obsEligibleDistrato || aprovPendLoading || aprovPendencias.length === 0 || aprovDesc.distratoId) return;
-    const p = aprovPendencias[0];
-    const sugerido = Math.min(Number(p.saldo_restante) || 0, aprovRestReq);
-    setAprovDesc({
-      distratoId: p.id,
-      valor: sugerido.toFixed(2),
-      obs: `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`,
-    });
-  }, [obsEligibleDistrato, aprovPendLoading, aprovPendencias, aprovDesc.distratoId, aprovRestReq]);
+    if (!obsEligibleDistrato || aprovPendLoading || aprovPendencias.length === 0 || Object.keys(aprovDescs).length > 0) return;
+    let restante = aprovRestReq;
+    const next: Record<string, { valor: string; obs: string }> = {};
+    for (const p of aprovPendencias) {
+      const sugerido = Math.min(Number(p.saldo_restante) || 0, restante);
+      next[p.id] = {
+        valor: sugerido > 0 ? sugerido.toFixed(2) : "0.00",
+        obs: `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`,
+      };
+      restante = Math.max(0, restante - sugerido);
+    }
+    setAprovDescs(next);
+  }, [obsEligibleDistrato, aprovPendLoading, aprovPendencias, aprovDescs, aprovRestReq]);
 
   const decideMut = useMutation({
     mutationFn: async (v: {
