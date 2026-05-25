@@ -247,8 +247,7 @@ function GerentesPage() {
   const createMut = useMutation({
     mutationFn: () => {
       if (!reqForm.tipo) throw new Error("Escolha entre Adiantamento ou Comissão final.");
-      return (
-      fnCreate({
+      return fnCreate({
         data: {
           sale_id: reqDialog.sale!.id,
           tipo: reqForm.tipo,
@@ -256,8 +255,7 @@ function GerentesPage() {
           bonus: 0,
           observacao: reqForm.obs || undefined,
         },
-      })
-      );
+      });
     },
     onSuccess: () => {
       toast.success("Solicitação enviada ao financeiro.");
