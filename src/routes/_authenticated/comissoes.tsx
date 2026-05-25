@@ -1578,12 +1578,8 @@ function RequestPill({ r, descontos = [] }: { r: { id: string; tipo: string; val
                       <div className="font-medium text-destructive">{BRL(d.distrato?.valor_devolver)}</div>
                     </div>
                   </div>
-                  {d.observacao && (
-                    <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/40">
-                      <b>Obs:</b> {d.observacao}
-                    </div>
-                  )}
                 </div>
+
               ))}
             </div>
           </PopoverContent>
