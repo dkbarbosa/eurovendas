@@ -451,7 +451,7 @@ function GerentesPage() {
                               NF · solicitada
                             </Badge>
                           )}
-                          <SaleNFCell saleId={s.id} />
+                          <SaleNFCell saleId={s.id} role="gerente" />
                         </td>
                         <td className="p-3 text-right">
                           <Button
