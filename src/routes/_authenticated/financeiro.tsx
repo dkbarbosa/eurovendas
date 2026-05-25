@@ -634,23 +634,17 @@ function AdvancesTab() {
       decision: "aprovado" | "negado";
       motivo?: string;
       observacao?: string;
-      descDistratoId?: string;
-      descValor?: number;
-      descObs?: string;
+      distratoDescontos?: Array<{ distrato_id: string; valor_desconto: number; observacao?: string }>;
     }) => {
       await fnDecide({
-        data: { id: v.id, decision: v.decision, motivo: v.motivo, observacao: v.observacao },
+        data: {
+          id: v.id,
+          decision: v.decision,
+          motivo: v.motivo,
+          observacao: v.observacao,
+          distrato_descontos: v.distratoDescontos,
+        },
       });
-      if (v.decision === "aprovado" && v.descDistratoId && v.descValor && v.descValor > 0) {
-        await fnApplyDesc({
-          data: {
-            distrato_id: v.descDistratoId,
-            commission_request_id: v.id,
-            valor_desconto: v.descValor,
-            observacao: v.descObs || undefined,
-          },
-        });
-      }
     },
     onSuccess: () => {
       toast.success("Decisão registrada.");
