@@ -485,7 +485,6 @@ function AdvancesTab() {
   const fnPaid = useServerFn(markRequestPaid);
   const fnDel = useServerFn(deleteCommissionRequest);
   const fnDownload = useServerFn(downloadNFFile);
-  const fnApplyDesc = useServerFn(aplicarDescontoDistrato);
   const fnListPend = useServerFn(listPendenciasDistrato);
   const handleDownloadNF = async (id: string, which: "1" | "2" = "1") => {
     try {
