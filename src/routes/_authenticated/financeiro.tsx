@@ -21,7 +21,7 @@ import {
   markNFPaid,
   listDistratosForSale,
 } from "@/lib/nf.functions";
-import { listPendenciasDistrato, aplicarDescontoDistrato } from "@/lib/distratos.functions";
+import { listPendenciasDistrato } from "@/lib/distratos.functions";
 import { setSaleStatus } from "@/lib/sales.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +63,6 @@ import {
 import { motion } from "framer-motion";
 import { DistratoButton } from "@/components/distratos/DistratoButton";
 import { DistratosPanel } from "@/components/distratos/DistratosPanel";
-import { AplicarDescontoButton } from "@/components/distratos/AplicarDescontoButton";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   component: FinanceiroPage,
@@ -486,7 +485,6 @@ function AdvancesTab() {
   const fnPaid = useServerFn(markRequestPaid);
   const fnDel = useServerFn(deleteCommissionRequest);
   const fnDownload = useServerFn(downloadNFFile);
-  const fnApplyDesc = useServerFn(aplicarDescontoDistrato);
   const fnListPend = useServerFn(listPendenciasDistrato);
   const handleDownloadNF = async (id: string, which: "1" | "2" = "1") => {
     try {
@@ -569,12 +567,8 @@ function AdvancesTab() {
     action: "aprovar",
     text: "",
   });
-  // Distrato vinculado durante a aprovação
-  const [aprovDesc, setAprovDesc] = useState<{ distratoId: string; valor: string; obs: string }>({
-    distratoId: "",
-    valor: "",
-    obs: "",
-  });
+  // Distratos vinculados durante a aprovação: o sistema pré-preenche todos os saldos possíveis.
+  const [aprovDescs, setAprovDescs] = useState<Record<string, { valor: string; obs: string }>>({});
 
   // Pedido em foco no diálogo de obs (para checar elegibilidade de distrato)
   const obsRequest = useMemo(() => data.find((r) => r.id === obs.id) ?? null, [data, obs.id]);
@@ -610,25 +604,37 @@ function AdvancesTab() {
     enabled: obs.open && obsEligibleDistrato && !!obsBenefId,
   });
 
-  const aprovSelected = aprovPendencias.find((p) => p.id === aprovDesc.distratoId) ?? null;
   const aprovValorReq = Number(obsRequest?.valor_solicitado) || 0;
   const aprovDescAtual =
     Number((obsRequest as { desconto_distrato?: number } | null)?.desconto_distrato) || 0;
   const aprovRestReq = Math.max(0, aprovValorReq - aprovDescAtual);
-  const aprovMaxApply = aprovSelected ? Math.min(aprovSelected.saldo_restante, aprovRestReq) : 0;
-  const aprovValorNum = Number((aprovDesc.valor || "").replace(",", "."));
+  const aprovDescontosSelecionados = aprovPendencias
+    .map((p) => {
+      const form = aprovDescs[p.id];
+      const valor = Number((form?.valor || "").replace(",", "."));
+      return { pendencia: p, valor, obs: form?.obs ?? "" };
+    })
+    .filter((d) => d.valor > 0);
+  const aprovValorNum = aprovDescontosSelecionados.reduce((s, d) => s + d.valor, 0);
+  const aprovDescInvalido = aprovDescontosSelecionados.some(
+    (d) => d.valor > Math.min(Number(d.pendencia.saldo_restante) || 0, aprovRestReq) + 0.001,
+  ) || aprovValorNum > aprovRestReq + 0.001;
   const mustApplyDistrato = obsEligibleDistrato && !aprovPendLoading && aprovPendencias.length > 0;
 
   useEffect(() => {
-    if (!obsEligibleDistrato || aprovPendLoading || aprovPendencias.length === 0 || aprovDesc.distratoId) return;
-    const p = aprovPendencias[0];
-    const sugerido = Math.min(Number(p.saldo_restante) || 0, aprovRestReq);
-    setAprovDesc({
-      distratoId: p.id,
-      valor: sugerido.toFixed(2),
-      obs: `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`,
-    });
-  }, [obsEligibleDistrato, aprovPendLoading, aprovPendencias, aprovDesc.distratoId, aprovRestReq]);
+    if (!obsEligibleDistrato || aprovPendLoading || aprovPendencias.length === 0 || Object.keys(aprovDescs).length > 0) return;
+    let restante = aprovRestReq;
+    const next: Record<string, { valor: string; obs: string }> = {};
+    for (const p of aprovPendencias) {
+      const sugerido = Math.min(Number(p.saldo_restante) || 0, restante);
+      next[p.id] = {
+        valor: sugerido > 0 ? sugerido.toFixed(2) : "0.00",
+        obs: `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`,
+      };
+      restante = Math.max(0, restante - sugerido);
+    }
+    setAprovDescs(next);
+  }, [obsEligibleDistrato, aprovPendLoading, aprovPendencias, aprovDescs, aprovRestReq]);
 
   const decideMut = useMutation({
     mutationFn: async (v: {
@@ -636,23 +642,17 @@ function AdvancesTab() {
       decision: "aprovado" | "negado";
       motivo?: string;
       observacao?: string;
-      descDistratoId?: string;
-      descValor?: number;
-      descObs?: string;
+      distratoDescontos?: Array<{ distrato_id: string; valor_desconto: number; observacao?: string }>;
     }) => {
       await fnDecide({
-        data: { id: v.id, decision: v.decision, motivo: v.motivo, observacao: v.observacao },
+        data: {
+          id: v.id,
+          decision: v.decision,
+          motivo: v.motivo,
+          observacao: v.observacao,
+          distrato_descontos: v.distratoDescontos,
+        },
       });
-      if (v.decision === "aprovado" && v.descDistratoId && v.descValor && v.descValor > 0) {
-        await fnApplyDesc({
-          data: {
-            distrato_id: v.descDistratoId,
-            commission_request_id: v.id,
-            valor_desconto: v.descValor,
-            observacao: v.descObs || undefined,
-          },
-        });
-      }
     },
     onSuccess: () => {
       toast.success("Decisão registrada.");
@@ -661,7 +661,7 @@ function AdvancesTab() {
       qc.invalidateQueries({ queryKey: ["pendencias-distrato"] });
       setDeny({ open: false, id: null, motivo: "" });
       setObs({ open: false, id: null, action: "aprovar", text: "" });
-      setAprovDesc({ distratoId: "", valor: "", obs: "" });
+      setAprovDescs({});
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -1437,24 +1437,6 @@ function AdvancesTab() {
                                             </div>
                                           )}
                                           <div className="flex gap-1 items-center">
-                                            <AplicarDescontoButton
-                                              commissionRequestId={r.id}
-                                              beneficiaryUserId={
-                                                ((r as { requester_role?: string | null }).requester_role ?? "corretor") === "gerente"
-                                                  ? (r as { gerente_user_id?: string | null }).gerente_user_id
-                                                  : ((r as { requester_role?: string | null }).requester_role ?? "corretor") === "diretor"
-                                                    ? (r as { diretor_user_id?: string | null }).diretor_user_id
-                                                    : r.corretor_user_id
-                                              }
-                                              beneficiaryRole={
-                                                (((r as { requester_role?: string | null }).requester_role ?? "corretor") || "corretor") as
-                                                  | "corretor"
-                                                  | "gerente"
-                                                  | "diretor"
-                                              }
-                                              valorSolicitado={valor}
-                                              descontoAtual={desconto}
-                                            />
                                             {!nfOk ? (
                                               <Badge
                                                 variant="outline"
@@ -1555,7 +1537,7 @@ function AdvancesTab() {
         open={obs.open}
         onOpenChange={(o) => {
           setObs({ ...obs, open: o });
-          if (!o) setAprovDesc({ distratoId: "", valor: "", obs: "" });
+          if (!o) setAprovDescs({});
         }}
       >
         <DialogContent className={obsEligibleDistrato ? "max-w-xl" : undefined}>
@@ -1587,7 +1569,7 @@ function AdvancesTab() {
                     {BRL(
                       Math.max(
                         0,
-                        aprovRestReq - (aprovValorNum > 0 && aprovSelected ? aprovValorNum : 0),
+                        aprovRestReq - aprovValorNum,
                       ),
                     )}
                   </div>
@@ -1606,23 +1588,18 @@ function AdvancesTab() {
               )}
               {aprovPendencias.length > 0 && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Distrato vinculado automaticamente</Label>
-                  <div className="max-h-40 overflow-auto rounded-lg border border-border/60 divide-y divide-border/40">
+                  <Label className="text-xs">Distratos vinculados automaticamente</Label>
+                  <div className="max-h-72 overflow-auto rounded-lg border border-border/60 divide-y divide-border/40">
                     {aprovPendencias.map((p) => {
                       const sugerido = Math.min(p.saldo_restante, aprovRestReq);
                       const autoObs = `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`;
+                      const form = aprovDescs[p.id] ?? { valor: "", obs: autoObs };
+                      const valorItem = Number((form.valor || "").replace(",", "."));
+                      const maxItem = Math.min(p.saldo_restante, aprovRestReq);
                       return (
-                        <button
+                        <div
                           key={p.id}
-                          type="button"
-                          onClick={() =>
-                            setAprovDesc({
-                              distratoId: p.id,
-                              valor: sugerido.toFixed(2),
-                              obs: autoObs,
-                            })
-                          }
-                          className={`w-full text-left px-3 py-2 text-xs hover:bg-secondary/40 transition ${aprovDesc.distratoId === p.id ? "bg-primary/10" : ""}`}
+                          className="px-3 py-2 text-xs bg-primary/5"
                         >
                           <div className="flex justify-between items-start gap-2">
                             <div className="min-w-0">
@@ -1640,50 +1617,50 @@ function AdvancesTab() {
                               </Badge>
                             </div>
                           </div>
-                        </button>
+                          <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-2 mt-2">
+                            <div className="space-y-1">
+                              <Label className="text-[10px]">Valor descontado</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max={maxItem}
+                                value={form.valor}
+                                onChange={(e) =>
+                                  setAprovDescs((prev) => ({
+                                    ...prev,
+                                    [p.id]: { ...(prev[p.id] ?? { obs: autoObs }), valor: e.target.value },
+                                  }))
+                                }
+                                className="h-8 font-semibold"
+                              />
+                              {valorItem > maxItem + 0.001 && (
+                                <div className="text-[10px] text-destructive">Máx: {BRL(maxItem)}</div>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px]">Histórico para o papel</Label>
+                              <Textarea
+                                rows={2}
+                                value={form.obs}
+                                onChange={(e) =>
+                                  setAprovDescs((prev) => ({
+                                    ...prev,
+                                    [p.id]: { ...(prev[p.id] ?? { valor: sugerido.toFixed(2) }), obs: e.target.value },
+                                  }))
+                                }
+                                maxLength={2000}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    O primeiro distrato com saldo já vem selecionado; o financeiro pode alterar o distrato e o valor antes de confirmar.
+                    Os valores já vêm preenchidos; o financeiro pode alterar antes de confirmar a aprovação.
                   </p>
                 </div>
-              )}
-
-              {aprovSelected && (
-                <>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Valor a descontar *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max={aprovMaxApply}
-                      value={aprovDesc.valor}
-                      onChange={(e) => setAprovDesc({ ...aprovDesc, valor: e.target.value })}
-                      className="text-base font-semibold"
-                    />
-                    <div className="text-[11px] text-muted-foreground">
-                      Sugerido: <b>{BRL(Math.min(aprovSelected.saldo_restante, aprovRestReq))}</b> ·
-                      Máx: <b>{BRL(aprovMaxApply)}</b>
-                      {aprovValorNum > 0 && aprovValorNum < aprovSelected.saldo_restante && (
-                        <span className="ml-2 text-amber-300">
-                          Saldo restante do distrato:{" "}
-                          {BRL(aprovSelected.saldo_restante - aprovValorNum)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Observação do desconto (opcional)</Label>
-                    <Textarea
-                      rows={2}
-                      value={aprovDesc.obs}
-                      onChange={(e) => setAprovDesc({ ...aprovDesc, obs: e.target.value })}
-                      maxLength={2000}
-                    />
-                  </div>
-                </>
               )}
             </div>
           )}
@@ -1702,7 +1679,7 @@ function AdvancesTab() {
               variant="ghost"
               onClick={() => {
                 setObs({ open: false, id: null, action: "aprovar", text: "" });
-                setAprovDesc({ distratoId: "", valor: "", obs: "" });
+                setAprovDescs({});
               }}
             >
               Cancelar
@@ -1722,9 +1699,15 @@ function AdvancesTab() {
                       id: obs.id!,
                       decision: "aprovado",
                       observacao: obs.text || undefined,
-                      descDistratoId: aprovSelected ? aprovDesc.distratoId : undefined,
-                      descValor: aprovSelected ? aprovValorNum : undefined,
-                      descObs: aprovSelected ? aprovDesc.obs : undefined,
+                      distratoDescontos: aprovSelected
+                        ? [
+                            {
+                              distrato_id: aprovDesc.distratoId,
+                              valor_desconto: aprovValorNum,
+                              observacao: aprovDesc.obs || undefined,
+                            },
+                          ]
+                        : undefined,
                     })
                   : payMut.mutate({ id: obs.id!, observacao: obs.text || undefined })
               }
