@@ -10,7 +10,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Receipt, Upload, Loader2, CheckCircle2, Paperclip, X, Layers } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Receipt, Upload, Loader2, CheckCircle2, Paperclip, X, Layers, AlertTriangle } from "lucide-react";
+
 import { toast } from "sonner";
 
 const BRL = (v: number) =>
