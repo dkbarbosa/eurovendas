@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   listAllRequests,
@@ -1420,7 +1420,19 @@ function AdvancesTab() {
                                           <div className="flex gap-1 items-center">
                                             <AplicarDescontoButton
                                               commissionRequestId={r.id}
-                                              corretorUserId={r.corretor_user_id}
+                                              beneficiaryUserId={
+                                                ((r as { requester_role?: string | null }).requester_role ?? "corretor") === "gerente"
+                                                  ? (r as { gerente_user_id?: string | null }).gerente_user_id
+                                                  : ((r as { requester_role?: string | null }).requester_role ?? "corretor") === "diretor"
+                                                    ? (r as { diretor_user_id?: string | null }).diretor_user_id
+                                                    : r.corretor_user_id
+                                              }
+                                              beneficiaryRole={
+                                                (((r as { requester_role?: string | null }).requester_role ?? "corretor") || "corretor") as
+                                                  | "corretor"
+                                                  | "gerente"
+                                                  | "diretor"
+                                              }
                                               valorSolicitado={valor}
                                               descontoAtual={desconto}
                                             />
