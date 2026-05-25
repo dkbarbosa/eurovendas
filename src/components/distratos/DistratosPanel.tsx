@@ -218,7 +218,9 @@ export function DistratosPanel() {
                       </div>
                     )}
                     <DescontosInline distratoId={r.id} />
+                    <RecipientsInline recipients={(r as { recipients?: Array<{ id: string; role: string; nome: string | null; valor_devolver: number; valor_devolvido: number; status: string }> }).recipients ?? []} />
                   </td>
+
                   <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
                   <td className="px-3 py-2 max-w-[260px]">
                     <div className="text-xs">{r.motivo}</div>
