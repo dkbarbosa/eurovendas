@@ -661,7 +661,7 @@ function AdvancesTab() {
       qc.invalidateQueries({ queryKey: ["pendencias-distrato"] });
       setDeny({ open: false, id: null, motivo: "" });
       setObs({ open: false, id: null, action: "aprovar", text: "" });
-      setAprovDesc({ distratoId: "", valor: "", obs: "" });
+      setAprovDescs({});
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -1537,7 +1537,7 @@ function AdvancesTab() {
         open={obs.open}
         onOpenChange={(o) => {
           setObs({ ...obs, open: o });
-          if (!o) setAprovDesc({ distratoId: "", valor: "", obs: "" });
+          if (!o) setAprovDescs({});
         }}
       >
         <DialogContent className={obsEligibleDistrato ? "max-w-xl" : undefined}>
@@ -1684,7 +1684,7 @@ function AdvancesTab() {
               variant="ghost"
               onClick={() => {
                 setObs({ open: false, id: null, action: "aprovar", text: "" });
-                setAprovDesc({ distratoId: "", valor: "", obs: "" });
+                setAprovDescs({});
               }}
             >
               Cancelar
