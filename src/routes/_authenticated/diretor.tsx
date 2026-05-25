@@ -356,7 +356,14 @@ function DiretorPage() {
                         <td className="p-3 text-right">{BRL(s.valor_sinal_negocio)}</td>
                         <td className="p-3 text-right font-medium">{BRL(s.comissao_diretor)}</td>
                         <td className="p-3 text-right text-emerald-400">{BRL(pago)}</td>
-                        <td className="p-3"><SaleNFCell saleId={s.id} /></td>
+                        <td className="p-3">
+                          {pend && (
+                            <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30 mb-1">
+                              NF · solicitada
+                            </Badge>
+                          )}
+                          <SaleNFCell saleId={s.id} />
+                        </td>
                         <td className="p-3 text-center">
                           <Button
                             size="sm"
