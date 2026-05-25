@@ -533,7 +533,6 @@ function ComissoesPage() {
 
   return (
     <div className="space-y-8">
-      <MinhasDevolucoesPendentes />
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Painel do Corretor</div>
