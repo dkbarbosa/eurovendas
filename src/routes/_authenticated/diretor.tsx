@@ -194,6 +194,7 @@ function DiretorPage() {
 
   return (
     <div className="space-y-6">
+      <MinhasDevolucoesPendentes />
       <header className="flex flex-col gap-2">
         <div className="text-xs uppercase tracking-widest text-muted-foreground inline-flex items-center gap-2">
           <ShieldCheck className="w-3.5 h-3.5" /> Painel Gestão
