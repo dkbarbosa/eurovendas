@@ -1696,9 +1696,15 @@ function AdvancesTab() {
                       id: obs.id!,
                       decision: "aprovado",
                       observacao: obs.text || undefined,
-                      descDistratoId: aprovSelected ? aprovDesc.distratoId : undefined,
-                      descValor: aprovSelected ? aprovValorNum : undefined,
-                      descObs: aprovSelected ? aprovDesc.obs : undefined,
+                      distratoDescontos: aprovSelected
+                        ? [
+                            {
+                              distrato_id: aprovDesc.distratoId,
+                              valor_desconto: aprovValorNum,
+                              observacao: aprovDesc.obs || undefined,
+                            },
+                          ]
+                        : undefined,
                     })
                   : payMut.mutate({ id: obs.id!, observacao: obs.text || undefined })
               }
