@@ -445,7 +445,14 @@ function GerentesPage() {
                           )}
                         </td>
                         <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
-                        <td className="p-3"><SaleNFCell saleId={s.id} /></td>
+                        <td className="p-3">
+                          {pendByReq.get(s.id) && (
+                            <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30 mb-1">
+                              NF · solicitada
+                            </Badge>
+                          )}
+                          <SaleNFCell saleId={s.id} />
+                        </td>
                         <td className="p-3 text-right">
                           <Button
                             size="sm"
