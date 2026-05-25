@@ -979,27 +979,108 @@ function AdvancesTab() {
                       })()}
 
 
-                      {/* Pedidos desta venda */}
-                      <table className="w-full text-sm min-w-[900px]">
-                        <thead className="text-[10px] uppercase tracking-[0.12em] text-foreground/70 bg-secondary/30 border-b border-border/60">
-                          <tr>
-                            <th className="text-left px-3 py-2.5 w-24 font-semibold">Data</th>
-                            <th className="text-left px-3 py-2.5 w-56 font-semibold">
-                              Tipo / Origem
-                            </th>
-                            <th className="text-right px-3 py-2.5 w-32 font-semibold">
-                              Solicitado
-                            </th>
-                            <th className="text-right px-3 py-2.5 w-44 font-semibold">
-                              Restante após
-                            </th>
-                            <th className="text-left px-3 py-2.5 w-28 font-semibold">Status</th>
-                            <th className="text-left px-3 py-2.5 font-semibold">Obs</th>
-                            <th className="px-3 py-2.5 w-1"></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {items.map((r) => {
+                      {/* Pedidos desta venda — agrupados por papel em sub-blocos colapsáveis */}
+                      {rolesWithItems.map((role, roleIdx) => {
+                        const roleItems = byRole.get(role) ?? [];
+                        const roleLabel =
+                          role === "gerente" ? "Gerente" : role === "diretor" ? "Gestão" : "Corretor";
+                        const headRoleItem = roleItems[0];
+                        const roleLiq = Number(headRoleItem?.comissao_liq) || 0;
+                        const roleAdi = Number(headRoleItem?.adiantado_pago) || 0;
+                        const roleFin = Number(headRoleItem?.final_pago) || 0;
+                        const roleFalta = Number(headRoleItem?.a_receber) || 0;
+                        const expandKey = `${key}::${role}`;
+                        const isRoot = role === rootRole;
+                        const isExpanded =
+                          roleOverride[expandKey] !== undefined
+                            ? roleOverride[expandKey]
+                            : isRoot;
+                        const pendingCount = roleItems.filter((x) => x.status === "pendente").length;
+
+                        // Saldo corrente p/ exibir "Restante após" cada pagamento (por papel)
+                        let saldoCorrente = roleLiq;
+
+                        const roleAccent =
+                          role === "gerente"
+                            ? "border-violet-400/50 bg-violet-500/10"
+                            : role === "diretor"
+                              ? "border-amber-400/50 bg-amber-500/10"
+                              : "border-sky-400/50 bg-sky-500/10";
+
+                        return (
+                          <div
+                            key={expandKey}
+                            className={roleIdx > 0 ? "border-t border-border/60" : ""}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => toggleRole(expandKey, isExpanded)}
+                              className="w-full flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 hover:bg-secondary/40 transition text-left"
+                              aria-expanded={isExpanded}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <ChevronDown
+                                  className={`w-4 h-4 text-foreground/70 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
+                                />
+                                <span
+                                  className={`inline-flex items-center rounded-md border ${roleAccent} px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground`}
+                                >
+                                  {isRoot && (
+                                    <span className="mr-1 text-[8px] opacity-80">RAIZ</span>
+                                  )}
+                                  {roleLabel}
+                                </span>
+                                <Badge variant="outline" className="text-[10px]">
+                                  {roleItems.length} pedido{roleItems.length > 1 ? "s" : ""}
+                                </Badge>
+                                {pendingCount > 0 && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] bg-amber-500/10 text-amber-300 border-amber-500/40"
+                                  >
+                                    {pendingCount} pendente{pendingCount > 1 ? "s" : ""}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-3 text-[11px]">
+                                <span className="text-muted-foreground">
+                                  Liq: <b className="text-foreground">{BRL(roleLiq)}</b>
+                                </span>
+                                <span className="text-amber-300">
+                                  Adiant.: <b>{BRL(roleAdi)}</b>
+                                </span>
+                                <span className="text-emerald-300">
+                                  Pago: <b>{BRL(roleFin)}</b>
+                                </span>
+                                <span
+                                  className={roleFalta > 0 ? "text-primary" : "text-muted-foreground"}
+                                >
+                                  Falta: <b>{BRL(roleFalta)}</b>
+                                </span>
+                              </div>
+                            </button>
+
+                            {isExpanded && (
+                            <table className="w-full text-sm min-w-[900px]">
+                              <thead className="text-[10px] uppercase tracking-[0.12em] text-foreground/70 bg-secondary/30 border-b border-border/60">
+                                <tr>
+                                  <th className="text-left px-3 py-2.5 w-24 font-semibold">Data</th>
+                                  <th className="text-left px-3 py-2.5 w-56 font-semibold">
+                                    Tipo / Origem
+                                  </th>
+                                  <th className="text-right px-3 py-2.5 w-32 font-semibold">
+                                    Solicitado
+                                  </th>
+                                  <th className="text-right px-3 py-2.5 w-44 font-semibold">
+                                    Restante após
+                                  </th>
+                                  <th className="text-left px-3 py-2.5 w-28 font-semibold">Status</th>
+                                  <th className="text-left px-3 py-2.5 font-semibold">Obs</th>
+                                  <th className="px-3 py-2.5 w-1"></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {roleItems.map((r) => {
                             const valor = Number(r.valor_solicitado) || 0;
                             const isPago = r.status === "pago";
                             if (isPago) saldoCorrente = Math.max(0, saldoCorrente - valor);
