@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Receipt, Upload, Loader2, CheckCircle2, Paperclip, X, Wallet } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Receipt, Upload, Loader2, CheckCircle2, Paperclip, X, Wallet, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
