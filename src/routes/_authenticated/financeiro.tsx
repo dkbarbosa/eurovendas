@@ -705,6 +705,37 @@ function AdvancesTab() {
               if (!groups.has(k)) groups.set(k, [] as typeof filtered);
               groups.get(k)!.push(r);
             }
+
+            // Status consolidado por venda (3 papéis) para o resumo "Quem recebeu / Quem falta"
+            type RoleStatus = {
+              liq: number;
+              adiant: number;
+              final: number;
+              falta: number;
+              hasRequest: boolean;
+            };
+            const statusBySale = new Map<string, Record<string, RoleStatus>>();
+            for (const r of filtered) {
+              const sid = r.sale_id ?? "";
+              if (!sid) continue;
+              const role =
+                ((r as { requester_role?: string | null }).requester_role ?? "corretor") ||
+                "corretor";
+              const cur =
+                statusBySale.get(sid) ??
+                ({} as Record<string, RoleStatus>);
+              if (!cur[role]) {
+                cur[role] = {
+                  liq: Number(r.comissao_liq) || 0,
+                  adiant: Number(r.adiantado_pago) || 0,
+                  final: Number(r.final_pago) || 0,
+                  falta: Number(r.a_receber) || 0,
+                  hasRequest: true,
+                };
+              }
+              statusBySale.set(sid, cur);
+            }
+
             const groupList = Array.from(groups.entries())
               .map(([k, items]) => ({
                 key: k,
@@ -717,6 +748,7 @@ function AdvancesTab() {
                 const lb = b.items[b.items.length - 1].created_at;
                 return new Date(lb).getTime() - new Date(la).getTime();
               });
+
 
             return (
               <div className="space-y-4">
