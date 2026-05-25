@@ -250,31 +250,67 @@ export const listDistratos = createServerFn({ method: "POST" })
       .select("*")
       .order("created_at", { ascending: false })
       .limit(2000);
-    if (!isStaff) q = q.eq("corretor_user_id", context.userId);
     if (data?.status) q = q.eq("status", data.status);
     if (isStaff && data?.corretor_user_id) q = q.eq("corretor_user_id", data.corretor_user_id);
     if (data?.from) q = q.gte("created_at", data.from);
     if (data?.to) q = q.lte("created_at", data.to);
 
-    const { data: rows, error } = await q;
+    const { data: rowsRaw, error } = await q;
     if (error) throw new Error(error.message);
+    let rows = rowsRaw ?? [];
 
-    // Enriquecer com profile do corretor
-    const userIds = [...new Set((rows ?? []).map((r) => r.corretor_user_id).filter((v): v is string => !!v))];
-    const { data: profs } = await supabaseAdmin
-      .from("profiles")
-      .select("id,display_name,email")
-      .in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
+    // Para não-staff: filtrar distratos onde o user é beneficiário
+    if (!isStaff) {
+      const ids = rows.map((r) => r.id);
+      const { data: myRecs } = ids.length
+        ? await supabaseAdmin
+            .from("distrato_recipients")
+            .select("distrato_id")
+            .eq("user_id", context.userId)
+            .in("distrato_id", ids)
+        : { data: [] };
+      const mineSet = new Set((myRecs ?? []).map((r) => r.distrato_id));
+      rows = rows.filter(
+        (r) =>
+          r.corretor_user_id === context.userId ||
+          r.gerente_user_id === context.userId ||
+          mineSet.has(r.id),
+      );
+    }
+
+    // Enriquecer com profile do corretor + recipients
+    const userIds = [...new Set(rows.map((r) => r.corretor_user_id).filter((v): v is string => !!v))];
+    const ids = rows.map((r) => r.id);
+    const [{ data: profs }, { data: recipients }] = await Promise.all([
+      supabaseAdmin
+        .from("profiles")
+        .select("id,display_name,email")
+        .in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
+      ids.length
+        ? supabaseAdmin
+            .from("distrato_recipients")
+            .select("*")
+            .in("distrato_id", ids)
+        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+    ]);
     const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
-    return (rows ?? []).map((r) => ({
+    const recMap = new Map<string, Array<Record<string, unknown>>>();
+    for (const r of (recipients ?? []) as Array<{ distrato_id: string } & Record<string, unknown>>) {
+      const arr = recMap.get(r.distrato_id) ?? [];
+      arr.push(r);
+      recMap.set(r.distrato_id, arr);
+    }
+    return rows.map((r) => ({
       ...r,
       corretor_profile: r.corretor_user_id ? pMap.get(r.corretor_user_id) ?? null : null,
+      recipients: recMap.get(r.id) ?? [],
     }));
   });
 
 // ---------- MARCAR DEVOLVIDO (em dinheiro, total ou parcial) ----------
 const MarkSchema = z.object({
   id: z.string().uuid(),
+  recipient_id: z.string().uuid().optional(),
   observacao_recebimento: z.string().trim().max(2000).optional(),
   valor: z.number().positive().max(99999999).optional(),
 });
@@ -285,21 +321,67 @@ export const markDistratoDevolvido = createServerFn({ method: "POST" })
     await assertFinanceiro(context.userId);
     const { data: dist } = await supabaseAdmin
       .from("distratos")
-      .select("valor_devolver,valor_devolvido,status")
+      .select("id,valor_devolver,valor_devolvido,status")
       .eq("id", data.id)
       .maybeSingle();
     if (!dist) throw new Error("Distrato não encontrado.");
     if (dist.status !== "pendente_devolucao")
       throw new Error("Distrato não está pendente.");
-    const saldo = Math.max(0, Number(dist.valor_devolver) - Number(dist.valor_devolvido));
-    const valor = data.valor ?? saldo;
-    if (valor > saldo + 0.001) throw new Error(`Valor excede o saldo restante.`);
-    const novoDevolvido = Number(dist.valor_devolvido) + valor;
-    const quitado = novoDevolvido >= Number(dist.valor_devolver) - 0.001;
+
+    // Modo per-recipient (preferido quando há beneficiários)
+    if (data.recipient_id) {
+      const { data: rec } = await supabaseAdmin
+        .from("distrato_recipients")
+        .select("id,valor_devolver,valor_devolvido,status,distrato_id")
+        .eq("id", data.recipient_id)
+        .maybeSingle();
+      if (!rec) throw new Error("Beneficiário não encontrado.");
+      if (rec.distrato_id !== data.id) throw new Error("Beneficiário não pertence ao distrato.");
+      if (rec.status !== "pendente") throw new Error("Beneficiário já quitado.");
+      const saldoRec = Math.max(0, Number(rec.valor_devolver) - Number(rec.valor_devolvido));
+      const valor = data.valor ?? saldoRec;
+      if (valor > saldoRec + 0.001) throw new Error("Valor excede o saldo do beneficiário.");
+      const novoRec = Number(rec.valor_devolvido) + valor;
+      const quitRec = novoRec >= Number(rec.valor_devolver) - 0.001;
+      await supabaseAdmin
+        .from("distrato_recipients")
+        .update({
+          valor_devolvido: novoRec,
+          status: quitRec ? "devolvido" : "pendente",
+          devolvido_at: quitRec ? new Date().toISOString() : null,
+          devolvido_por: quitRec ? context.userId : null,
+          observacao_recebimento: data.observacao_recebimento ?? null,
+        })
+        .eq("id", rec.id);
+    } else {
+      const saldo = Math.max(0, Number(dist.valor_devolver) - Number(dist.valor_devolvido));
+      const valor = data.valor ?? saldo;
+      if (valor > saldo + 0.001) throw new Error("Valor excede o saldo restante.");
+    }
+
+    // Recalcula o total do distrato a partir dos recipients
+    const { data: allRec } = await supabaseAdmin
+      .from("distrato_recipients")
+      .select("valor_devolvido,valor_devolver,status")
+      .eq("distrato_id", data.id);
+    const totalDevolvido = (allRec ?? []).reduce((s, r) => s + Number(r.valor_devolvido), 0);
+    const totalDevolver = Number(dist.valor_devolver);
+    const allDone =
+      (allRec ?? []).length > 0 && (allRec ?? []).every((r) => r.status !== "pendente");
+    const quitado = allDone || totalDevolvido >= totalDevolver - 0.001;
+
+    // Sem recipients (registros antigos), usa modo legacy
+    let novoDevolvidoDist: number;
+    if ((allRec ?? []).length === 0 && !data.recipient_id) {
+      novoDevolvidoDist = Number(dist.valor_devolvido) + (data.valor ?? Math.max(0, totalDevolver - Number(dist.valor_devolvido)));
+    } else {
+      novoDevolvidoDist = totalDevolvido;
+    }
+
     const { error } = await supabaseAdmin
       .from("distratos")
       .update({
-        valor_devolvido: novoDevolvido,
+        valor_devolvido: novoDevolvidoDist,
         status: quitado ? "devolvido" : "pendente_devolucao",
         devolvido_at: quitado ? new Date().toISOString() : null,
         devolvido_por: quitado ? context.userId : null,
@@ -308,6 +390,34 @@ export const markDistratoDevolvido = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+// ---------- MINHAS PENDÊNCIAS COMO BENEFICIÁRIO (corretor/gerente/gestão) ----------
+export const listMyDistratoRecipientPendencias = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: recs } = await supabaseAdmin
+      .from("distrato_recipients")
+      .select("id,distrato_id,role,valor_devolver,valor_devolvido,status,created_at")
+      .eq("user_id", context.userId)
+      .eq("status", "pendente")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    const list = (recs ?? []).filter(
+      (r) => Number(r.valor_devolver) - Number(r.valor_devolvido) > 0.001,
+    );
+    if (list.length === 0) return [];
+    const distIds = [...new Set(list.map((r) => r.distrato_id))];
+    const { data: dists } = await supabaseAdmin
+      .from("distratos")
+      .select("id,comprador,empreendimento,unidade,motivo,sale_id,created_at")
+      .in("id", distIds);
+    const dMap = new Map((dists ?? []).map((d) => [d.id, d]));
+    return list.map((r) => ({
+      ...r,
+      saldo: Math.max(0, Number(r.valor_devolver) - Number(r.valor_devolvido)),
+      distrato: dMap.get(r.distrato_id) ?? null,
+    }));
   });
 
 // ---------- LISTAR PENDÊNCIAS (com saldo > 0) ----------
