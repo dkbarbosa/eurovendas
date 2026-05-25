@@ -412,7 +412,7 @@ export const listMyDistratoRecipientPendencias = createServerFn({ method: "GET" 
   .handler(async ({ context }) => {
     const { data: recs } = await supabaseAdmin
       .from("distrato_recipients")
-      .select("id,distrato_id,role,valor_devolver,valor_devolvido,status,created_at")
+      .select("id,distrato_id,role,valor_devolver,valor_devolvido,status,observacao_recebimento,created_at,updated_at")
       .eq("user_id", context.userId)
       .eq("status", "pendente")
       .order("created_at", { ascending: false })
@@ -424,7 +424,7 @@ export const listMyDistratoRecipientPendencias = createServerFn({ method: "GET" 
     const distIds = [...new Set(list.map((r) => r.distrato_id))];
     const { data: dists } = await supabaseAdmin
       .from("distratos")
-      .select("id,comprador,empreendimento,unidade,motivo,sale_id,created_at")
+      .select("id,comprador,empreendimento,unidade,motivo,sale_id,created_at,observacao_financeiro,observacao_recebimento")
       .in("id", distIds);
     const dMap = new Map((dists ?? []).map((d) => [d.id, d]));
     return list.map((r) => ({
@@ -435,21 +435,68 @@ export const listMyDistratoRecipientPendencias = createServerFn({ method: "GET" 
   });
 
 // ---------- LISTAR PENDÊNCIAS (com saldo > 0) ----------
+// Suporta beneficiário corretor (distratos.corretor_user_id), gerente
+// (distratos.gerente_user_id) e diretor (via distrato_recipients).
 export const listPendenciasDistrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ corretor_user_id: z.string().uuid().optional() }).optional().parse(d),
+    z
+      .object({
+        corretor_user_id: z.string().uuid().optional(),
+        gerente_user_id: z.string().uuid().optional(),
+        diretor_user_id: z.string().uuid().optional(),
+      })
+      .optional()
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const roles = await getRoles(context.userId);
     const isStaff = roles.includes("financeiro") || roles.includes("admin");
+
+    // Diretor: distratos.* não tem coluna diretor_user_id, então olhamos recipients
+    if (isStaff && data?.diretor_user_id) {
+      const { data: recs } = await supabaseAdmin
+        .from("distrato_recipients")
+        .select("distrato_id,valor_devolver,valor_devolvido,status")
+        .eq("user_id", data.diretor_user_id)
+        .eq("role", "diretor")
+        .eq("status", "pendente");
+      const pend = (recs ?? []).filter(
+        (r) => Number(r.valor_devolver) - Number(r.valor_devolvido) > 0.001,
+      );
+      if (pend.length === 0) return [];
+      const saldoMap = new Map<string, number>();
+      for (const r of pend) {
+        saldoMap.set(
+          r.distrato_id,
+          (saldoMap.get(r.distrato_id) ?? 0) +
+            (Number(r.valor_devolver) - Number(r.valor_devolvido)),
+        );
+      }
+      const ids = [...saldoMap.keys()];
+      const { data: dists } = await supabaseAdmin
+        .from("distratos")
+        .select("id,sale_id,comprador,empreendimento,unidade,status,created_at")
+        .in("id", ids)
+        .neq("status", "cancelado");
+      return (dists ?? []).map((d) => ({
+        ...d,
+        corretor_user_id: null,
+        corretor_nome: null,
+        valor_devolver: saldoMap.get(d.id) ?? 0,
+        valor_devolvido: 0,
+        saldo_restante: saldoMap.get(d.id) ?? 0,
+      }));
+    }
+
     let q = supabaseAdmin
       .from("distratos")
-      .select("id,sale_id,corretor_user_id,corretor_nome,comprador,empreendimento,unidade,valor_devolver,valor_devolvido,status,created_at")
+      .select("id,sale_id,corretor_user_id,gerente_user_id,corretor_nome,comprador,empreendimento,unidade,valor_devolver,valor_devolvido,status,created_at")
       .neq("status", "cancelado")
       .order("created_at", { ascending: false })
       .limit(1000);
     if (!isStaff) q = q.eq("corretor_user_id", context.userId);
+    else if (data?.gerente_user_id) q = q.eq("gerente_user_id", data.gerente_user_id);
     else if (data?.corretor_user_id) q = q.eq("corretor_user_id", data.corretor_user_id);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
@@ -481,7 +528,7 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
         .maybeSingle(),
       supabaseAdmin
         .from("commission_requests")
-        .select("id,corretor_user_id,gerente_user_id,requester_role,valor_solicitado,desconto_distrato,status,sale_id")
+        .select("id,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,valor_solicitado,desconto_distrato,status,sale_id")
         .eq("id", data.commission_request_id)
         .maybeSingle(),
     ]);
@@ -492,9 +539,21 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
       throw new Error("Desconto só pode ser vinculado a pedidos APROVADOS (ainda não pagos).");
 
     const isGerReq = req.requester_role === "gerente";
+    const isDirReq = req.requester_role === "diretor";
     if (isGerReq) {
       if (dist.gerente_user_id && req.gerente_user_id && dist.gerente_user_id !== req.gerente_user_id)
         throw new Error("Distrato e pedido pertencem a gerentes diferentes.");
+    } else if (isDirReq) {
+      // Para diretor validamos via distrato_recipients (sem coluna direta)
+      const { data: recDir } = await supabaseAdmin
+        .from("distrato_recipients")
+        .select("id,valor_devolver,valor_devolvido")
+        .eq("distrato_id", data.distrato_id)
+        .eq("role", "diretor")
+        .eq("user_id", req.diretor_user_id as string)
+        .eq("status", "pendente")
+        .maybeSingle();
+      if (!recDir) throw new Error("Distrato sem pendência para este diretor.");
     } else {
       if (dist.corretor_user_id && req.corretor_user_id && dist.corretor_user_id !== req.corretor_user_id)
         throw new Error("Distrato e pedido pertencem a corretores diferentes.");
@@ -511,7 +570,7 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
     const { error: insErr } = await supabaseAdmin.from("distrato_descontos").insert({
       distrato_id: data.distrato_id,
       commission_request_id: data.commission_request_id,
-      corretor_user_id: isGerReq ? null : req.corretor_user_id,
+      corretor_user_id: isGerReq || isDirReq ? null : req.corretor_user_id,
       gerente_user_id: isGerReq ? req.gerente_user_id : null,
       valor_desconto: data.valor_desconto,
       observacao: data.observacao ?? null,
@@ -534,6 +593,30 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
         status: quitado ? "quitado_por_desconto" : "pendente_devolucao",
       })
       .eq("id", data.distrato_id);
+
+    // Para diretor: também marca o recipient como devolvido (parcial/total)
+    if (isDirReq) {
+      const { data: recDir2 } = await supabaseAdmin
+        .from("distrato_recipients")
+        .select("id,valor_devolver,valor_devolvido")
+        .eq("distrato_id", data.distrato_id)
+        .eq("role", "diretor")
+        .eq("user_id", req.diretor_user_id as string)
+        .maybeSingle();
+      if (recDir2) {
+        const novo = Number(recDir2.valor_devolvido) + data.valor_desconto;
+        const quit = novo >= Number(recDir2.valor_devolver) - 0.001;
+        await supabaseAdmin
+          .from("distrato_recipients")
+          .update({
+            valor_devolvido: novo,
+            status: quit ? "devolvido" : "pendente",
+            devolvido_at: quit ? new Date().toISOString() : null,
+            devolvido_por: quit ? context.userId : null,
+          })
+          .eq("id", recDir2.id);
+      }
+    }
 
     return { ok: true };
   });

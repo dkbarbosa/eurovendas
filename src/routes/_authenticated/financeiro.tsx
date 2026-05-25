@@ -576,6 +576,17 @@ function AdvancesTab() {
 
   // Pedido em foco no diálogo de obs (para checar elegibilidade de distrato)
   const obsRequest = useMemo(() => data.find((r) => r.id === obs.id) ?? null, [data, obs.id]);
+  const obsBenefId = obsRequest
+    ? (obsRequest as { requester_role?: string }).requester_role === "gerente"
+      ? (obsRequest as { gerente_user_id?: string | null }).gerente_user_id ?? null
+      : (obsRequest as { requester_role?: string }).requester_role === "diretor"
+        ? (obsRequest as { diretor_user_id?: string | null }).diretor_user_id ?? null
+        : obsRequest.corretor_user_id ?? null
+    : null;
+  const obsBenefRole = ((obsRequest as { requester_role?: string } | null)?.requester_role ?? "corretor") as
+    | "corretor"
+    | "gerente"
+    | "diretor";
   const obsEligibleDistrato = !!(
     obsRequest &&
     obs.action === "aprovar" &&
@@ -584,14 +595,18 @@ function AdvancesTab() {
   );
 
   const { data: aprovPendencias = [], isLoading: aprovPendLoading } = useQuery({
-    queryKey: ["pendencias-distrato", obsRequest?.corretor_user_id ?? null],
+    queryKey: ["pendencias-distrato", obsBenefRole, obsBenefId],
     queryFn: () =>
       fnListPend({
-        data: obsRequest?.corretor_user_id
-          ? { corretor_user_id: obsRequest.corretor_user_id }
+        data: obsBenefId
+          ? obsBenefRole === "gerente"
+            ? { gerente_user_id: obsBenefId }
+            : obsBenefRole === "diretor"
+              ? { diretor_user_id: obsBenefId }
+              : { corretor_user_id: obsBenefId }
           : undefined,
       }),
-    enabled: obs.open && obsEligibleDistrato && !!obsRequest?.corretor_user_id,
+    enabled: obs.open && obsEligibleDistrato && !!obsBenefId,
   });
 
   const aprovSelected = aprovPendencias.find((p) => p.id === aprovDesc.distratoId) ?? null;
@@ -1519,8 +1534,8 @@ function AdvancesTab() {
             </DialogTitle>
             <DialogDescription>
               {obsEligibleDistrato
-                ? "Antes de aprovar, verifique se o corretor possui distrato pendente para devolução."
-                : "Observação opcional para o corretor."}
+                ? "Antes de aprovar, verifique se o beneficiário possui distrato pendente para devolução."
+                : "Observação opcional para o beneficiário."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1555,7 +1570,7 @@ function AdvancesTab() {
               )}
               {!aprovPendLoading && aprovPendencias.length === 0 && (
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs text-emerald-300 text-center">
-                  Corretor sem distrato pendente.
+                  Beneficiário sem distrato pendente.
                 </div>
               )}
               {aprovPendencias.length > 0 && (
@@ -1647,7 +1662,7 @@ function AdvancesTab() {
           )}
 
           <div className="space-y-1.5">
-            <Label>Observação para o corretor</Label>
+            <Label>Observação para o beneficiário</Label>
             <Textarea
               value={obs.text}
               onChange={(e) => setObs({ ...obs, text: e.target.value })}
