@@ -1701,7 +1701,7 @@ function AdvancesTab() {
                       distratoDescontos:
                         aprovDescontosSelecionados.length > 0
                           ? aprovDescontosSelecionados.map((d) => ({
-                              distrato_id: d.pendencia.distrato_id,
+                              distrato_id: d.pendencia.id,
                               valor_desconto: d.valor,
                               observacao: d.obs || undefined,
                             }))
