@@ -237,6 +237,7 @@ function GerentesPage() {
 
   return (
     <div className="space-y-6">
+      <MinhasDevolucoesPendentes />
       <header className="flex flex-col gap-2">
         <div className="text-xs uppercase tracking-widest text-muted-foreground">Painel Gerência</div>
         <div className="flex flex-wrap items-end justify-between gap-3">
