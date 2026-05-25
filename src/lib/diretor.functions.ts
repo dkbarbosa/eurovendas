@@ -15,9 +15,15 @@ async function getRoles(userId: string) {
  * - Se "Não" (ou vazio), aplica direto 0,4% sobre o valor da venda.
  * Aplica-se a todas as vendas (todos os times).
  */
-export function calcComissaoDiretor(valor_venda: number | null | undefined, coaphar: string | null | undefined): number {
+export function calcComissaoDiretor(
+  valor_venda: number | null | undefined,
+  coaphar: string | null | undefined,
+): number {
   const v = Number(valor_venda) || 0;
-  const isCoaphar = String(coaphar ?? "").trim().toLowerCase().startsWith("s");
+  const isCoaphar = String(coaphar ?? "")
+    .trim()
+    .toLowerCase()
+    .startsWith("s");
   const base = isCoaphar ? v * (1 - 0.045) : v;
   return base * 0.004;
 }
@@ -31,11 +37,7 @@ export const getDiretorOverview = createServerFn({ method: "GET" })
     if (!isAdmin && !isDiretor) throw new Error("Acesso negado.");
 
     const [{ data: salesData, error: sErr }, { data: reqs }] = await Promise.all([
-      supabaseAdmin
-        .from("sales")
-        .select("*")
-        .order("data", { ascending: false })
-        .limit(10000),
+      supabaseAdmin.from("sales").select("*").order("data", { ascending: false }).limit(10000),
       supabaseAdmin
         .from("commission_requests")
         .select("*")
@@ -48,7 +50,10 @@ export const getDiretorOverview = createServerFn({ method: "GET" })
 
     const sales = (salesData ?? []).map((s) => ({
       ...s,
-      comissao_diretor: calcComissaoDiretor(s.valor_venda as number | null, s.coaphar as string | null),
+      comissao_diretor: calcComissaoDiretor(
+        s.valor_venda as number | null,
+        s.coaphar as string | null,
+      ),
     }));
 
     return {
@@ -70,8 +75,7 @@ export const createDiretorCommissionRequest = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => CreateDiretorReqSchema.parse(d))
   .handler(async ({ data, context }) => {
     const roles = await getRoles(context.userId);
-    if (!roles.includes("diretor") && !roles.includes("admin"))
-      throw new Error("Acesso negado.");
+    if (!roles.includes("diretor") && !roles.includes("admin")) throw new Error("Acesso negado.");
 
     const { data: sale, error: sErr } = await supabaseAdmin
       .from("sales")
@@ -92,17 +96,22 @@ export const createDiretorCommissionRequest = createServerFn({ method: "POST" })
 
     const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     const valorVenda = Number(sale.valor_venda) || 0;
-    const sinal = Number((sale as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
+    const sinal =
+      Number((sale as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
     const statusUp = (sale.status ?? "").trim().toUpperCase();
     const comTotal = calcComissaoDiretor(valorVenda, sale.coaphar as string | null);
 
-    if (statusUp === "RESERVADO")
-      throw new Error("Venda RESERVADO não permite solicitação.");
+    if (statusUp === "RESERVADO") throw new Error("Venda RESERVADO não permite solicitação.");
 
     if (statusUp !== "CAIXA") {
       if (data.tipo === "adiantamento") {
-        if (sinal < 300 - 0.001)
-          throw new Error(`Adiantamento exige sinal mínimo de ${fmt(300)} (atual: ${fmt(sinal)}).`);
+        if (sinal < 2999.99)
+          throw new Error(`Adiantamento exige sinal ≥ ${fmt(2999.99)} (atual: ${fmt(sinal)}).`);
+        const maxAdiant = Math.floor(sinal / 2999.99) * 300;
+        if (data.valor_solicitado > maxAdiant + 0.001)
+          throw new Error(
+            `Adiantamento máximo da Gestão: ${fmt(maxAdiant)} (R$ 300 a cada R$ 2.999,99 de sinal).`,
+          );
       }
       if (data.tipo === "comissao_final") {
         const minSinal = valorVenda * 0.06;
