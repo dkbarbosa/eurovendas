@@ -701,6 +701,8 @@ function ComissoesPage() {
             </div>
           </div>
 
+          <MinhasDevolucoesPendentes compact />
+
           <div className="glass-card p-2 overflow-x-auto">
             <table className="w-full text-sm min-w-[1040px]">
               <thead className="text-xs uppercase tracking-wider text-muted-foreground">
