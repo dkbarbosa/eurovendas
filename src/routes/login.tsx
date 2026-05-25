@@ -222,8 +222,8 @@ function LoginPage() {
               </div>
             </div>
           </motion.div>
-        </div>
       </div>
     </div>
+
   );
 }
