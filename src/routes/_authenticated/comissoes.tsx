@@ -1062,7 +1062,9 @@ function ComissoesPage() {
                                 </button>
                               )}
                             </div>
-                          ))}
+                            );
+                          })}
+
 
                           {reqs.length === 0 && sNfs.length === 0 && (
                             <span className="text-xs text-muted-foreground">—</span>
