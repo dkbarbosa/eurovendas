@@ -30,7 +30,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/diretor")({
   component: DiretorPage,
-  head: () => ({ meta: [{ title: "Painel Financeiro · Gerente Geral" }] }),
+  head: () => ({ meta: [{ title: "Painel Financeiro · Gestão" }] }),
 });
 
 const BRL = (n: number | null | undefined) =>
@@ -193,7 +193,7 @@ function DiretorPage() {
     <div className="space-y-6">
       <header className="flex flex-col gap-2">
         <div className="text-xs uppercase tracking-widest text-muted-foreground inline-flex items-center gap-2">
-          <ShieldCheck className="w-3.5 h-3.5" /> Painel Gerente Geral
+          <ShieldCheck className="w-3.5 h-3.5" /> Painel Gestão
         </div>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

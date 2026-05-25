@@ -133,8 +133,12 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
     }
 
     const { data: pend } = await supabaseAdmin
-      .from("commission_requests").select("id").eq("sale_id", data.sale_id).eq("status", "pendente").maybeSingle();
-    if (pend) throw new Error("Já existe um pedido pendente para esta venda.");
+      .from("commission_requests").select("id")
+      .eq("sale_id", data.sale_id)
+      .eq("requester_role", "corretor")
+      .eq("status", "pendente")
+      .maybeSingle();
+    if (pend) throw new Error("Já existe um pedido pendente do corretor para esta venda.");
 
     const obs = isAdmin && data.act_as_corretor
       ? `[TESTE — admin agindo como ${data.act_as_corretor}] ${data.observacao_corretor ?? ""}`.trim()
