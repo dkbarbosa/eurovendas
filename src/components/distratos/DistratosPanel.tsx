@@ -347,6 +347,30 @@ function DescontosInline({ distratoId }: { distratoId: string }) {
   );
 }
 
+const ROLE_LABEL_INLINE: Record<string, string> = { corretor: "Corretor", gerente: "Gerente", diretor: "Gestão" };
+function RecipientsInline({ recipients }: { recipients: Array<{ id: string; role: string; nome: string | null; valor_devolver: number; valor_devolvido: number; status: string }> }) {
+  if (!recipients || recipients.length === 0) return null;
+  return (
+    <div className="mt-1.5 space-y-0.5 text-left">
+      {recipients.map((r) => {
+        const saldo = Math.max(0, Number(r.valor_devolver) - Number(r.valor_devolvido));
+        const quit = r.status !== "pendente";
+        return (
+          <div key={r.id} className="flex items-center justify-end gap-1.5 text-[10px]">
+            <span className="text-muted-foreground">{ROLE_LABEL_INLINE[r.role] ?? r.role}:</span>
+            <span className={`font-medium ${quit ? "text-emerald-300 line-through" : "text-destructive"}`}>{BRL(r.valor_devolver)}</span>
+            {!quit && saldo < Number(r.valor_devolver) && (
+              <span className="text-muted-foreground">· saldo {BRL(saldo)}</span>
+            )}
+            {quit && <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string; icon?: React.ReactNode }> = {
     pendente_devolucao: { label: "Pendente devolução", cls: "bg-amber-500/10 text-amber-400 border-amber-500/30", icon: <AlertTriangle className="w-3 h-3 mr-1" /> },
