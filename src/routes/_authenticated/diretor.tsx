@@ -86,16 +86,39 @@ function DiretorPage() {
   const sales = (data?.sales ?? []) as SaleWithCom[];
   const requests = data?.requests ?? [];
 
+  // Vendas elegíveis aparecem mesmo fora do período (regra OK).
+  const eligibleSaleIds = useMemo(() => {
+    const ids = new Set<string>();
+    const pagoMap = new Map<string, number>();
+    for (const r of requests) {
+      if (r.status === "pago") pagoMap.set(r.sale_id, (pagoMap.get(r.sale_id) ?? 0) + (Number(r.valor_solicitado) || 0));
+    }
+    for (const s of sales) {
+      const stUp = (s.status ?? "").trim().toUpperCase();
+      if (stUp === "RESERVADO" || stUp === "DISTRATO") continue;
+      const com = Number(s.comissao_diretor) || 0;
+      const pago = pagoMap.get(s.id) ?? 0;
+      if (com - pago <= 0) continue;
+      const sinalSale = Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
+      const sinalOk = sinalSale >= 2999.99;
+      if (stUp === "CAIXA" || sinalOk) ids.add(s.id);
+    }
+    return ids;
+  }, [sales, requests]);
+
   const filteredSales = useMemo(() => {
     const q = search.trim().toLowerCase();
     return sales.filter((s) => {
       const d = (s.data ?? "").slice(0, 10);
-      if (dateFrom && d && d < dateFrom) return false;
-      if (dateTo && d && d > dateTo) return false;
+      const isEligible = eligibleSaleIds.has(s.id);
+      if (!isEligible) {
+        if (dateFrom && d && d < dateFrom) return false;
+        if (dateTo && d && d > dateTo) return false;
+      }
       if (q && !`${s.comprador ?? ""} ${s.empreendimento ?? ""} ${s.corretor ?? ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [sales, dateFrom, dateTo, search]);
+  }, [sales, dateFrom, dateTo, search, eligibleSaleIds]);
 
   const kpis = useMemo(() => {
     let comTotal = 0;
@@ -344,9 +367,34 @@ function DiretorPage() {
                     const pend = pendBySale.get(s.id) ?? false;
                     const stUp = (s.status ?? "").trim().toUpperCase();
                     const bloqueado = stUp === "RESERVADO" || stUp === "DISTRATO";
+                    const sinalSale = Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
+                    const sinalOk = sinalSale >= 2999.99;
+                    const isCaixa = stUp === "CAIXA";
+                    const com = Number(s.comissao_diretor) || 0;
+                    const aReceber = Math.max(0, com - pago);
+                    const ruleOk = !bloqueado && aReceber > 0 && (isCaixa || sinalOk);
+                    const d10 = (s.data ?? "").slice(0, 10);
+                    const isOutOfPeriod = !!d10 && ((dateFrom && d10 < dateFrom) || (dateTo && d10 > dateTo));
+                    const btnLabel = bloqueado
+                      ? stUp
+                      : pend
+                        ? "Pendente"
+                        : !isCaixa && !sinalOk
+                          ? "Sinal insuficiente"
+                          : "Solicitar";
+                    const btnTitle = !isCaixa && !sinalOk && !bloqueado
+                      ? `Sinal de ${BRL(sinalSale)} é menor que R$ 2.999,99 — adiantamento não liberado.`
+                      : "";
                     return (
-                      <tr key={s.id} className="border-t border-border">
-                        <td className="p-3">{fmtBR(s.data)}</td>
+                      <tr key={s.id} className={`border-t border-border ${isOutOfPeriod ? "bg-primary/[0.04]" : ""}`}>
+                        <td className="p-3">
+                          <div>{fmtBR(s.data)}</div>
+                          {isOutOfPeriod && (
+                            <Badge variant="outline" className="mt-1 text-[10px] border-primary/40 text-primary bg-primary/10">
+                              Fora do período
+                            </Badge>
+                          )}
+                        </td>
                         <td className="p-3">{s.comprador ?? "—"}</td>
                         <td className="p-3 text-xs">
                           <div>{s.empreendimento ?? "—"}</div>
@@ -374,10 +422,11 @@ function DiretorPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={bloqueado || pend || (isAdmin && !isDiretor)}
+                            disabled={!ruleOk || pend || (isAdmin && !isDiretor)}
+                            title={btnTitle}
                             onClick={() => openReq(s)}
                           >
-                            {pend ? "Pendente" : bloqueado ? stUp : "Solicitar"}
+                            {btnLabel}
                           </Button>
                         </td>
                       </tr>
