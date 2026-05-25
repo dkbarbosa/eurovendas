@@ -544,6 +544,13 @@ function AdvancesTab() {
     );
   }, [data, search]);
 
+  // Expansão dos blocos de papel (corretor/gerente/diretor) dentro do card unificado da venda.
+  // Padrão: o primeiro papel (raiz) começa aberto; demais começam fechados.
+  // Override por chave `${sale_id}::${role}`.
+  const [roleOverride, setRoleOverride] = useState<Record<string, boolean>>({});
+  const toggleRole = (k: string, currentlyOpen: boolean) =>
+    setRoleOverride((s) => ({ ...s, [k]: !currentlyOpen }));
+
   const [deny, setDeny] = useState<{ open: boolean; id: string | null; motivo: string }>({
     open: false,
     id: null,
