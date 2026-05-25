@@ -581,10 +581,13 @@ function DiretorGroupedNFs() {
           id: n.id,
           valor_nf: n.valor_nf,
           sale_id: n.sale_id,
+          desconto_distrato: n.desconto_distrato ?? null,
+          observacao_distrato: n.observacao_distrato ?? null,
           sale: n.sale
             ? { comprador: n.sale.comprador, empreendimento: n.sale.empreendimento, unidade: n.sale.unidade, data: n.sale.data }
             : null,
         })),
+
     [nfs],
   );
   if (items.length === 0) return null;
