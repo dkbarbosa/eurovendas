@@ -1180,7 +1180,7 @@ function ComissoesPage() {
                     <div className="space-y-1.5">
                       <Label>Tipo</Label>
                       <Select value={reqForm.tipo} onValueChange={(v) => setReqForm({ ...reqForm, tipo: v as typeof reqForm.tipo })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="adiantamento">Adiantamento</SelectItem>
                           <SelectItem value="comissao_final">Comissão final</SelectItem>
@@ -1280,7 +1280,7 @@ function ComissoesPage() {
                     const missingComprovante = needsComprovante && !comprovanteSinal;
                     return (
                       <Button
-                        disabled={createMut.isPending || !reqForm.valor_solicitado || excedeu || ruleViolated || missingComprovante}
+                        disabled={createMut.isPending || !reqForm.tipo || !reqForm.valor_solicitado || excedeu || ruleViolated || missingComprovante}
                         onClick={() => createMut.mutate()}
                         style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
                         title={missingComprovante ? "Anexe o comprovante de sinal para enviar" : undefined}
