@@ -14,11 +14,17 @@ async function assertFinanceiro(userId: string) {
 }
 
 // ---------- CRIAR DISTRATO ----------
+const RecipientSchema = z.object({
+  role: z.enum(["corretor", "gerente", "diretor"]),
+  user_id: z.string().uuid().nullable().optional(),
+  nome: z.string().trim().max(200).nullable().optional(),
+  valor_devolver: z.number().nonnegative().max(99999999),
+});
 const CreateSchema = z.object({
   sale_id: z.string().uuid(),
-  valor_devolver: z.number().nonnegative().max(99999999),
   motivo: z.string().trim().min(3).max(2000),
   observacao_financeiro: z.string().trim().max(2000).optional(),
+  recipients: z.array(RecipientSchema).min(1, "Selecione ao menos 1 beneficiário"),
 });
 
 export const createDistrato = createServerFn({ method: "POST" })
@@ -27,7 +33,6 @@ export const createDistrato = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertFinanceiro(context.userId);
 
-    // Já existe distrato ativo nesta venda?
     const { data: existing } = await supabaseAdmin
       .from("distratos")
       .select("id,status")
@@ -36,7 +41,6 @@ export const createDistrato = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existing) throw new Error("Já existe um distrato registrado para esta venda.");
 
-    // Carrega venda
     const { data: sale, error: saleErr } = await supabaseAdmin
       .from("sales")
       .select("id,corretor,gerente,comprador,empreendimento,unidade,data,valor_venda,comissao_liq_gerente")
@@ -45,62 +49,40 @@ export const createDistrato = createServerFn({ method: "POST" })
     if (saleErr) throw new Error(saleErr.message);
     if (!sale) throw new Error("Venda não encontrada.");
 
-    // Soma de pedidos PAGOS desta venda (referência - não obrigatório)
+    const recipients = data.recipients.filter((r) => r.valor_devolver > 0);
+    if (recipients.length === 0) throw new Error("Informe o valor de pelo menos 1 beneficiário.");
+    const totalDevolver = recipients.reduce((s, r) => s + r.valor_devolver, 0);
+
     const { data: paidRows } = await supabaseAdmin
       .from("commission_requests")
-      .select("id,tipo,valor_solicitado,corretor_user_id,gerente_user_id,requester_role")
+      .select("id,tipo,valor_solicitado,corretor_user_id,gerente_user_id,diretor_user_id,requester_role")
       .eq("sale_id", data.sale_id)
       .eq("status", "pago");
     const items = paidRows ?? [];
-    const corretorItems = items.filter((r) => r.requester_role !== "gerente");
-    const gerenteItems = items.filter((r) => r.requester_role === "gerente");
-    const valorAdiant = corretorItems.filter((r) => r.tipo === "adiantamento").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
-    const valorFinal = corretorItems.filter((r) => r.tipo === "comissao_final").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
-    const valorAdiantGer = gerenteItems.filter((r) => r.tipo === "adiantamento").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
-    const valorFinalGer = gerenteItems.filter((r) => r.tipo === "comissao_final").reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
+    const sumBy = (role: string, tipo: string) =>
+      items
+        .filter((r) => (r.requester_role ?? "corretor") === role && r.tipo === tipo)
+        .reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
 
-    // Identifica corretor (do primeiro pedido pago, senão por mapeamento)
-    let corretorUserId: string | null = corretorItems.find((r) => r.corretor_user_id)?.corretor_user_id ?? null;
-    if (!corretorUserId && sale.corretor) {
-      const { data: map } = await supabaseAdmin
-        .from("broker_mapping")
-        .select("user_id")
-        .eq("corretor_nome", sale.corretor)
-        .eq("ativo", true)
-        .maybeSingle();
-      corretorUserId = map?.user_id ?? null;
-    }
+    const corretorRec = recipients.find((r) => r.role === "corretor");
+    const gerenteRec = recipients.find((r) => r.role === "gerente");
 
-    // Identifica gerente (do pedido pago ou pelo mapping por nome)
-    let gerenteUserId: string | null = gerenteItems.find((r) => r.gerente_user_id)?.gerente_user_id ?? null;
-    if (!gerenteUserId && sale.gerente) {
-      const { data: gmap } = await supabaseAdmin
-        .from("broker_mapping")
-        .select("user_id")
-        .eq("gerente_nome", sale.gerente)
-        .eq("ativo", true)
-        .limit(1)
-        .maybeSingle();
-      gerenteUserId = gmap?.user_id ?? null;
-    }
-
-    // Insere o distrato
     const { data: ins, error: insErr } = await supabaseAdmin
       .from("distratos")
       .insert({
         sale_id: sale.id,
-        corretor_user_id: corretorUserId,
-        corretor_nome: sale.corretor,
-        gerente_user_id: gerenteUserId,
-        gerente_nome: sale.gerente,
+        corretor_user_id: corretorRec?.user_id ?? null,
+        corretor_nome: corretorRec?.nome ?? sale.corretor,
+        gerente_user_id: gerenteRec?.user_id ?? null,
+        gerente_nome: gerenteRec?.nome ?? sale.gerente,
         comprador: sale.comprador,
         empreendimento: sale.empreendimento,
         unidade: sale.unidade,
-        valor_devolver: data.valor_devolver,
-        valor_adiantamento: valorAdiant,
-        valor_comissao_final: valorFinal,
-        valor_adiantamento_gerente: valorAdiantGer,
-        valor_comissao_final_gerente: valorFinalGer,
+        valor_devolver: totalDevolver,
+        valor_adiantamento: sumBy("corretor", "adiantamento"),
+        valor_comissao_final: sumBy("corretor", "comissao_final"),
+        valor_adiantamento_gerente: sumBy("gerente", "adiantamento"),
+        valor_comissao_final_gerente: sumBy("gerente", "comissao_final"),
         valor_comissao_gerente: Number(sale.comissao_liq_gerente) || 0,
         motivo: data.motivo,
         observacao_financeiro: data.observacao_financeiro ?? null,
@@ -111,17 +93,24 @@ export const createDistrato = createServerFn({ method: "POST" })
       .single();
     if (insErr) throw new Error(insErr.message);
 
+    const { error: recErr } = await supabaseAdmin.from("distrato_recipients").insert(
+      recipients.map((r) => ({
+        distrato_id: ins.id,
+        role: r.role,
+        user_id: r.user_id ?? null,
+        nome: r.nome ?? null,
+        valor_devolver: r.valor_devolver,
+        valor_devolvido: 0,
+        status: "pendente",
+      })),
+    );
+    if (recErr) throw new Error(recErr.message);
 
-    // Marca pedidos pagos como 'distratado' para sair do "a receber"/saldos
     const ids = items.map((r) => r.id);
     if (ids.length > 0) {
-      await supabaseAdmin
-        .from("commission_requests")
-        .update({ status: "distratado" })
-        .in("id", ids);
+      await supabaseAdmin.from("commission_requests").update({ status: "distratado" }).in("id", ids);
     }
 
-    // Atualiza status local da venda + planilha do Google Sheets
     await supabaseAdmin.from("sales").update({ status: "DISTRATO" }).eq("id", sale.id);
     try {
       const { setSheetStatus } = await import("./sheets-write.server");
