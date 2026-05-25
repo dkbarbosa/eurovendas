@@ -411,11 +411,18 @@ export const listAllRequests = createServerFn({ method: "POST" })
   });
 
 // ---------- APROVAR / NEGAR (financeiro) ----------
+const DistratoApprovalSchema = z.object({
+  distrato_id: z.string().uuid(),
+  valor_desconto: z.number().positive().max(99999999),
+  observacao: z.string().trim().max(2000).optional(),
+});
+
 const DecideSchema = z.object({
   id: z.string().uuid(),
   decision: z.enum(["aprovado", "negado"]),
   motivo: z.string().trim().max(2000).optional(),
   observacao: z.string().trim().max(2000).optional(),
+  distrato_descontos: z.array(DistratoApprovalSchema).max(20).optional(),
 });
 
 export const decideRequest = createServerFn({ method: "POST" })
@@ -426,13 +433,111 @@ export const decideRequest = createServerFn({ method: "POST" })
     if (data.decision === "negado" && (!data.motivo || data.motivo.trim().length === 0))
       throw new Error("Motivo é obrigatório ao negar.");
 
+    const { data: req, error: reqErr } = await supabaseAdmin
+      .from("commission_requests")
+      .select(
+        "id,tipo,valor_solicitado,sale_id,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,desconto_distrato,observacao_financeiro,status",
+      )
+      .eq("id", data.id)
+      .maybeSingle();
+    if (reqErr) throw new Error(reqErr.message);
+    if (!req) throw new Error("Pedido não encontrado.");
+    if (req.status !== "pendente") throw new Error("Este pedido já foi decidido por outra pessoa.");
+
+    const role = (req.requester_role ?? "corretor") as "corretor" | "gerente" | "diretor";
+    const beneficiaryId =
+      role === "gerente"
+        ? req.gerente_user_id
+        : role === "diretor"
+          ? req.diretor_user_id
+          : req.corretor_user_id;
+    const descontosSelecionados = (data.distrato_descontos ?? []).filter(
+      (d) => d.valor_desconto > 0,
+    );
+    let descontoTotal = 0;
+    let descontoObs = "";
+    const descontoRows: Array<{
+      distrato_id: string;
+      rec_id: string;
+      valor: number;
+      obs: string;
+      comprador: string | null;
+      empreendimento: string | null;
+      unidade: string | null;
+    }> = [];
+
+    if (data.decision === "aprovado" && req.tipo === "comissao_final") {
+      if (beneficiaryId) {
+        const { data: recs, error: recErr } = await supabaseAdmin
+          .from("distrato_recipients")
+          .select("id,distrato_id,valor_devolver,valor_devolvido,status")
+          .eq("user_id", beneficiaryId)
+          .eq("role", role)
+          .eq("status", "pendente");
+        if (recErr) throw new Error(recErr.message);
+        const pendentes = (recs ?? []).filter(
+          (r) => Number(r.valor_devolver) - Number(r.valor_devolvido) > 0.001,
+        );
+        if (pendentes.length > 0 && descontosSelecionados.length === 0) {
+          throw new Error("Há distrato pendente para este beneficiário. Revise o bloco de distrato antes de aprovar.");
+        }
+        if (descontosSelecionados.length > 0) {
+          const recMap = new Map(pendentes.map((r) => [r.distrato_id, r]));
+          const distIds = descontosSelecionados.map((d) => d.distrato_id);
+          const { data: dists, error: distErr } = await supabaseAdmin
+            .from("distratos")
+            .select("id,comprador,empreendimento,unidade,status")
+            .in("id", distIds);
+          if (distErr) throw new Error(distErr.message);
+          const distMap = new Map((dists ?? []).map((d) => [d.id, d]));
+          for (const d of descontosSelecionados) {
+            const rec = recMap.get(d.distrato_id);
+            const dist = distMap.get(d.distrato_id);
+            if (!rec || !dist || dist.status === "cancelado") {
+              throw new Error("Um dos distratos selecionados não pertence a este beneficiário ou não está pendente.");
+            }
+            const saldo = Math.max(0, Number(rec.valor_devolver) - Number(rec.valor_devolvido));
+            if (d.valor_desconto > saldo + 0.001) throw new Error("Valor de desconto excede o saldo do distrato.");
+            descontoTotal += d.valor_desconto;
+            const obs =
+              d.observacao ||
+              `Desconto referente ao distrato da venda — Cliente: ${dist.comprador ?? "—"} · ${dist.empreendimento ?? "—"} / ${dist.unidade ?? "—"}`;
+            descontoRows.push({
+              distrato_id: d.distrato_id,
+              rec_id: rec.id,
+              valor: d.valor_desconto,
+              obs,
+              comprador: dist.comprador,
+              empreendimento: dist.empreendimento,
+              unidade: dist.unidade,
+            });
+          }
+          const disponivelPedido = Math.max(0, Number(req.valor_solicitado) - (Number(req.desconto_distrato) || 0));
+          if (descontoTotal > disponivelPedido + 0.001) {
+            throw new Error("Total de descontos excede o valor disponível neste pedido.");
+          }
+          descontoObs = descontoRows
+            .map(
+              (d) =>
+                `${d.obs} — desconto: R$ ${d.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            )
+            .join("\n");
+        }
+      }
+    }
+
     // Update condicional para evitar race
+    const observacaoFinanceiro = [data.observacao, descontoObs].filter(Boolean).join("\n") || null;
     const { data: upd, error } = await supabaseAdmin
       .from("commission_requests")
       .update({
         status: data.decision,
         motivo_negacao: data.decision === "negado" ? data.motivo : null,
-        observacao_financeiro: data.observacao ?? null,
+        observacao_financeiro: observacaoFinanceiro,
+        desconto_distrato:
+          data.decision === "aprovado" && descontoTotal > 0
+            ? (Number(req.desconto_distrato) || 0) + descontoTotal
+            : Number(req.desconto_distrato) || 0,
         decided_by: context.userId,
         decided_at: new Date().toISOString(),
       })
@@ -442,18 +547,59 @@ export const decideRequest = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!upd || upd.length === 0) throw new Error("Este pedido já foi decidido por outra pessoa.");
 
+    if (data.decision === "aprovado" && descontoRows.length > 0) {
+      for (const d of descontoRows) {
+        const { error: insErr } = await supabaseAdmin.from("distrato_descontos").insert({
+          distrato_id: d.distrato_id,
+          commission_request_id: data.id,
+          corretor_user_id: role === "corretor" ? req.corretor_user_id : null,
+          gerente_user_id: role === "gerente" ? req.gerente_user_id : null,
+          valor_desconto: d.valor,
+          observacao: d.obs,
+          aplicado_por: context.userId,
+          status: "aplicado",
+        });
+        if (insErr) throw new Error(insErr.message);
+
+        const { data: recAtual } = await supabaseAdmin
+          .from("distrato_recipients")
+          .select("valor_devolver,valor_devolvido")
+          .eq("id", d.rec_id)
+          .maybeSingle();
+        const novoRecDevolvido = (Number(recAtual?.valor_devolvido) || 0) + d.valor;
+        const recQuitado = novoRecDevolvido >= (Number(recAtual?.valor_devolver) || 0) - 0.001;
+        await supabaseAdmin
+          .from("distrato_recipients")
+          .update({
+            valor_devolvido: novoRecDevolvido,
+            status: recQuitado ? "devolvido" : "pendente",
+            devolvido_at: recQuitado ? new Date().toISOString() : null,
+            devolvido_por: recQuitado ? context.userId : null,
+          })
+          .eq("id", d.rec_id);
+
+        const { data: allRecs } = await supabaseAdmin
+          .from("distrato_recipients")
+          .select("valor_devolver,valor_devolvido")
+          .eq("distrato_id", d.distrato_id);
+        const totalDevolver = (allRecs ?? []).reduce((s, r) => s + (Number(r.valor_devolver) || 0), 0);
+        const totalDevolvido = (allRecs ?? []).reduce((s, r) => s + (Number(r.valor_devolvido) || 0), 0);
+        await supabaseAdmin
+          .from("distratos")
+          .update({
+            valor_devolver: totalDevolver,
+            valor_devolvido: totalDevolvido,
+            status: totalDevolver > 0 && totalDevolvido >= totalDevolver - 0.001 ? "quitado_por_desconto" : "pendente_devolucao",
+          })
+          .eq("id", d.distrato_id);
+      }
+    }
+
     // Ao aprovar adiantamento: somar valor na planilha + abrir solicitação de NF.
     // Idempotente: o update acima usa .eq("status","pendente"), portanto este bloco
     // só executa uma única vez por pedido (transição pendente -> aprovado).
     let sheetWarning: string | undefined;
     if (data.decision === "aprovado") {
-      const { data: req } = await supabaseAdmin
-        .from("commission_requests")
-        .select(
-          "tipo, valor_solicitado, sale_id, corretor_user_id, gerente_user_id, diretor_user_id, requester_role",
-        )
-        .eq("id", data.id)
-        .single();
       if (req?.sale_id) {
         const { data: sale } = await supabaseAdmin
           .from("sales")
@@ -484,7 +630,6 @@ export const decideRequest = createServerFn({ method: "POST" })
         // Cria automaticamente solicitação de NF para o MESMO papel do pedido aprovado.
         // Se não houver NF ativa para a venda + papel, abre uma nova com o owner correto.
         try {
-          const role = (req.requester_role ?? "corretor") as "corretor" | "gerente" | "diretor";
           const { data: active } = await supabaseAdmin
             .from("nf_requests")
             .select("id")
@@ -492,6 +637,9 @@ export const decideRequest = createServerFn({ method: "POST" })
             .eq("requester_role", role)
             .in("status", ["solicitada", "emitida"])
             .maybeSingle();
+          const valorLiquidoNF = Math.max(0, (Number(req.valor_solicitado) || 0) - descontoTotal);
+          const distratoObsNF = descontoObs || null;
+          const distratoIdNF = descontoRows[0]?.distrato_id ?? null;
           if (!active) {
             let corretorUserId: string | null =
               role === "corretor" ? (req.corretor_user_id ?? null) : null;
@@ -527,8 +675,11 @@ export const decideRequest = createServerFn({ method: "POST" })
                 diretor_user_id: diretorUserId,
                 solicitado_por: context.userId,
                 status: "solicitada",
-                valor_nf: Number(req.valor_solicitado) || 0,
-                observacao_financeiro: `NF solicitada automaticamente após aprovação de ${req.tipo === "adiantamento" ? "adiantamento" : "comissão"} (${ownerLabel}) — valor: R$ ${(Number(req.valor_solicitado) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`,
+                valor_nf: valorLiquidoNF,
+                distrato_id: distratoIdNF,
+                desconto_distrato: descontoTotal,
+                observacao_distrato: distratoObsNF,
+                observacao_financeiro: `NF solicitada automaticamente após aprovação de ${req.tipo === "adiantamento" ? "adiantamento" : "comissão"} (${ownerLabel}) — valor aprovado: R$ ${(Number(req.valor_solicitado) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${descontoTotal > 0 ? `; desconto de distrato: R$ ${descontoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}; líquido para emissão: R$ ${valorLiquidoNF.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}.`,
               });
               if (nfErr) console.error("auto-create nf_request insert:", nfErr);
             } else {
@@ -536,6 +687,21 @@ export const decideRequest = createServerFn({ method: "POST" })
                 `auto-create nf_request: sem owner para papel ${role} na venda ${req.sale_id}`,
               );
             }
+          } else if (req.tipo === "comissao_final") {
+            const { data: currentNf } = await supabaseAdmin
+              .from("nf_requests")
+              .select("desconto_distrato,observacao_distrato")
+              .eq("id", active.id)
+              .maybeSingle();
+            await supabaseAdmin
+              .from("nf_requests")
+              .update({
+                valor_nf: valorLiquidoNF,
+                distrato_id: distratoIdNF,
+                desconto_distrato: (Number(currentNf?.desconto_distrato) || 0) + descontoTotal,
+                observacao_distrato: [currentNf?.observacao_distrato, distratoObsNF].filter(Boolean).join("\n") || null,
+              })
+              .eq("id", active.id);
           }
         } catch (e) {
           console.error("auto-create nf_request:", e);
