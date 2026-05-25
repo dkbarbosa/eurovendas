@@ -110,6 +110,14 @@ function GerentesPage() {
     return m;
   }, [requests]);
 
+  const pendByReq = useMemo(() => {
+    const m = new Map<string, boolean>();
+    for (const r of requests) {
+      if (r.status === "pendente" || r.status === "aprovado") m.set(r.sale_id, true);
+    }
+    return m;
+  }, [requests]);
+
   const kpis = useMemo(() => {
     let comGerente = 0;
     let count = 0;
