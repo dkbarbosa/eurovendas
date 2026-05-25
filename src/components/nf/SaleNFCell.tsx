@@ -295,11 +295,14 @@ export function NFEmitDialog({
  * Per-sale-row cell rendering the NF pills + Enviar NF button + download/pago actions.
  * Mirrors the corretor's PEDIDOS/NF column structure.
  */
-export function SaleNFCell({ saleId }: { saleId: string }) {
+export function SaleNFCell({ saleId, role }: { saleId: string; role?: "corretor" | "gerente" | "diretor" }) {
   const qc = useQueryClient();
   const fnPay = useServerFn(markNFPaid);
   const { data: nfs = [] } = useMyNFs();
-  const sNfs = useMemo(() => nfs.filter((n) => n.sale_id === saleId), [nfs, saleId]);
+  const sNfs = useMemo(
+    () => nfs.filter((n) => n.sale_id === saleId && (!role || (n.requester_role ?? "corretor") === role)),
+    [nfs, saleId, role],
+  );
   const nfAberta = useMemo(() => sNfs.find((n) => n.status === "solicitada"), [sNfs]);
   const [emitOpen, setEmitOpen] = useState(false);
   const [activeNF, setActiveNF] = useState<MyNFItem | null>(null);
