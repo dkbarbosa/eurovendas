@@ -26,6 +26,8 @@ export type PendingNFItem = {
   id: string;
   valor_nf: number | null;
   sale_id: string;
+  desconto_distrato?: number | null;
+  observacao_distrato?: string | null;
   sale: {
     comprador: string | null;
     empreendimento: string | null;
@@ -33,6 +35,7 @@ export type PendingNFItem = {
     data: string | null;
   } | null;
 };
+
 
 export function GroupedNFEmitter({
   items,
