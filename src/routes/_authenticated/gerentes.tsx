@@ -646,7 +646,7 @@ function GerentesPage() {
                     <div className="space-y-1.5">
                       <Label>Tipo</Label>
                       <Select value={reqForm.tipo} onValueChange={(v) => setReqForm((f) => ({ ...f, tipo: v as "adiantamento" | "comissao_final" }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="adiantamento">Adiantamento</SelectItem>
                           <SelectItem value="comissao_final">Comissão final</SelectItem>
@@ -691,7 +691,7 @@ function GerentesPage() {
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setReqDialog({ open: false, sale: null })}>Cancelar</Button>
                   <Button
-                    disabled={createMut.isPending || !reqForm.valor || excedeu || ruleViolated}
+                    disabled={createMut.isPending || !reqForm.tipo || !reqForm.valor || excedeu || ruleViolated}
                     onClick={() => createMut.mutate()}
                     style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
                   >
