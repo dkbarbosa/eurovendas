@@ -101,8 +101,11 @@ export const createDiretorCommissionRequest = createServerFn({ method: "POST" })
 
     if (statusUp !== "CAIXA") {
       if (data.tipo === "adiantamento") {
-        if (sinal < 300 - 0.001)
-          throw new Error(`Adiantamento exige sinal mínimo de ${fmt(300)} (atual: ${fmt(sinal)}).`);
+        if (sinal < 2999.99)
+          throw new Error(`Adiantamento exige sinal ≥ ${fmt(2999.99)} (atual: ${fmt(sinal)}).`);
+        const maxAdiant = Math.floor(sinal / 2999.99) * 300;
+        if (data.valor_solicitado > maxAdiant + 0.001)
+          throw new Error(`Adiantamento máximo da Gestão: ${fmt(maxAdiant)} (R$ 300 a cada R$ 2.999,99 de sinal).`);
       }
       if (data.tipo === "comissao_final") {
         const minSinal = valorVenda * 0.06;
