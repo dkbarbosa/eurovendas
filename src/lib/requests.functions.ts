@@ -231,26 +231,28 @@ export const listAllRequests = createServerFn({ method: "POST" })
     const [{ data: sales }, { data: profs }, { data: paidReqs }, { data: nfRows }] = await Promise.all([
       supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,comissao_liq_corretor,status,valor_sinal_negocio").in("id", safeIds),
       supabaseAdmin.from("profiles").select("id,display_name,email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
-      // Todos pedidos PAGOS dessas vendas, para calcular adiantado/saldo + histórico.
+      // Todos pedidos PAGOS dessas vendas, para calcular adiantado/saldo + histórico por papel.
       supabaseAdmin
         .from("commission_requests")
-        .select("id,sale_id,tipo,valor_solicitado,status,paid_at,decided_at,created_at")
+        .select("id,sale_id,tipo,valor_solicitado,status,paid_at,decided_at,created_at,requester_role")
         .in("sale_id", safeIds)
         .eq("status", "pago"),
       supabaseAdmin
         .from("nf_requests")
-        .select("id,sale_id,status,created_at,numero_nf,arquivo_nf_url,arquivo_nf_url_2")
+        .select("id,sale_id,status,created_at,numero_nf,arquivo_nf_url,arquivo_nf_url_2,requester_role")
         .in("sale_id", safeIds)
         .order("created_at", { ascending: false }),
     ]);
     const sMap = new Map((sales ?? []).map((s) => [s.id, s]));
     const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
     // Para cada venda, NF "ativa" mais recente (ignora canceladas) com arquivos disponíveis.
-    const nfBySale = new Map<string, { id: string; status: string; numero: string | null; hasFile1: boolean; hasFile2: boolean }>();
+    const nfBySaleRole = new Map<string, { id: string; status: string; numero: string | null; hasFile1: boolean; hasFile2: boolean }>();
     for (const n of nfRows ?? []) {
       if (n.status === "cancelada") continue;
-      if (!nfBySale.has(n.sale_id)) {
-        nfBySale.set(n.sale_id, {
+      const role = (n.requester_role ?? "corretor") as string;
+      const key = `${n.sale_id}::${role}`;
+      if (!nfBySaleRole.has(key)) {
+        nfBySaleRole.set(key, {
           id: n.id as string,
           status: n.status as string,
           numero: (n.numero_nf as string | null) ?? null,
@@ -259,9 +261,11 @@ export const listAllRequests = createServerFn({ method: "POST" })
         });
       }
     }
-    const paidBySale = new Map<string, { adiantado: number; final: number; items: Array<{ id: string; tipo: string; valor: number; data: string | null }> }>();
+    const paidBySaleRole = new Map<string, { adiantado: number; final: number; items: Array<{ id: string; tipo: string; valor: number; data: string | null }> }>();
     for (const pr of paidReqs ?? []) {
-      const cur = paidBySale.get(pr.sale_id) ?? { adiantado: 0, final: 0, items: [] };
+      const role = (pr.requester_role ?? "corretor") as string;
+      const key = `${pr.sale_id}::${role}`;
+      const cur = paidBySaleRole.get(key) ?? { adiantado: 0, final: 0, items: [] };
       const v = Number(pr.valor_solicitado) || 0;
       if (pr.tipo === "adiantamento") cur.adiantado += v;
       else if (pr.tipo === "comissao_final") cur.final += v;
@@ -271,13 +275,18 @@ export const listAllRequests = createServerFn({ method: "POST" })
         valor: v,
         data: (pr.paid_at ?? pr.decided_at ?? pr.created_at) as string | null,
       });
-      paidBySale.set(pr.sale_id, cur);
+      paidBySaleRole.set(key, cur);
     }
     return (reqs ?? []).map((r) => {
       const sale = sMap.get(r.sale_id) ?? null;
-      const comissaoLiq = Number(sale?.comissao_liq_corretor) || 0;
-      const p = paidBySale.get(r.sale_id) ?? { adiantado: 0, final: 0, items: [] };
+      const role = ((r.requester_role ?? "corretor") as string) || "corretor";
+      const comissaoLiq = role === "gerente"
+        ? Number((sale as { comissao_liq_gerente?: number | null } | null)?.comissao_liq_gerente) || 0
+        : Number(sale?.comissao_liq_corretor) || 0;
+      const roleKey = `${r.sale_id}::${role}`;
+      const p = paidBySaleRole.get(roleKey) ?? { adiantado: 0, final: 0, items: [] };
       const aReceber = Math.max(0, comissaoLiq - p.adiantado - p.final);
+      const nfInfo = nfBySaleRole.get(roleKey) ?? null;
       return {
         ...r,
         sale,
@@ -289,8 +298,8 @@ export const listAllRequests = createServerFn({ method: "POST" })
         final_pago: p.final,
         a_receber: aReceber,
         historico: p.items.slice().sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "")),
-        nf_status: nfBySale.get(r.sale_id)?.status ?? null,
-        nf_info: nfBySale.get(r.sale_id) ?? null,
+        nf_status: nfInfo?.status ?? null,
+        nf_info: nfInfo,
       };
     });
 
