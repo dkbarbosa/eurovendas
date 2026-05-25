@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Receipt, Upload, Loader2, CheckCircle2, Paperclip, X, Wallet } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Receipt, Upload, Loader2, CheckCircle2, Paperclip, X, Wallet, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -325,24 +326,60 @@ export function SaleNFCell({ saleId, role }: { saleId: string; role?: "corretor"
   return (
     <>
       <div className="space-y-1">
-        {sNfs.map((n) => (
-          <div key={n.id} className="flex items-center gap-1 flex-wrap">
-            <NFPill n={n} />
-            {(n.status === "emitida" || n.status === "recebida") && (
-              <Button
-                size="sm"
-                disabled={payMut.isPending}
-                onClick={() => {
-                  if (confirm("Confirmar que esta NF foi paga? Isso finaliza o processo.")) payMut.mutate(n.id);
-                }}
-                className="h-6 px-2 text-[11px]"
-                style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
-              >
-                <Wallet className="w-3 h-3 mr-1" /> Pago
-              </Button>
-            )}
-          </div>
-        ))}
+        {sNfs.map((n) => {
+          const desc = Number(n.desconto_distrato) || 0;
+          const distHist = n.observacao_distrato?.trim();
+          const hasDist = desc > 0 || !!distHist;
+          return (
+            <div key={n.id} className="space-y-1">
+              <div className="flex items-center gap-1 flex-wrap">
+                <NFPill n={n} />
+                {(n.status === "emitida" || n.status === "recebida") && (
+                  <Button
+                    size="sm"
+                    disabled={payMut.isPending}
+                    onClick={() => {
+                      if (confirm("Confirmar que esta NF foi paga? Isso finaliza o processo.")) payMut.mutate(n.id);
+                    }}
+                    className="h-6 px-2 text-[11px]"
+                    style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+                  >
+                    <Wallet className="w-3 h-3 mr-1" /> Pago
+                  </Button>
+                )}
+                {hasDist && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-violet-400/40 bg-violet-500/10 text-violet-300 text-[10px] hover:bg-violet-500/20"
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        {desc > 0 ? `Distrato −${BRL(desc)}` : "Distrato"} · Histórico
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 text-xs space-y-1.5">
+                      <div className="font-medium flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-violet-400" /> Histórico de distrato
+                      </div>
+                      {desc > 0 && <div>Desconto aplicado: <b>{BRL(desc)}</b></div>}
+                      {distHist ? (
+                        <div className="text-muted-foreground whitespace-pre-wrap break-words">{distHist}</div>
+                      ) : (
+                        <div className="text-muted-foreground italic">Sem observação registrada.</div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
+              {hasDist && distHist && (
+                <div className="text-[10px] text-muted-foreground line-clamp-2">
+                  <span className="text-violet-300 font-medium">Distrato:</span> {distHist}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
       {nfAberta && (
         <Button
