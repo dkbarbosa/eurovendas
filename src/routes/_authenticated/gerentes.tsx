@@ -236,16 +236,18 @@ function GerentesPage() {
     { open: false, sale: null },
   );
   const [reqForm, setReqForm] = useState({
-    tipo: "adiantamento" as "adiantamento" | "comissao_final",
+    tipo: "" as "" | "adiantamento" | "comissao_final",
     valor: null as number | null,
     obs: "",
   });
   const openReq = (s: (typeof sales)[number]) => {
-    setReqForm({ tipo: "adiantamento", valor: null, obs: "" });
+    setReqForm({ tipo: "", valor: null, obs: "" });
     setReqDialog({ open: true, sale: s });
   };
   const createMut = useMutation({
-    mutationFn: () =>
+    mutationFn: () => {
+      if (!reqForm.tipo) throw new Error("Escolha entre Adiantamento ou Comissão final.");
+      return (
       fnCreate({
         data: {
           sale_id: reqDialog.sale!.id,
@@ -254,7 +256,9 @@ function GerentesPage() {
           bonus: 0,
           observacao: reqForm.obs || undefined,
         },
-      }),
+      })
+      );
+    },
     onSuccess: () => {
       toast.success("Solicitação enviada ao financeiro.");
       setReqDialog({ open: false, sale: null });
