@@ -203,6 +203,7 @@ function ComissoesPage() {
     >();
     for (const r of requests) {
       if (r.status !== "pago") continue;
+      if (((r as { requester_role?: string | null }).requester_role ?? "corretor") !== "corretor") continue;
       const cur = m.get(r.sale_id) ?? { adiantado: 0, finalPago: 0, items: [] };
       const v = Number(r.valor_solicitado) || 0;
       if (r.tipo === "adiantamento") cur.adiantado += v;
