@@ -86,16 +86,39 @@ function DiretorPage() {
   const sales = (data?.sales ?? []) as SaleWithCom[];
   const requests = data?.requests ?? [];
 
+  // Vendas elegíveis aparecem mesmo fora do período (regra OK).
+  const eligibleSaleIds = useMemo(() => {
+    const ids = new Set<string>();
+    const pagoMap = new Map<string, number>();
+    for (const r of requests) {
+      if (r.status === "pago") pagoMap.set(r.sale_id, (pagoMap.get(r.sale_id) ?? 0) + (Number(r.valor_solicitado) || 0));
+    }
+    for (const s of sales) {
+      const stUp = (s.status ?? "").trim().toUpperCase();
+      if (stUp === "RESERVADO" || stUp === "DISTRATO") continue;
+      const com = Number(s.comissao_diretor) || 0;
+      const pago = pagoMap.get(s.id) ?? 0;
+      if (com - pago <= 0) continue;
+      const sinalSale = Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
+      const sinalOk = sinalSale >= 2999.99;
+      if (stUp === "CAIXA" || sinalOk) ids.add(s.id);
+    }
+    return ids;
+  }, [sales, requests]);
+
   const filteredSales = useMemo(() => {
     const q = search.trim().toLowerCase();
     return sales.filter((s) => {
       const d = (s.data ?? "").slice(0, 10);
-      if (dateFrom && d && d < dateFrom) return false;
-      if (dateTo && d && d > dateTo) return false;
+      const isEligible = eligibleSaleIds.has(s.id);
+      if (!isEligible) {
+        if (dateFrom && d && d < dateFrom) return false;
+        if (dateTo && d && d > dateTo) return false;
+      }
       if (q && !`${s.comprador ?? ""} ${s.empreendimento ?? ""} ${s.corretor ?? ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [sales, dateFrom, dateTo, search]);
+  }, [sales, dateFrom, dateTo, search, eligibleSaleIds]);
 
   const kpis = useMemo(() => {
     let comTotal = 0;
