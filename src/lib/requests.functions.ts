@@ -32,6 +32,12 @@ async function assertFinanceiro(userId: string) {
     throw new Error("Acesso negado: apenas Financeiro.");
 }
 
+function calcDiretorComissao(valorVenda: number | null | undefined, coaphar: string | null | undefined) {
+  const v = Number(valorVenda) || 0;
+  const isCoaphar = String(coaphar ?? "").trim().toLowerCase().startsWith("s");
+  return (isCoaphar ? v * (1 - 0.045) : v) * 0.004;
+}
+
 // ---------- CRIAR PEDIDO (corretor — admin pode agir em nome para testes) ----------
 const CreateRequestSchema = z.object({
   sale_id: z.string().uuid(),
@@ -229,7 +235,7 @@ export const listAllRequests = createServerFn({ method: "POST" })
     const userIds = [...new Set([...corretorIds, ...gerenteIds, ...diretorIds])];
     const safeIds = saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"];
     const [{ data: sales }, { data: profs }, { data: paidReqs }, { data: nfRows }] = await Promise.all([
-      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,comissao_liq_corretor,comissao_liq_gerente,status,valor_sinal_negocio").in("id", safeIds),
+      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,coaphar,comissao_liq_corretor,comissao_liq_gerente,status,valor_sinal_negocio").in("id", safeIds),
       supabaseAdmin.from("profiles").select("id,display_name,email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
       // Todos pedidos PAGOS dessas vendas, para calcular adiantado/saldo + histórico por papel.
       supabaseAdmin
@@ -282,7 +288,9 @@ export const listAllRequests = createServerFn({ method: "POST" })
       const role = ((r.requester_role ?? "corretor") as string) || "corretor";
       const comissaoLiq = role === "gerente"
         ? Number((sale as { comissao_liq_gerente?: number | null } | null)?.comissao_liq_gerente) || 0
-        : Number(sale?.comissao_liq_corretor) || 0;
+        : role === "diretor"
+          ? calcDiretorComissao(sale?.valor_venda, (sale as { coaphar?: string | null } | null)?.coaphar)
+          : Number(sale?.comissao_liq_corretor) || 0;
       const roleKey = `${r.sale_id}::${role}`;
       const p = paidBySaleRole.get(roleKey) ?? { adiantado: 0, final: 0, items: [] };
       const aReceber = Math.max(0, comissaoLiq - p.adiantado - p.final);
