@@ -313,7 +313,9 @@ function GerentesPage() {
         </div>
       ) : (
         <>
+          <GerenteGroupedNFs />
           {/* KPIs financeiros */}
+
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.comGerente)} />
             <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantamentos" value={BRL(kpis.adiantPago)} />
