@@ -528,7 +528,7 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
         .maybeSingle(),
       supabaseAdmin
         .from("commission_requests")
-        .select("id,corretor_user_id,gerente_user_id,requester_role,valor_solicitado,desconto_distrato,status,sale_id")
+        .select("id,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,valor_solicitado,desconto_distrato,status,sale_id")
         .eq("id", data.commission_request_id)
         .maybeSingle(),
     ]);
