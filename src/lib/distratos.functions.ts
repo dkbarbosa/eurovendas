@@ -435,21 +435,68 @@ export const listMyDistratoRecipientPendencias = createServerFn({ method: "GET" 
   });
 
 // ---------- LISTAR PENDÊNCIAS (com saldo > 0) ----------
+// Suporta beneficiário corretor (distratos.corretor_user_id), gerente
+// (distratos.gerente_user_id) e diretor (via distrato_recipients).
 export const listPendenciasDistrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ corretor_user_id: z.string().uuid().optional() }).optional().parse(d),
+    z
+      .object({
+        corretor_user_id: z.string().uuid().optional(),
+        gerente_user_id: z.string().uuid().optional(),
+        diretor_user_id: z.string().uuid().optional(),
+      })
+      .optional()
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const roles = await getRoles(context.userId);
     const isStaff = roles.includes("financeiro") || roles.includes("admin");
+
+    // Diretor: distratos.* não tem coluna diretor_user_id, então olhamos recipients
+    if (isStaff && data?.diretor_user_id) {
+      const { data: recs } = await supabaseAdmin
+        .from("distrato_recipients")
+        .select("distrato_id,valor_devolver,valor_devolvido,status")
+        .eq("user_id", data.diretor_user_id)
+        .eq("role", "diretor")
+        .eq("status", "pendente");
+      const pend = (recs ?? []).filter(
+        (r) => Number(r.valor_devolver) - Number(r.valor_devolvido) > 0.001,
+      );
+      if (pend.length === 0) return [];
+      const saldoMap = new Map<string, number>();
+      for (const r of pend) {
+        saldoMap.set(
+          r.distrato_id,
+          (saldoMap.get(r.distrato_id) ?? 0) +
+            (Number(r.valor_devolver) - Number(r.valor_devolvido)),
+        );
+      }
+      const ids = [...saldoMap.keys()];
+      const { data: dists } = await supabaseAdmin
+        .from("distratos")
+        .select("id,sale_id,comprador,empreendimento,unidade,status,created_at")
+        .in("id", ids)
+        .neq("status", "cancelado");
+      return (dists ?? []).map((d) => ({
+        ...d,
+        corretor_user_id: null,
+        corretor_nome: null,
+        valor_devolver: saldoMap.get(d.id) ?? 0,
+        valor_devolvido: 0,
+        saldo_restante: saldoMap.get(d.id) ?? 0,
+      }));
+    }
+
     let q = supabaseAdmin
       .from("distratos")
-      .select("id,sale_id,corretor_user_id,corretor_nome,comprador,empreendimento,unidade,valor_devolver,valor_devolvido,status,created_at")
+      .select("id,sale_id,corretor_user_id,gerente_user_id,corretor_nome,comprador,empreendimento,unidade,valor_devolver,valor_devolvido,status,created_at")
       .neq("status", "cancelado")
       .order("created_at", { ascending: false })
       .limit(1000);
     if (!isStaff) q = q.eq("corretor_user_id", context.userId);
+    else if (data?.gerente_user_id) q = q.eq("gerente_user_id", data.gerente_user_id);
     else if (data?.corretor_user_id) q = q.eq("corretor_user_id", data.corretor_user_id);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
