@@ -85,17 +85,42 @@ function GerentesPage() {
   const distratos = data?.distratos ?? [];
   const gerenteNome = data?.gerenteNome ?? null;
 
+  // Marca venda como elegível para solicitação independentemente do período:
+  // status não bloqueado, saldo > 0, e (CAIXA OU sinal suficiente para adiantamento).
+  const eligibleSaleIds = useMemo(() => {
+    const ids = new Set<string>();
+    const pagoMap = new Map<string, number>();
+    for (const r of sales) pagoMap.set(r.id, 0);
+    for (const r of requests) {
+      if (r.status === "pago") pagoMap.set(r.sale_id, (pagoMap.get(r.sale_id) ?? 0) + (Number(r.valor_solicitado) || 0));
+    }
+    for (const s of sales) {
+      const stUp = (s.status ?? "").trim().toUpperCase();
+      if (stUp === "RESERVADO" || stUp === "DISTRATO") continue;
+      const comLiq = Number(s.comissao_liq_gerente) || 0;
+      const pago = pagoMap.get(s.id) ?? 0;
+      if (comLiq - pago <= 0) continue;
+      const sinalSale = Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
+      const sinalOk = sinalSale >= 2999.99;
+      if (stUp === "CAIXA" || sinalOk) ids.add(s.id);
+    }
+    return ids;
+  }, [sales, requests]);
+
   const filteredSales = useMemo(() => {
     const q = search.trim().toLowerCase();
     return sales.filter((s) => {
       const d = (s.data ?? "").slice(0, 10);
-      if (dateFrom && d && d < dateFrom) return false;
-      if (dateTo && d && d > dateTo) return false;
+      const isEligible = eligibleSaleIds.has(s.id);
+      if (!isEligible) {
+        if (dateFrom && d && d < dateFrom) return false;
+        if (dateTo && d && d > dateTo) return false;
+      }
       if (q && !`${s.comprador ?? ""} ${s.empreendimento ?? ""}`.toLowerCase().includes(q)) return false;
       if (corretorFilter !== "all" && (s.corretor ?? "") !== corretorFilter) return false;
       return true;
     });
-  }, [sales, dateFrom, dateTo, search, corretorFilter]);
+  }, [sales, dateFrom, dateTo, search, corretorFilter, eligibleSaleIds]);
 
   const corretoresDaEquipe = useMemo(() => {
     const set = new Set<string>();
