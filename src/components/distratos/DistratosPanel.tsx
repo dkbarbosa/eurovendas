@@ -218,7 +218,9 @@ export function DistratosPanel() {
                       </div>
                     )}
                     <DescontosInline distratoId={r.id} />
+                    <RecipientsInline recipients={(r as { recipients?: Array<{ id: string; role: string; nome: string | null; valor_devolver: number; valor_devolvido: number; status: string }> }).recipients ?? []} />
                   </td>
+
                   <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
                   <td className="px-3 py-2 max-w-[260px]">
                     <div className="text-xs">{r.motivo}</div>
@@ -345,6 +347,30 @@ function DescontosInline({ distratoId }: { distratoId: string }) {
   );
 }
 
+const ROLE_LABEL_INLINE: Record<string, string> = { corretor: "Corretor", gerente: "Gerente", diretor: "Gestão" };
+function RecipientsInline({ recipients }: { recipients: Array<{ id: string; role: string; nome: string | null; valor_devolver: number; valor_devolvido: number; status: string }> }) {
+  if (!recipients || recipients.length === 0) return null;
+  return (
+    <div className="mt-1.5 space-y-0.5 text-left">
+      {recipients.map((r) => {
+        const saldo = Math.max(0, Number(r.valor_devolver) - Number(r.valor_devolvido));
+        const quit = r.status !== "pendente";
+        return (
+          <div key={r.id} className="flex items-center justify-end gap-1.5 text-[10px]">
+            <span className="text-muted-foreground">{ROLE_LABEL_INLINE[r.role] ?? r.role}:</span>
+            <span className={`font-medium ${quit ? "text-emerald-300 line-through" : "text-destructive"}`}>{BRL(r.valor_devolver)}</span>
+            {!quit && saldo < Number(r.valor_devolver) && (
+              <span className="text-muted-foreground">· saldo {BRL(saldo)}</span>
+            )}
+            {quit && <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string; icon?: React.ReactNode }> = {
     pendente_devolucao: { label: "Pendente devolução", cls: "bg-amber-500/10 text-amber-400 border-amber-500/30", icon: <AlertTriangle className="w-3 h-3 mr-1" /> },
@@ -367,6 +393,14 @@ function KpiTile({ label, value, sub, highlight, success }: { label: string; val
 }
 
 // ============== NOVO DISTRATO (financeiro) ==============
+type SaleRecipient = {
+  role: "corretor" | "gerente" | "diretor";
+  user_id: string | null;
+  nome: string | null;
+  adiant: number;
+  final: number;
+  total: number;
+};
 type SaleRow = {
   id: string;
   data: string | null;
@@ -375,18 +409,40 @@ type SaleRow = {
   unidade: string | null;
   valor_venda: number | null;
   corretor: string | null;
+  gerente: string | null;
   status: string | null;
   valor_adiantamento_pago: number;
   valor_comissao_final_pago: number;
   total_pago: number;
   ja_distratada: boolean;
+  recipients: SaleRecipient[];
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  corretor: "Corretor",
+  gerente: "Gerente",
+  diretor: "Gestão",
+};
+const ROLE_ACCENT: Record<string, string> = {
+  corretor: "border-sky-500/40 bg-sky-500/5",
+  gerente: "border-violet-500/40 bg-violet-500/5",
+  diretor: "border-amber-500/40 bg-amber-500/5",
+};
+
+type RecipientState = {
+  role: "corretor" | "gerente" | "diretor";
+  user_id: string | null;
+  nome: string | null;
+  total_pago: number;
+  selected: boolean;
+  valor: string;
 };
 
 function NewDistratoDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<SaleRow | null>(null);
-  const [valor, setValor] = useState<string>("");
+  const [recipientsSt, setRecipientsSt] = useState<RecipientState[]>([]);
   const [motivo, setMotivo] = useState("");
   const [obs, setObs] = useState("");
 
@@ -412,8 +468,12 @@ function NewDistratoDialog({ onCreated }: { onCreated: () => void }) {
   }, [sales, search]);
 
   const mut = useMutation({
-    mutationFn: (v: { sale_id: string; valor_devolver: number; motivo: string; observacao_financeiro?: string }) =>
-      fnCreate({ data: v }),
+    mutationFn: (v: {
+      sale_id: string;
+      motivo: string;
+      observacao_financeiro?: string;
+      recipients: Array<{ role: "corretor" | "gerente" | "diretor"; user_id: string | null; nome: string | null; valor_devolver: number }>;
+    }) => fnCreate({ data: v }),
     onSuccess: () => {
       toast.success("Distrato registrado.");
       onCreated();
@@ -425,14 +485,32 @@ function NewDistratoDialog({ onCreated }: { onCreated: () => void }) {
 
   const reset = () => {
     setSelected(null);
-    setValor("");
+    setRecipientsSt([]);
     setMotivo("");
     setObs("");
     setSearch("");
   };
 
-  const valorNum = Number(valor.replace(",", "."));
-  const canSubmit = !!selected && !selected.ja_distratada && motivo.trim().length >= 3 && valorNum >= 0 && !Number.isNaN(valorNum);
+  const pickSale = (s: SaleRow) => {
+    setSelected(s);
+    setRecipientsSt(
+      s.recipients.map((r) => ({
+        role: r.role,
+        user_id: r.user_id,
+        nome: r.nome,
+        total_pago: r.total,
+        selected: true,
+        valor: r.total.toFixed(2),
+      })),
+    );
+  };
+
+  const totalSelecionado = recipientsSt
+    .filter((r) => r.selected)
+    .reduce((s, r) => s + (Number(r.valor.replace(",", ".")) || 0), 0);
+
+  const someSelected = recipientsSt.some((r) => r.selected && Number(r.valor.replace(",", ".")) > 0);
+  const canSubmit = !!selected && motivo.trim().length >= 3 && someSelected;
 
   return (
     <>
@@ -445,7 +523,7 @@ function NewDistratoDialog({ onCreated }: { onCreated: () => void }) {
           <DialogHeader>
             <DialogTitle>Registrar distrato</DialogTitle>
             <DialogDescription>
-              Selecione qualquer venda. O financeiro define o valor a ser devolvido à Euro.
+              Selecione a venda e marque, individualmente, quem recebeu e o quanto cada um deve devolver à Euro.
             </DialogDescription>
           </DialogHeader>
 
@@ -496,11 +574,7 @@ function NewDistratoDialog({ onCreated }: { onCreated: () => void }) {
                             {s.ja_distratada ? (
                               <Badge variant="outline" className="text-[10px] text-destructive border-destructive/40">Já distratada</Badge>
                             ) : (
-                              <Button size="sm" variant="outline" className="h-7 text-xs"
-                                onClick={() => {
-                                  setSelected(s);
-                                  setValor(String(s.total_pago.toFixed(2)));
-                                }}>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => pickSale(s)}>
                                 Selecionar
                               </Button>
                             )}
@@ -516,7 +590,7 @@ function NewDistratoDialog({ onCreated }: { onCreated: () => void }) {
 
           {selected && (
             <div className="space-y-4">
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</div>
@@ -525,40 +599,60 @@ function NewDistratoDialog({ onCreated }: { onCreated: () => void }) {
                       {selected.empreendimento ?? "—"} / {selected.unidade ?? "—"} · Corretor: {selected.corretor ?? "—"}
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => { setSelected(null); setValor(""); }}>
+                  <Button variant="ghost" size="sm" onClick={() => { setSelected(null); setRecipientsSt([]); }}>
                     Trocar venda
                   </Button>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-xs pt-2 border-t border-destructive/20">
-                  <div>
-                    <div className="text-[10px] uppercase text-muted-foreground">Adiantamento pago</div>
-                    <div className="font-semibold">{BRL(selected.valor_adiantamento_pago)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase text-muted-foreground">Comissão final paga</div>
-                    <div className="font-semibold">{BRL(selected.valor_comissao_final_pago)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase text-muted-foreground">Total já pago</div>
-                    <div className="font-semibold text-destructive">{BRL(selected.total_pago)}</div>
-                  </div>
-                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label>Valor a devolver à Euro *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={valor}
-                  onChange={(e) => setValor(e.target.value)}
-                  placeholder="0,00"
-                  className="text-lg font-semibold"
-                />
-                <div className="text-[11px] text-muted-foreground">
-                  Sugestão: total já pago ({BRL(selected.total_pago)}). Você pode ajustar.
-                </div>
+              <div className="space-y-2">
+                <Label>Quem recebeu e deve devolver *</Label>
+                {recipientsSt.length === 0 && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-300">
+                    Esta venda não tem pedidos pagos. Não há valores a recuperar.
+                  </div>
+                )}
+                {recipientsSt.map((r, idx) => (
+                  <div
+                    key={`${r.role}:${r.user_id ?? "x"}`}
+                    className={`rounded-lg border p-3 flex items-center gap-3 ${ROLE_ACCENT[r.role]} ${!r.selected ? "opacity-60" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-primary"
+                      checked={r.selected}
+                      onChange={(e) => {
+                        const v = e.target.checked;
+                        setRecipientsSt((prev) => prev.map((p, i) => i === idx ? { ...p, selected: v } : p));
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs uppercase tracking-wider text-muted-foreground">{ROLE_LABEL[r.role]}</div>
+                      <div className="font-medium truncate">{r.nome ?? "—"}</div>
+                      <div className="text-[11px] text-muted-foreground">Recebeu: <b>{BRL(r.total_pago)}</b></div>
+                    </div>
+                    <div className="w-40 space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">A devolver</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        disabled={!r.selected}
+                        value={r.valor}
+                        onChange={(e) =>
+                          setRecipientsSt((prev) => prev.map((p, i) => i === idx ? { ...p, valor: e.target.value } : p))
+                        }
+                        className="h-9 text-right font-semibold"
+                      />
+                    </div>
+                  </div>
+                ))}
+                {recipientsSt.length > 0 && (
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-secondary/30 p-2.5">
+                    <span className="text-xs text-muted-foreground">Total a devolver à Euro</span>
+                    <span className="font-display text-xl font-semibold text-destructive">{BRL(totalSelecionado)}</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -578,14 +672,26 @@ function NewDistratoDialog({ onCreated }: { onCreated: () => void }) {
               <Button
                 variant="destructive"
                 disabled={!canSubmit || mut.isPending}
-                onClick={() => mut.mutate({
-                  sale_id: selected.id,
-                  valor_devolver: valorNum,
-                  motivo,
-                  observacao_financeiro: obs || undefined,
-                })}
+                onClick={() => {
+                  const recipients = recipientsSt
+                    .filter((r) => r.selected)
+                    .map((r) => ({
+                      role: r.role,
+                      user_id: r.user_id,
+                      nome: r.nome,
+                      valor_devolver: Number(r.valor.replace(",", ".")) || 0,
+                    }))
+                    .filter((r) => r.valor_devolver > 0);
+                  if (recipients.length === 0) { toast.error("Selecione ao menos 1 beneficiário com valor > 0."); return; }
+                  mut.mutate({
+                    sale_id: selected.id,
+                    motivo,
+                    observacao_financeiro: obs || undefined,
+                    recipients,
+                  });
+                }}
               >
-                {mut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar distrato"}
+                {mut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : `Confirmar distrato (${BRL(totalSelecionado)})`}
               </Button>
             )}
           </DialogFooter>

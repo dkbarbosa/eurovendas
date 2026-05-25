@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { SaleNFCell, useMyNFs, type MyNFItem } from "@/components/nf/SaleNFCell";
 import { GroupedNFEmitter, type PendingNFItem } from "@/components/nf/GroupedNFEmitter";
+import { MinhasDevolucoesPendentes } from "@/components/distratos/MinhasDevolucoesPendentes";
 
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -193,6 +194,7 @@ function DiretorPage() {
 
   return (
     <div className="space-y-6">
+      <MinhasDevolucoesPendentes />
       <header className="flex flex-col gap-2">
         <div className="text-xs uppercase tracking-widest text-muted-foreground inline-flex items-center gap-2">
           <ShieldCheck className="w-3.5 h-3.5" /> Painel Gestão

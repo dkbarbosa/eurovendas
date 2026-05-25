@@ -7,6 +7,7 @@ import { listMyBrokerSales, listDistinctCorretores } from "@/lib/commissions.fun
 import { createCommissionRequest, deleteCommissionRequest, markRequestPaid } from "@/lib/requests.functions";
 import { markNFEmitted, deleteNFRequest, markNFPaid } from "@/lib/nf.functions";
 import { GroupedNFEmitter, type PendingNFItem } from "@/components/nf/GroupedNFEmitter";
+import { MinhasDevolucoesPendentes } from "@/components/distratos/MinhasDevolucoesPendentes";
 
 import { listDistratos } from "@/lib/distratos.functions";
 import { useAuth } from "@/lib/auth";
@@ -532,6 +533,7 @@ function ComissoesPage() {
 
   return (
     <div className="space-y-8">
+      <MinhasDevolucoesPendentes />
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Painel do Corretor</div>

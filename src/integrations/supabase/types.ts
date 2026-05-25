@@ -218,6 +218,62 @@ export type Database = {
         }
         Relationships: []
       }
+      distrato_recipients: {
+        Row: {
+          created_at: string
+          devolvido_at: string | null
+          devolvido_por: string | null
+          distrato_id: string
+          id: string
+          nome: string | null
+          observacao_recebimento: string | null
+          role: string
+          status: string
+          updated_at: string
+          user_id: string | null
+          valor_devolver: number
+          valor_devolvido: number
+        }
+        Insert: {
+          created_at?: string
+          devolvido_at?: string | null
+          devolvido_por?: string | null
+          distrato_id: string
+          id?: string
+          nome?: string | null
+          observacao_recebimento?: string | null
+          role: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          valor_devolver?: number
+          valor_devolvido?: number
+        }
+        Update: {
+          created_at?: string
+          devolvido_at?: string | null
+          devolvido_por?: string | null
+          distrato_id?: string
+          id?: string
+          nome?: string | null
+          observacao_recebimento?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          valor_devolver?: number
+          valor_devolvido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distrato_recipients_distrato_id_fkey"
+            columns: ["distrato_id"]
+            isOneToOne: false
+            referencedRelation: "distratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       distratos: {
         Row: {
           comprador: string | null
