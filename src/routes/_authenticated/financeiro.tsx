@@ -1662,7 +1662,7 @@ function AdvancesTab() {
           )}
 
           <div className="space-y-1.5">
-            <Label>Observação para o corretor</Label>
+            <Label>Observação para o beneficiário</Label>
             <Textarea
               value={obs.text}
               onChange={(e) => setObs({ ...obs, text: e.target.value })}
