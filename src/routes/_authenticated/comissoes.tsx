@@ -6,6 +6,8 @@ import { usePersistentState } from "@/hooks/use-persistent-state";
 import { listMyBrokerSales, listDistinctCorretores } from "@/lib/commissions.functions";
 import { createCommissionRequest, deleteCommissionRequest, markRequestPaid } from "@/lib/requests.functions";
 import { markNFEmitted, deleteNFRequest, markNFPaid } from "@/lib/nf.functions";
+import { GroupedNFEmitter, type PendingNFItem } from "@/components/nf/GroupedNFEmitter";
+
 import { listDistratos } from "@/lib/distratos.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
