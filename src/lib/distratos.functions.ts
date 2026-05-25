@@ -279,9 +279,22 @@ export const listDistratos = createServerFn({ method: "POST" })
     }
 
     // Enriquecer com profile do corretor + recipients
+    type RecipientRow = {
+      id: string;
+      distrato_id: string;
+      user_id: string | null;
+      role: string;
+      nome: string | null;
+      valor_devolver: number;
+      valor_devolvido: number;
+      status: string;
+      devolvido_at: string | null;
+      observacao_recebimento: string | null;
+      created_at: string;
+    };
     const userIds = [...new Set(rows.map((r) => r.corretor_user_id).filter((v): v is string => !!v))];
     const ids = rows.map((r) => r.id);
-    const [{ data: profs }, { data: recipients }] = await Promise.all([
+    const [{ data: profs }, recRes] = await Promise.all([
       supabaseAdmin
         .from("profiles")
         .select("id,display_name,email")
@@ -289,13 +302,14 @@ export const listDistratos = createServerFn({ method: "POST" })
       ids.length
         ? supabaseAdmin
             .from("distrato_recipients")
-            .select("*")
+            .select("id,distrato_id,user_id,role,nome,valor_devolver,valor_devolvido,status,devolvido_at,observacao_recebimento,created_at")
             .in("distrato_id", ids)
-        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        : Promise.resolve({ data: [] as RecipientRow[] }),
     ]);
+    const recipients = (recRes.data ?? []) as RecipientRow[];
     const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
-    const recMap = new Map<string, Array<Record<string, unknown>>>();
-    for (const r of (recipients ?? []) as Array<{ distrato_id: string } & Record<string, unknown>>) {
+    const recMap = new Map<string, RecipientRow[]>();
+    for (const r of recipients) {
       const arr = recMap.get(r.distrato_id) ?? [];
       arr.push(r);
       recMap.set(r.distrato_id, arr);
