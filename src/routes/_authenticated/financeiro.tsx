@@ -592,8 +592,7 @@ function AdvancesTab() {
   const obsEligibleDistrato = !!(
     obsRequest &&
     obs.action === "aprovar" &&
-    obsRequest.tipo === "comissao_final" &&
-    ((obsRequest.sale?.status ?? "").toUpperCase() === "CAIXA" || !!obsRequest.nf_status)
+    obsRequest.tipo === "comissao_final"
   );
 
   const { data: aprovPendencias = [], isLoading: aprovPendLoading } = useQuery({
@@ -618,6 +617,7 @@ function AdvancesTab() {
   const aprovRestReq = Math.max(0, aprovValorReq - aprovDescAtual);
   const aprovMaxApply = aprovSelected ? Math.min(aprovSelected.saldo_restante, aprovRestReq) : 0;
   const aprovValorNum = Number((aprovDesc.valor || "").replace(",", "."));
+  const mustApplyDistrato = obsEligibleDistrato && !aprovPendLoading && aprovPendencias.length > 0;
 
   useEffect(() => {
     if (!obsEligibleDistrato || aprovPendLoading || aprovPendencias.length === 0 || aprovDesc.distratoId) return;
@@ -1565,7 +1565,7 @@ function AdvancesTab() {
             </DialogTitle>
             <DialogDescription>
               {obsEligibleDistrato
-                ? "Antes de aprovar, verifique se o beneficiário possui distrato pendente para devolução."
+                ? "Na aprovação de comissão final, o sistema carrega automaticamente os distratos pendentes do beneficiário."
                 : "Observação opcional para o beneficiário."}
             </DialogDescription>
           </DialogHeader>
