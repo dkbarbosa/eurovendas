@@ -1429,24 +1429,6 @@ function AdvancesTab() {
                                             </div>
                                           )}
                                           <div className="flex gap-1 items-center">
-                                            <AplicarDescontoButton
-                                              commissionRequestId={r.id}
-                                              beneficiaryUserId={
-                                                ((r as { requester_role?: string | null }).requester_role ?? "corretor") === "gerente"
-                                                  ? (r as { gerente_user_id?: string | null }).gerente_user_id
-                                                  : ((r as { requester_role?: string | null }).requester_role ?? "corretor") === "diretor"
-                                                    ? (r as { diretor_user_id?: string | null }).diretor_user_id
-                                                    : r.corretor_user_id
-                                              }
-                                              beneficiaryRole={
-                                                (((r as { requester_role?: string | null }).requester_role ?? "corretor") || "corretor") as
-                                                  | "corretor"
-                                                  | "gerente"
-                                                  | "diretor"
-                                              }
-                                              valorSolicitado={valor}
-                                              descontoAtual={desconto}
-                                            />
                                             {!nfOk ? (
                                               <Badge
                                                 variant="outline"
