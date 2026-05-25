@@ -125,6 +125,7 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
       .from("commission_requests")
       .select("valor_solicitado")
       .eq("sale_id", data.sale_id)
+      .eq("requester_role", "corretor")
       .eq("status", "pago");
     const jaPago = (paidRows ?? []).reduce((s, r) => s + (Number(r.valor_solicitado) || 0), 0);
     const maxReceber = Math.max(0, comLiq - jaPago);
