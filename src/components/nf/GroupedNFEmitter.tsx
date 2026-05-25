@@ -200,7 +200,9 @@ export function GroupedNFEmitter({
                 </div>
               </div>
               <div className="grid gap-1.5 sm:grid-cols-2">
-                {g.items.map((n) => (
+                {g.items.map((n) => {
+                  const desc = Number(n.desconto_distrato) || 0;
+                  return (
                   <label
                     key={n.id}
                     className="flex items-center gap-2 text-xs rounded-md border border-border/40 px-2 py-1.5 cursor-pointer hover:bg-secondary/30"
@@ -210,14 +212,52 @@ export function GroupedNFEmitter({
                       onCheckedChange={(v) => setSelected({ ...selected, [n.id]: !!v })}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{n.sale?.comprador ?? "—"}</div>
+                      <div className="font-medium truncate flex items-center gap-1.5">
+                        <span className="truncate">{n.sale?.comprador ?? "—"}</span>
+                        {desc > 0 && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={(e) => e.preventDefault()}
+                                title="Ver histórico de desconto de distrato"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 text-[10px] font-medium hover:bg-rose-500/25 transition-colors"
+                              >
+                                <AlertTriangle className="w-3 h-3" />
+                                Distrato −{BRL(desc)}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent align="start" className="w-80 p-3 space-y-2">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-rose-300 flex items-center gap-1.5">
+                                <AlertTriangle className="w-3.5 h-3.5" /> Histórico de distrato
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Valor descontado: <b className="text-foreground">{BRL(desc)}</b>
+                              </div>
+                              {n.observacao_distrato ? (
+                                <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-2">
+                                  <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">
+                                    {n.observacao_distrato}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-muted-foreground italic">
+                                  Sem observações adicionais do financeiro.
+                                </div>
+                              )}
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
                       <div className="text-[10px] text-muted-foreground truncate">
                         {n.sale?.unidade ?? ""} · {fmtBR(n.sale?.data)}
                       </div>
                     </div>
                     <div className="text-right tabular-nums font-medium">{BRL(Number(n.valor_nf) || 0)}</div>
                   </label>
-                ))}
+                  );
+                })}
+
               </div>
             </div>
           );
