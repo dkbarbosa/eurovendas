@@ -1570,7 +1570,7 @@ function AdvancesTab() {
               )}
               {!aprovPendLoading && aprovPendencias.length === 0 && (
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs text-emerald-300 text-center">
-                  Corretor sem distrato pendente.
+                  Beneficiário sem distrato pendente.
                 </div>
               )}
               {aprovPendencias.length > 0 && (
