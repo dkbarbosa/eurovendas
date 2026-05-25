@@ -229,7 +229,7 @@ export const listAllRequests = createServerFn({ method: "POST" })
     const userIds = [...new Set([...corretorIds, ...gerenteIds, ...diretorIds])];
     const safeIds = saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"];
     const [{ data: sales }, { data: profs }, { data: paidReqs }, { data: nfRows }] = await Promise.all([
-      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,comissao_liq_corretor,status,valor_sinal_negocio").in("id", safeIds),
+      supabaseAdmin.from("sales").select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,comissao_liq_corretor,comissao_liq_gerente,status,valor_sinal_negocio").in("id", safeIds),
       supabaseAdmin.from("profiles").select("id,display_name,email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
       // Todos pedidos PAGOS dessas vendas, para calcular adiantado/saldo + histórico por papel.
       supabaseAdmin
