@@ -108,6 +108,13 @@ function LoginPage() {
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             className="w-full max-w-md"
           >
+            <h1
+              className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-center mb-6 bg-clip-text text-transparent"
+              style={{ backgroundImage: "var(--gradient-primary)" }}
+            >
+              Painel Euro
+            </h1>
+
             <div className="glass-card p-8 sm:p-10 relative">
               <div
                 className="absolute top-0 left-8 right-8 h-px opacity-60"
