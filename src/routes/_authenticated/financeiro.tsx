@@ -21,7 +21,7 @@ import {
   markNFPaid,
   listDistratosForSale,
 } from "@/lib/nf.functions";
-import { listPendenciasDistrato, aplicarDescontoDistrato } from "@/lib/distratos.functions";
+import { listPendenciasDistrato } from "@/lib/distratos.functions";
 import { setSaleStatus } from "@/lib/sales.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +63,6 @@ import {
 import { motion } from "framer-motion";
 import { DistratoButton } from "@/components/distratos/DistratoButton";
 import { DistratosPanel } from "@/components/distratos/DistratosPanel";
-import { AplicarDescontoButton } from "@/components/distratos/AplicarDescontoButton";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   component: FinanceiroPage,
