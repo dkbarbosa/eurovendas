@@ -412,7 +412,7 @@ export const listMyDistratoRecipientPendencias = createServerFn({ method: "GET" 
   .handler(async ({ context }) => {
     const { data: recs } = await supabaseAdmin
       .from("distrato_recipients")
-      .select("id,distrato_id,role,valor_devolver,valor_devolvido,status,created_at")
+      .select("id,distrato_id,role,valor_devolver,valor_devolvido,status,observacao_recebimento,created_at,updated_at")
       .eq("user_id", context.userId)
       .eq("status", "pendente")
       .order("created_at", { ascending: false })
@@ -424,7 +424,7 @@ export const listMyDistratoRecipientPendencias = createServerFn({ method: "GET" 
     const distIds = [...new Set(list.map((r) => r.distrato_id))];
     const { data: dists } = await supabaseAdmin
       .from("distratos")
-      .select("id,comprador,empreendimento,unidade,motivo,sale_id,created_at")
+      .select("id,comprador,empreendimento,unidade,motivo,sale_id,created_at,observacao_financeiro,observacao_recebimento")
       .in("id", distIds);
     const dMap = new Map((dists ?? []).map((d) => [d.id, d]));
     return list.map((r) => ({
