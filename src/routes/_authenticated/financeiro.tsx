@@ -1569,7 +1569,7 @@ function AdvancesTab() {
                     {BRL(
                       Math.max(
                         0,
-                        aprovRestReq - (aprovValorNum > 0 && aprovSelected ? aprovValorNum : 0),
+                        aprovRestReq - aprovValorNum,
                       ),
                     )}
                   </div>
@@ -1588,23 +1588,18 @@ function AdvancesTab() {
               )}
               {aprovPendencias.length > 0 && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Distrato vinculado automaticamente</Label>
-                  <div className="max-h-40 overflow-auto rounded-lg border border-border/60 divide-y divide-border/40">
+                  <Label className="text-xs">Distratos vinculados automaticamente</Label>
+                  <div className="max-h-72 overflow-auto rounded-lg border border-border/60 divide-y divide-border/40">
                     {aprovPendencias.map((p) => {
                       const sugerido = Math.min(p.saldo_restante, aprovRestReq);
                       const autoObs = `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`;
+                      const form = aprovDescs[p.id] ?? { valor: "", obs: autoObs };
+                      const valorItem = Number((form.valor || "").replace(",", "."));
+                      const maxItem = Math.min(p.saldo_restante, aprovRestReq);
                       return (
-                        <button
+                        <div
                           key={p.id}
-                          type="button"
-                          onClick={() =>
-                            setAprovDesc({
-                              distratoId: p.id,
-                              valor: sugerido.toFixed(2),
-                              obs: autoObs,
-                            })
-                          }
-                          className={`w-full text-left px-3 py-2 text-xs hover:bg-secondary/40 transition ${aprovDesc.distratoId === p.id ? "bg-primary/10" : ""}`}
+                          className="px-3 py-2 text-xs bg-primary/5"
                         >
                           <div className="flex justify-between items-start gap-2">
                             <div className="min-w-0">
@@ -1622,50 +1617,50 @@ function AdvancesTab() {
                               </Badge>
                             </div>
                           </div>
-                        </button>
+                          <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-2 mt-2">
+                            <div className="space-y-1">
+                              <Label className="text-[10px]">Valor descontado</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max={maxItem}
+                                value={form.valor}
+                                onChange={(e) =>
+                                  setAprovDescs((prev) => ({
+                                    ...prev,
+                                    [p.id]: { ...(prev[p.id] ?? { obs: autoObs }), valor: e.target.value },
+                                  }))
+                                }
+                                className="h-8 font-semibold"
+                              />
+                              {valorItem > maxItem + 0.001 && (
+                                <div className="text-[10px] text-destructive">Máx: {BRL(maxItem)}</div>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px]">Histórico para o papel</Label>
+                              <Textarea
+                                rows={2}
+                                value={form.obs}
+                                onChange={(e) =>
+                                  setAprovDescs((prev) => ({
+                                    ...prev,
+                                    [p.id]: { ...(prev[p.id] ?? { valor: sugerido.toFixed(2) }), obs: e.target.value },
+                                  }))
+                                }
+                                maxLength={2000}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    O primeiro distrato com saldo já vem selecionado; o financeiro pode alterar o distrato e o valor antes de confirmar.
+                    Os valores já vêm preenchidos; o financeiro pode alterar antes de confirmar a aprovação.
                   </p>
                 </div>
-              )}
-
-              {aprovSelected && (
-                <>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Valor a descontar *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max={aprovMaxApply}
-                      value={aprovDesc.valor}
-                      onChange={(e) => setAprovDesc({ ...aprovDesc, valor: e.target.value })}
-                      className="text-base font-semibold"
-                    />
-                    <div className="text-[11px] text-muted-foreground">
-                      Sugerido: <b>{BRL(Math.min(aprovSelected.saldo_restante, aprovRestReq))}</b> ·
-                      Máx: <b>{BRL(aprovMaxApply)}</b>
-                      {aprovValorNum > 0 && aprovValorNum < aprovSelected.saldo_restante && (
-                        <span className="ml-2 text-amber-300">
-                          Saldo restante do distrato:{" "}
-                          {BRL(aprovSelected.saldo_restante - aprovValorNum)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Observação do desconto (opcional)</Label>
-                    <Textarea
-                      rows={2}
-                      value={aprovDesc.obs}
-                      onChange={(e) => setAprovDesc({ ...aprovDesc, obs: e.target.value })}
-                      maxLength={2000}
-                    />
-                  </div>
-                </>
               )}
             </div>
           )}
