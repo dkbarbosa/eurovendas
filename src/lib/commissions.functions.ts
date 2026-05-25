@@ -75,7 +75,9 @@ export const listMyBrokerSales = createServerFn({ method: "POST" })
     ]);
 
     const saleIds = new Set((sales ?? []).map((s) => s.id));
-    const reqsScoped = (reqs ?? []).filter((r) => saleIds.has(r.sale_id));
+    const reqsScoped = (reqs ?? []).filter(
+      (r) => saleIds.has(r.sale_id) && ((r.requester_role ?? "corretor") === "corretor"),
+    );
     const reqIds = reqsScoped.map((r) => r.id);
 
     // Descontos de distrato vinculados aos pedidos deste corretor — para exibir
@@ -151,7 +153,7 @@ export const listMyBrokerSales = createServerFn({ method: "POST" })
       corretorNome: nome,
       sales: sales ?? [],
       requests: reqsScoped,
-      nfs: (nfs ?? []).filter((n) => saleIds.has(n.sale_id)),
+      nfs: (nfs ?? []).filter((n) => saleIds.has(n.sale_id) && ((n.requester_role ?? "corretor") === "corretor")),
       descontos,
     };
   });
