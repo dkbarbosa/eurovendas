@@ -457,7 +457,28 @@ function DiretorPage() {
   );
 }
 
+function DiretorGroupedNFs() {
+  const { data: nfs = [] } = useMyNFs();
+  const items: PendingNFItem[] = useMemo(
+    () =>
+      (nfs as MyNFItem[])
+        .filter((n) => n.status === "solicitada" && (n.requester_role ?? "corretor") === "diretor")
+        .map((n) => ({
+          id: n.id,
+          valor_nf: n.valor_nf,
+          sale_id: n.sale_id,
+          sale: n.sale
+            ? { comprador: n.sale.comprador, empreendimento: n.sale.empreendimento, unidade: n.sale.unidade, data: n.sale.data }
+            : null,
+        })),
+    [nfs],
+  );
+  if (items.length === 0) return null;
+  return <GroupedNFEmitter items={items} role="diretor" invalidateKeys={[["diretor-overview"]]} />;
+}
+
 function Kpi({
+
   icon, label, value, hint,
 }: {
   icon: React.ReactNode; label: string; value: string; hint?: string;
