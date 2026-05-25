@@ -16,7 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/CurrencyInput";
-import { SaleNFCell } from "@/components/nf/SaleNFCell";
+import { SaleNFCell, useMyNFs, type MyNFItem } from "@/components/nf/SaleNFCell";
+import { GroupedNFEmitter, type PendingNFItem } from "@/components/nf/GroupedNFEmitter";
+
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -311,7 +313,9 @@ function GerentesPage() {
         </div>
       ) : (
         <>
+          <GerenteGroupedNFs />
           {/* KPIs financeiros */}
+
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.comGerente)} />
             <Kpi icon={<Wallet className="w-4 h-4" />} label="Adiantamentos" value={BRL(kpis.adiantPago)} />
@@ -670,4 +674,24 @@ function StatusBadge({ status }: { status: string }) {
     distratado: "bg-muted text-muted-foreground border-border",
   };
   return <Badge variant="outline" className={map[status] ?? ""}>{status}</Badge>;
+}
+
+function GerenteGroupedNFs() {
+  const { data: nfs = [] } = useMyNFs();
+  const items: PendingNFItem[] = useMemo(
+    () =>
+      (nfs as MyNFItem[])
+        .filter((n) => n.status === "solicitada" && (n.requester_role ?? "corretor") === "gerente")
+        .map((n) => ({
+          id: n.id,
+          valor_nf: n.valor_nf,
+          sale_id: n.sale_id,
+          sale: n.sale
+            ? { comprador: n.sale.comprador, empreendimento: n.sale.empreendimento, unidade: n.sale.unidade, data: n.sale.data }
+            : null,
+        })),
+    [nfs],
+  );
+  if (items.length === 0) return null;
+  return <GroupedNFEmitter items={items} role="gerente" invalidateKeys={[["gerente-overview"]]} />;
 }

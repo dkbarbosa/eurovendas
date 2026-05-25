@@ -6,6 +6,8 @@ import { usePersistentState } from "@/hooks/use-persistent-state";
 import { listMyBrokerSales, listDistinctCorretores } from "@/lib/commissions.functions";
 import { createCommissionRequest, deleteCommissionRequest, markRequestPaid } from "@/lib/requests.functions";
 import { markNFEmitted, deleteNFRequest, markNFPaid } from "@/lib/nf.functions";
+import { GroupedNFEmitter, type PendingNFItem } from "@/components/nf/GroupedNFEmitter";
+
 import { listDistratos } from "@/lib/distratos.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -563,7 +565,32 @@ function ComissoesPage() {
 
       {displayName && (
         <>
+          {(() => {
+            const salesById = new Map(allSales.map((s) => [s.id, s]));
+            const pending: PendingNFItem[] = nfs
+              .filter((n) => n.status === "solicitada")
+              .map((n) => {
+                const s = salesById.get(n.sale_id);
+                return {
+                  id: n.id,
+                  valor_nf: (n as { valor_nf?: number | null }).valor_nf ?? null,
+                  sale_id: n.sale_id,
+                  sale: s
+                    ? { comprador: s.comprador, empreendimento: s.empreendimento, unidade: s.unidade, data: s.data }
+                    : null,
+                };
+              });
+            return pending.length > 0 ? (
+              <GroupedNFEmitter
+                items={pending}
+                role="corretor"
+                invalidateKeys={[["my-broker-sales", activeBrokerArg ?? myName ?? ""]]}
+              />
+            ) : null;
+          })()}
           {/* Filtros */}
+
+
 
           <div className="glass-card p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">

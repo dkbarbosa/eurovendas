@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/CurrencyInput";
-import { SaleNFCell } from "@/components/nf/SaleNFCell";
+import { SaleNFCell, useMyNFs, type MyNFItem } from "@/components/nf/SaleNFCell";
+import { GroupedNFEmitter, type PendingNFItem } from "@/components/nf/GroupedNFEmitter";
+
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -240,7 +242,9 @@ function DiretorPage() {
         </div>
       ) : (
         <>
+          <DiretorGroupedNFs />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+
             <Kpi icon={<TrendingUp className="w-4 h-4" />} label="Comissão Total" value={BRL(kpis.comTotal)} />
             <Kpi icon={<CheckCircle2 className="w-4 h-4" />} label="Recebidos" value={BRL(kpis.pago)} />
             <Kpi icon={<Clock className="w-4 h-4" />} label="A Receber" value={BRL(kpis.aReceber)} accent />
@@ -453,7 +457,28 @@ function DiretorPage() {
   );
 }
 
+function DiretorGroupedNFs() {
+  const { data: nfs = [] } = useMyNFs();
+  const items: PendingNFItem[] = useMemo(
+    () =>
+      (nfs as MyNFItem[])
+        .filter((n) => n.status === "solicitada" && (n.requester_role ?? "corretor") === "diretor")
+        .map((n) => ({
+          id: n.id,
+          valor_nf: n.valor_nf,
+          sale_id: n.sale_id,
+          sale: n.sale
+            ? { comprador: n.sale.comprador, empreendimento: n.sale.empreendimento, unidade: n.sale.unidade, data: n.sale.data }
+            : null,
+        })),
+    [nfs],
+  );
+  if (items.length === 0) return null;
+  return <GroupedNFEmitter items={items} role="diretor" invalidateKeys={[["diretor-overview"]]} />;
+}
+
 function Kpi({
+
   icon, label, value, hint,
 }: {
   icon: React.ReactNode; label: string; value: string; hint?: string;
