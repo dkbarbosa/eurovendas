@@ -435,8 +435,7 @@ export const listMyDistratoRecipientPendencias = createServerFn({ method: "GET" 
   });
 
 // ---------- LISTAR PENDÊNCIAS (com saldo > 0) ----------
-// Suporta beneficiário corretor (distratos.corretor_user_id), gerente
-// (distratos.gerente_user_id) e diretor (via distrato_recipients).
+// Usa o beneficiário individual do distrato_recipients para corretor, gerente e gestão.
 export const listPendenciasDistrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -452,41 +451,53 @@ export const listPendenciasDistrato = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const roles = await getRoles(context.userId);
     const isStaff = roles.includes("financeiro") || roles.includes("admin");
+    const target = isStaff
+      ? data?.corretor_user_id
+        ? { userId: data.corretor_user_id, role: "corretor" as const }
+        : data?.gerente_user_id
+          ? { userId: data.gerente_user_id, role: "gerente" as const }
+          : data?.diretor_user_id
+            ? { userId: data.diretor_user_id, role: "diretor" as const }
+            : null
+      : { userId: context.userId, role: undefined };
 
-    // Diretor: distratos.* não tem coluna diretor_user_id, então olhamos recipients
-    if (isStaff && data?.diretor_user_id) {
-      const { data: recs } = await supabaseAdmin
+    if (target?.userId) {
+      let recQ = supabaseAdmin
         .from("distrato_recipients")
-        .select("distrato_id,valor_devolver,valor_devolvido,status")
-        .eq("user_id", data.diretor_user_id)
-        .eq("role", "diretor")
+        .select("id,distrato_id,user_id,role,nome,valor_devolver,valor_devolvido,status,observacao_recebimento,created_at")
+        .eq("user_id", target.userId)
         .eq("status", "pendente");
+      if (target.role) recQ = recQ.eq("role", target.role);
+      const { data: recs, error: recErr } = await recQ;
+      if (recErr) throw new Error(recErr.message);
       const pend = (recs ?? []).filter(
         (r) => Number(r.valor_devolver) - Number(r.valor_devolvido) > 0.001,
       );
-      if (pend.length === 0) return [];
-      const saldoMap = new Map<string, number>();
-      for (const r of pend) {
-        saldoMap.set(
-          r.distrato_id,
-          (saldoMap.get(r.distrato_id) ?? 0) +
-            (Number(r.valor_devolver) - Number(r.valor_devolvido)),
-        );
+      if (pend.length > 0) {
+        const ids = [...new Set(pend.map((r) => r.distrato_id))];
+        const { data: dists } = await supabaseAdmin
+          .from("distratos")
+          .select("id,sale_id,corretor_user_id,gerente_user_id,corretor_nome,gerente_nome,comprador,empreendimento,unidade,status,created_at,motivo,observacao_financeiro")
+          .in("id", ids)
+          .neq("status", "cancelado");
+        const dMap = new Map((dists ?? []).map((d) => [d.id, d]));
+        return pend
+          .map((r) => {
+            const d = dMap.get(r.distrato_id);
+            if (!d) return null;
+            const saldo = Math.max(0, Number(r.valor_devolver) - Number(r.valor_devolvido));
+            return {
+              ...d,
+              recipient_id: r.id,
+              recipient_role: r.role,
+              recipient_nome: r.nome,
+              valor_devolver: Number(r.valor_devolver) || 0,
+              valor_devolvido: Number(r.valor_devolvido) || 0,
+              saldo_restante: saldo,
+            };
+          })
+          .filter((r): r is NonNullable<typeof r> => !!r && r.saldo_restante > 0.001);
       }
-      const ids = [...saldoMap.keys()];
-      const { data: dists } = await supabaseAdmin
-        .from("distratos")
-        .select("id,sale_id,comprador,empreendimento,unidade,status,created_at")
-        .in("id", ids)
-        .neq("status", "cancelado");
-      return (dists ?? []).map((d) => ({
-        ...d,
-        corretor_user_id: null,
-        corretor_nome: null,
-        valor_devolver: saldoMap.get(d.id) ?? 0,
-        valor_devolvido: 0,
-        saldo_restante: saldoMap.get(d.id) ?? 0,
-      }));
     }
 
     let q = supabaseAdmin
