@@ -204,7 +204,7 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
         const folderName = sanitizeFolderName([sale.corretor, "Comprovantes Sinal"]);
         const folderId = await getOrCreateDriveFolder(folderName);
         const buf = b64ToBytes(data.comprovante_sinal.file_base64);
-        const safeName = `${data.sale_id}-sinal-${Date.now()}-${data.comprovante_sinal.file_name.replace(/[^\w.\-]+/g, "_")}`;
+        const safeName = `${data.sale_id}-sinal-${Date.now()}-${data.comprovante_sinal.file_name.replace(/[^\w.-]+/g, "_")}`;
         const up = await uploadFileToDriveFolder({
           buffer: buf,
           filename: safeName,
@@ -474,9 +474,9 @@ export const decideRequest = createServerFn({ method: "POST" })
           if (!active) {
             let corretorUserId: string | null =
               role === "corretor" ? (req.corretor_user_id ?? null) : null;
-            let gerenteUserId: string | null =
+            const gerenteUserId: string | null =
               role === "gerente" ? (req.gerente_user_id ?? null) : null;
-            let diretorUserId: string | null =
+            const diretorUserId: string | null =
               role === "diretor" ? (req.diretor_user_id ?? null) : null;
 
             // Fallback: tenta resolver o corretor pelo nome da venda caso o pedido não traga user_id.
