@@ -507,25 +507,28 @@ export const markRequestPaid = createServerFn({ method: "POST" })
     }
     // Antes de marcar como pago: exigir que a NF da venda (se houver) esteja recebida.
     const { data: reqRow } = await supabaseAdmin
-      .from("commission_requests").select("sale_id,status").eq("id", data.id).maybeSingle();
+      .from("commission_requests").select("sale_id,status,requester_role").eq("id", data.id).maybeSingle();
     if (!reqRow) throw new Error("Pedido não encontrado.");
     if (reqRow.sale_id) {
+      const role = (reqRow.requester_role ?? "corretor") as string;
+      const roleLabel = role === "gerente" ? "gerente" : role === "diretor" ? "Gestão" : "corretor";
       const { data: nfRows } = await supabaseAdmin
         .from("nf_requests")
         .select("status,created_at")
         .eq("sale_id", reqRow.sale_id)
+        .eq("requester_role", role)
         .neq("status", "cancelada")
         .order("created_at", { ascending: false })
         .limit(1);
       const nfActive = nfRows?.[0];
       if (!nfActive) {
-        throw new Error("Pagamento só pode ser efetuado após o recebimento da NF do corretor.");
+        throw new Error(`Pagamento só pode ser efetuado após o recebimento da NF do ${roleLabel}.`);
       }
       if (nfActive.status !== "recebida") {
         throw new Error(
           nfActive.status === "emitida"
             ? "Aguardando confirmação de recebimento da NF para liberar o pagamento."
-            : "Pagamento só pode ser efetuado após o recebimento da NF do corretor.",
+            : `Pagamento só pode ser efetuado após o recebimento da NF do ${roleLabel}.`,
         );
       }
     }
