@@ -206,9 +206,11 @@ function ComissoesPage() {
       if (q && !(s.comprador ?? "").toLowerCase().includes(q)) return false;
       return true;
     }).sort((a, b) => {
-      const aPodeSolicitar = eligibleSaleIds.has(a.id) && !salesWithOpenRequest.has(a.id);
-      const bPodeSolicitar = eligibleSaleIds.has(b.id) && !salesWithOpenRequest.has(b.id);
-      if (aPodeSolicitar !== bPodeSolicitar) return aPodeSolicitar ? -1 : 1;
+      const aOpen = salesWithOpenRequest.has(a.id);
+      const bOpen = salesWithOpenRequest.has(b.id);
+      const aRank = aOpen ? 0 : eligibleSaleIds.has(a.id) ? 1 : 2;
+      const bRank = bOpen ? 0 : eligibleSaleIds.has(b.id) ? 1 : 2;
+      if (aRank !== bRank) return aRank - bRank;
       return String(b.data ?? "").localeCompare(String(a.data ?? ""));
     });
   }, [allSales, dateFrom, dateTo, clientSearch, salesWithOpenRequest, eligibleSaleIds]);
