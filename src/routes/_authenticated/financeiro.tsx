@@ -1534,8 +1534,8 @@ function AdvancesTab() {
             </DialogTitle>
             <DialogDescription>
               {obsEligibleDistrato
-                ? "Antes de aprovar, verifique se o corretor possui distrato pendente para devolução."
-                : "Observação opcional para o corretor."}
+                ? "Antes de aprovar, verifique se o beneficiário possui distrato pendente para devolução."
+                : "Observação opcional para o beneficiário."}
             </DialogDescription>
           </DialogHeader>
 
