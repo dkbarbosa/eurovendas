@@ -964,9 +964,37 @@ function ComissoesPage() {
                             </div>
                           ))}
 
-                          {sNfs.map((n) => (
+                          {sNfs.map((n) => {
+                            const nDesc = Number((n as { desconto_distrato?: number | null }).desconto_distrato) || 0;
+                            const nDistHist = (n as { observacao_distrato?: string | null }).observacao_distrato?.trim();
+                            const hasDist = nDesc > 0 || !!nDistHist;
+                            return (
                             <div key={n.id} className="flex items-center gap-1 flex-wrap">
                               <NFPill n={n} />
+                              {hasDist && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-violet-400/40 bg-violet-500/10 text-violet-300 text-[10px] hover:bg-violet-500/20"
+                                    >
+                                      <AlertTriangle className="w-3 h-3" />
+                                      {nDesc > 0 ? `Distrato −${BRL(nDesc)}` : "Distrato"} · Histórico
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-80 text-xs space-y-1.5">
+                                    <div className="font-medium flex items-center gap-1.5">
+                                      <AlertTriangle className="w-3.5 h-3.5 text-violet-400" /> Histórico de distrato
+                                    </div>
+                                    {nDesc > 0 && <div>Desconto aplicado: <b>{BRL(nDesc)}</b></div>}
+                                    {nDistHist ? (
+                                      <div className="text-muted-foreground whitespace-pre-wrap break-words">{nDistHist}</div>
+                                    ) : (
+                                      <div className="text-muted-foreground italic">Sem observação registrada.</div>
+                                    )}
+                                  </PopoverContent>
+                                </Popover>
+                              )}
                               {(() => {
                                 const nn = n as { observacao_financeiro?: string | null; observacao_corretor?: string | null; observacao_recebimento?: string | null; observacao_distrato?: string | null };
                                 const hasMsg = nn.observacao_financeiro || nn.observacao_corretor || nn.observacao_recebimento || nn.observacao_distrato;
@@ -1034,7 +1062,9 @@ function ComissoesPage() {
                                 </button>
                               )}
                             </div>
-                          ))}
+                            );
+                          })}
+
 
                           {reqs.length === 0 && sNfs.length === 0 && (
                             <span className="text-xs text-muted-foreground">—</span>
