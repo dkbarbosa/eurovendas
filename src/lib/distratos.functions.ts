@@ -551,26 +551,20 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
 
     const isGerReq = req.requester_role === "gerente";
     const isDirReq = req.requester_role === "diretor";
-    if (isGerReq) {
-      if (dist.gerente_user_id && req.gerente_user_id && dist.gerente_user_id !== req.gerente_user_id)
-        throw new Error("Distrato e pedido pertencem a gerentes diferentes.");
-    } else if (isDirReq) {
-      // Para diretor validamos via distrato_recipients (sem coluna direta)
-      const { data: recDir } = await supabaseAdmin
-        .from("distrato_recipients")
-        .select("id,valor_devolver,valor_devolvido")
-        .eq("distrato_id", data.distrato_id)
-        .eq("role", "diretor")
-        .eq("user_id", req.diretor_user_id as string)
-        .eq("status", "pendente")
-        .maybeSingle();
-      if (!recDir) throw new Error("Distrato sem pendência para este diretor.");
-    } else {
-      if (dist.corretor_user_id && req.corretor_user_id && dist.corretor_user_id !== req.corretor_user_id)
-        throw new Error("Distrato e pedido pertencem a corretores diferentes.");
-    }
+    const role = isGerReq ? "gerente" : isDirReq ? "diretor" : "corretor";
+    const beneficiaryId = isGerReq ? req.gerente_user_id : isDirReq ? req.diretor_user_id : req.corretor_user_id;
+    if (!beneficiaryId) throw new Error("Pedido sem beneficiário vinculado.");
+    const { data: rec } = await supabaseAdmin
+      .from("distrato_recipients")
+      .select("id,valor_devolver,valor_devolvido,status")
+      .eq("distrato_id", data.distrato_id)
+      .eq("role", role)
+      .eq("user_id", beneficiaryId as string)
+      .eq("status", "pendente")
+      .maybeSingle();
+    if (!rec) throw new Error("Distrato sem pendência individual para este beneficiário.");
 
-    const saldoDist = Math.max(0, Number(dist.valor_devolver) - Number(dist.valor_devolvido));
+    const saldoDist = Math.max(0, Number(rec.valor_devolver) - Number(rec.valor_devolvido));
     const descontoAtual = Number(req.desconto_distrato) || 0;
     const restanteRequest = Math.max(0, Number(req.valor_solicitado) - descontoAtual);
     if (data.valor_desconto > saldoDist + 0.001)
@@ -595,39 +589,33 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
       .update({ desconto_distrato: descontoAtual + data.valor_desconto })
       .eq("id", data.commission_request_id);
 
-    const novoDevolvido = Number(dist.valor_devolvido) + data.valor_desconto;
-    const quitado = novoDevolvido >= Number(dist.valor_devolver) - 0.001;
+    const novoRecDevolvido = Number(rec.valor_devolvido) + data.valor_desconto;
+    const recQuitado = novoRecDevolvido >= Number(rec.valor_devolver) - 0.001;
+    await supabaseAdmin
+      .from("distrato_recipients")
+      .update({
+        valor_devolvido: novoRecDevolvido,
+        status: recQuitado ? "devolvido" : "pendente",
+        devolvido_at: recQuitado ? new Date().toISOString() : null,
+        devolvido_por: recQuitado ? context.userId : null,
+      })
+      .eq("id", rec.id);
+
+    const { data: allRecs } = await supabaseAdmin
+      .from("distrato_recipients")
+      .select("valor_devolver,valor_devolvido")
+      .eq("distrato_id", data.distrato_id);
+    const totalDevolver = (allRecs ?? []).reduce((s, r) => s + (Number(r.valor_devolver) || 0), 0);
+    const totalDevolvido = (allRecs ?? []).reduce((s, r) => s + (Number(r.valor_devolvido) || 0), 0);
+    const quitado = totalDevolver > 0 && totalDevolvido >= totalDevolver - 0.001;
     await supabaseAdmin
       .from("distratos")
       .update({
-        valor_devolvido: novoDevolvido,
+        valor_devolvido: totalDevolvido,
+        valor_devolver: totalDevolver || Number(dist.valor_devolver) || 0,
         status: quitado ? "quitado_por_desconto" : "pendente_devolucao",
       })
       .eq("id", data.distrato_id);
-
-    // Para diretor: também marca o recipient como devolvido (parcial/total)
-    if (isDirReq) {
-      const { data: recDir2 } = await supabaseAdmin
-        .from("distrato_recipients")
-        .select("id,valor_devolver,valor_devolvido")
-        .eq("distrato_id", data.distrato_id)
-        .eq("role", "diretor")
-        .eq("user_id", req.diretor_user_id as string)
-        .maybeSingle();
-      if (recDir2) {
-        const novo = Number(recDir2.valor_devolvido) + data.valor_desconto;
-        const quit = novo >= Number(recDir2.valor_devolver) - 0.001;
-        await supabaseAdmin
-          .from("distrato_recipients")
-          .update({
-            valor_devolvido: novo,
-            status: quit ? "devolvido" : "pendente",
-            devolvido_at: quit ? new Date().toISOString() : null,
-            devolvido_por: quit ? context.userId : null,
-          })
-          .eq("id", recDir2.id);
-      }
-    }
 
     return { ok: true };
   });
