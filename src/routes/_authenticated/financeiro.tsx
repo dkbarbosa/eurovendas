@@ -703,13 +703,11 @@ function AdvancesTab() {
         {!isLoading &&
           filtered.length > 0 &&
           (() => {
-            // Agrupa por venda + papel para manter as 3 comissões independentes.
+            // Agrupa apenas por venda — 1 card por cliente.
+            // Os 3 papéis (corretor/gerente/diretor) viram seções colapsáveis dentro do card.
             const groups = new Map<string, typeof filtered>();
             for (const r of filtered) {
-              const role =
-                ((r as { requester_role?: string | null }).requester_role ?? "corretor") ||
-                "corretor";
-              const k = `${r.sale_id ?? r.id}::${role}`;
+              const k = r.sale_id ?? r.id;
               if (!groups.has(k)) groups.set(k, [] as typeof filtered);
               groups.get(k)!.push(r);
             }
