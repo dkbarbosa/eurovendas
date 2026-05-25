@@ -58,6 +58,7 @@ import {
   BadgeCheck,
   Ban,
   Paperclip,
+  ChevronDown,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { DistratoButton } from "@/components/distratos/DistratoButton";
