@@ -1689,9 +1689,8 @@ function AdvancesTab() {
                 decideMut.isPending ||
                 payMut.isPending ||
                 (obsEligibleDistrato && aprovPendLoading) ||
-                (mustApplyDistrato && !aprovSelected) ||
-                (mustApplyDistrato &&
-                  (!(aprovValorNum > 0) || aprovValorNum > aprovMaxApply + 0.001))
+                (mustApplyDistrato && !(aprovValorNum > 0)) ||
+                (mustApplyDistrato && aprovDescInvalido)
               }
               onClick={() =>
                 obs.action === "aprovar"
@@ -1699,18 +1698,18 @@ function AdvancesTab() {
                       id: obs.id!,
                       decision: "aprovado",
                       observacao: obs.text || undefined,
-                      distratoDescontos: aprovSelected
-                        ? [
-                            {
-                              distrato_id: aprovDesc.distratoId,
-                              valor_desconto: aprovValorNum,
-                              observacao: aprovDesc.obs || undefined,
-                            },
-                          ]
-                        : undefined,
+                      distratoDescontos:
+                        aprovDescontosSelecionados.length > 0
+                          ? aprovDescontosSelecionados.map((d) => ({
+                              distrato_id: d.pendencia.id,
+                              valor_desconto: d.valor,
+                              observacao: d.obs || undefined,
+                            }))
+                          : undefined,
                     })
                   : payMut.mutate({ id: obs.id!, observacao: obs.text || undefined })
               }
+
               style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
             >
               {decideMut.isPending || payMut.isPending ? (
