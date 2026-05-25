@@ -203,6 +203,7 @@ function ComissoesPage() {
     >();
     for (const r of requests) {
       if (r.status !== "pago") continue;
+      if (((r as { requester_role?: string | null }).requester_role ?? "corretor") !== "corretor") continue;
       const cur = m.get(r.sale_id) ?? { adiantado: 0, finalPago: 0, items: [] };
       const v = Number(r.valor_solicitado) || 0;
       if (r.tipo === "adiantamento") cur.adiantado += v;
@@ -686,7 +687,7 @@ function ComissoesPage() {
                 {sales.map((s) => {
                   const reqs = requestsBySale.get(s.id) ?? [];
                   const sNfs = nfsBySale.get(s.id) ?? [];
-                  const hasPending = reqs.some((r) => r.status === "pendente");
+                  const hasPending = reqs.some((r) => r.status === "pendente" && (((r as { requester_role?: string | null }).requester_role ?? "corretor") === "corretor"));
                   const nfAberta = sNfs.find((n) => n.status === "solicitada" || n.status === "emitida");
                   const paid = paidBySale.get(s.id);
                   const distrato = distratoBySale.get(s.id);
