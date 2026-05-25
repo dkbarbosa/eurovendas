@@ -1711,8 +1711,8 @@ function AdvancesTab() {
               disabled={
                 decideMut.isPending ||
                 payMut.isPending ||
-                (obsEligibleDistrato &&
-                  !!aprovSelected &&
+                (mustApplyDistrato && !aprovSelected) ||
+                (mustApplyDistrato &&
                   (!(aprovValorNum > 0) || aprovValorNum > aprovMaxApply + 0.001))
               }
               onClick={() =>
