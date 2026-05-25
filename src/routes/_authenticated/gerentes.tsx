@@ -16,7 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/CurrencyInput";
-import { SaleNFCell } from "@/components/nf/SaleNFCell";
+import { SaleNFCell, useMyNFs, type MyNFItem } from "@/components/nf/SaleNFCell";
+import { GroupedNFEmitter, type PendingNFItem } from "@/components/nf/GroupedNFEmitter";
+
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
