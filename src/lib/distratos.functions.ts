@@ -589,6 +589,29 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
       .update({ desconto_distrato: descontoAtual + data.valor_desconto })
       .eq("id", data.commission_request_id);
 
+    // Leva o desconto/histórico do distrato para a NF aberta automaticamente
+    // no mesmo papel, para o beneficiário enxergar o valor correto no "papel".
+    const { data: activeNfs } = await supabaseAdmin
+      .from("nf_requests")
+      .select("id,desconto_distrato,observacao_distrato")
+      .eq("sale_id", req.sale_id)
+      .eq("requester_role", role)
+      .in("status", ["solicitada", "emitida", "recebida"])
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const activeNf = activeNfs?.[0];
+    if (activeNf) {
+      const stamp = data.observacao || `Desconto de distrato aplicado: R$ ${data.valor_desconto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
+      await supabaseAdmin
+        .from("nf_requests")
+        .update({
+          distrato_id: data.distrato_id,
+          desconto_distrato: (Number(activeNf.desconto_distrato) || 0) + data.valor_desconto,
+          observacao_distrato: [activeNf.observacao_distrato, stamp].filter(Boolean).join("\n"),
+        })
+        .eq("id", activeNf.id);
+    }
+
     const novoRecDevolvido = Number(rec.valor_devolvido) + data.valor_desconto;
     const recQuitado = novoRecDevolvido >= Number(rec.valor_devolver) - 0.001;
     await supabaseAdmin
