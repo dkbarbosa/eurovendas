@@ -498,6 +498,7 @@ export const listPendenciasDistrato = createServerFn({ method: "POST" })
           })
           .filter((r): r is NonNullable<typeof r> => !!r && r.saldo_restante > 0.001);
       }
+      if (target.role === "diretor") return [];
     }
 
     let q = supabaseAdmin
