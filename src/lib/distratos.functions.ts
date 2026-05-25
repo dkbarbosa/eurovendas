@@ -133,6 +133,15 @@ export const createDistrato = createServerFn({ method: "POST" })
   });
 
 // ---------- LISTAR VENDAS PARA DISTRATO (financeiro) ----------
+export type SaleRecipientBreakdown = {
+  role: "corretor" | "gerente" | "diretor";
+  user_id: string | null;
+  nome: string | null;
+  adiant: number;
+  final: number;
+  total: number;
+};
+
 export const listSalesForDistrato = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -140,12 +149,12 @@ export const listSalesForDistrato = createServerFn({ method: "GET" })
     const [{ data: sales }, { data: reqs }, { data: dists }] = await Promise.all([
       supabaseAdmin
         .from("sales")
-        .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,status")
+        .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,status")
         .order("data", { ascending: false })
         .limit(3000),
       supabaseAdmin
         .from("commission_requests")
-        .select("sale_id,tipo,valor_solicitado,status")
+        .select("sale_id,tipo,valor_solicitado,status,requester_role,corretor_user_id,gerente_user_id,diretor_user_id")
         .eq("status", "pago"),
       supabaseAdmin
         .from("distratos")
@@ -153,21 +162,68 @@ export const listSalesForDistrato = createServerFn({ method: "GET" })
         .neq("status", "cancelado"),
     ]);
     const distSet = new Set((dists ?? []).map((d) => d.sale_id));
-    const paidMap = new Map<string, { adiant: number; final: number }>();
-    for (const r of reqs ?? []) {
-      const cur = paidMap.get(r.sale_id) ?? { adiant: 0, final: 0 };
+
+    // Mapas auxiliares para resolver nomes/user_ids
+    const allReqs = reqs ?? [];
+    const userIds = new Set<string>();
+    for (const r of allReqs) {
+      if (r.corretor_user_id) userIds.add(r.corretor_user_id);
+      if (r.gerente_user_id) userIds.add(r.gerente_user_id);
+      if (r.diretor_user_id) userIds.add(r.diretor_user_id);
+    }
+    const profsRes = userIds.size
+      ? await supabaseAdmin.from("profiles").select("id,display_name,email").in("id", [...userIds])
+      : { data: [] as { id: string; display_name: string | null; email: string | null }[] };
+    const profMap = new Map((profsRes.data ?? []).map((p) => [p.id, p]));
+
+    type Bd = { adiant: number; final: number; user_id: string | null; nome: string | null };
+    const breakdown = new Map<string, Record<string, Bd>>(); // sale_id -> role -> bd
+
+    for (const r of allReqs) {
+      const role = (r.requester_role ?? "corretor") as "corretor" | "gerente" | "diretor";
+      const map = breakdown.get(r.sale_id) ?? {};
+      const uid =
+        role === "corretor"
+          ? r.corretor_user_id
+          : role === "gerente"
+            ? r.gerente_user_id
+            : r.diretor_user_id;
+      const prof = uid ? profMap.get(uid) : null;
+      const cur = map[role] ?? { adiant: 0, final: 0, user_id: uid ?? null, nome: prof?.display_name ?? prof?.email ?? null };
       if (r.tipo === "adiantamento") cur.adiant += Number(r.valor_solicitado) || 0;
       else if (r.tipo === "comissao_final") cur.final += Number(r.valor_solicitado) || 0;
-      paidMap.set(r.sale_id, cur);
+      if (!cur.user_id && uid) cur.user_id = uid;
+      if (!cur.nome && prof) cur.nome = prof.display_name ?? prof.email ?? null;
+      map[role] = cur;
+      breakdown.set(r.sale_id, map);
     }
+
     return (sales ?? []).map((s) => {
-      const p = paidMap.get(s.id) ?? { adiant: 0, final: 0 };
+      const map = breakdown.get(s.id) ?? {};
+      const recipients: SaleRecipientBreakdown[] = (
+        ["corretor", "gerente", "diretor"] as const
+      )
+        .filter((role) => map[role] && (map[role].adiant + map[role].final) > 0)
+        .map((role) => ({
+          role,
+          user_id: map[role].user_id,
+          nome:
+            map[role].nome ??
+            (role === "corretor" ? s.corretor : role === "gerente" ? s.gerente : null),
+          adiant: map[role].adiant,
+          final: map[role].final,
+          total: map[role].adiant + map[role].final,
+        }));
+      const totalPago = recipients.reduce((acc, r) => acc + r.total, 0);
+      const adiantTotal = recipients.reduce((acc, r) => acc + r.adiant, 0);
+      const finalTotal = recipients.reduce((acc, r) => acc + r.final, 0);
       return {
         ...s,
-        valor_adiantamento_pago: p.adiant,
-        valor_comissao_final_pago: p.final,
-        total_pago: p.adiant + p.final,
+        valor_adiantamento_pago: adiantTotal,
+        valor_comissao_final_pago: finalTotal,
+        total_pago: totalPago,
         ja_distratada: distSet.has(s.id),
+        recipients,
       };
     });
   });
