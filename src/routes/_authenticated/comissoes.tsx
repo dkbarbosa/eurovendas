@@ -111,8 +111,22 @@ function ComissoesPage() {
 
 
   const allSales = data?.sales ?? [];
-  const requests = data?.requests ?? [];
-  const nfs = data?.nfs ?? [];
+  const rawRequests = data?.requests ?? [];
+  const rawNfs = data?.nfs ?? [];
+  const requests = useMemo(
+    () => rawRequests.filter((r) => {
+      const role = ((r as { requester_role?: string | null }).requester_role ?? "corretor") || "corretor";
+      return role === "corretor" && !(r as { gerente_user_id?: string | null }).gerente_user_id && !(r as { diretor_user_id?: string | null }).diretor_user_id;
+    }),
+    [rawRequests],
+  );
+  const nfs = useMemo(
+    () => rawNfs.filter((n) => {
+      const role = ((n as { requester_role?: string | null }).requester_role ?? "corretor") || "corretor";
+      return role === "corretor" && !(n as { gerente_user_id?: string | null }).gerente_user_id && !(n as { diretor_user_id?: string | null }).diretor_user_id;
+    }),
+    [rawNfs],
+  );
   const descontosAll = (data as { descontos?: DescontoInfo[] } | undefined)?.descontos ?? [];
   const displayName = data?.corretorNome ?? null;
 
