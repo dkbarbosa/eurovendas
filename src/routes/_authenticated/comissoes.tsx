@@ -584,7 +584,7 @@ function ComissoesPage() {
               <GroupedNFEmitter
                 items={pending}
                 role="corretor"
-                invalidateKeys={[["my-broker-sales", activeBrokerArg ?? myName]]}
+                invalidateKeys={[["my-broker-sales", activeBrokerArg ?? myName ?? ""]]}
               />
             ) : null;
           })()}
