@@ -496,10 +496,11 @@ function AdvancesTab() {
           <div className="p-6 text-center text-muted-foreground">Nenhum pedido.</div>
         )}
         {!isLoading && filtered.length > 0 && (() => {
-          // Agrupa pedidos pela mesma venda
+          // Agrupa por venda + papel para manter as 3 comissões independentes.
           const groups = new Map<string, typeof filtered>();
           for (const r of filtered) {
-            const k = r.sale_id ?? r.id;
+            const role = ((r as { requester_role?: string | null }).requester_role ?? "corretor") || "corretor";
+            const k = `${r.sale_id ?? r.id}::${role}`;
             if (!groups.has(k)) groups.set(k, [] as typeof filtered);
             groups.get(k)!.push(r);
           }
@@ -516,6 +517,8 @@ function AdvancesTab() {
             <div className="space-y-4">
               {groupList.map(({ key, items }) => {
                 const head = items[0];
+                const headRole = ((head as { requester_role?: string | null }).requester_role ?? "corretor") || "corretor";
+                const headRoleLabel = headRole === "gerente" ? "Gerente" : headRole === "diretor" ? "Gestão" : "Corretor";
                 const comissaoLiq = Number(head.comissao_liq) || 0;
                 const adiantadoTot = Number(head.adiantado_pago) || 0;
                 const finalPago = Number(head.final_pago) || 0;
@@ -531,7 +534,10 @@ function AdvancesTab() {
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 p-4 bg-gradient-to-br from-primary/[0.07] via-secondary/40 to-secondary/20 border-b border-border/60 relative">
                       <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-primary/70 to-primary/20" />
                       <div className="min-w-0 pl-2">
-                        <div className="font-display text-base md:text-lg font-semibold tracking-tight text-foreground truncate">{head.sale?.comprador ?? "—"}</div>
+                        <div className="font-display text-base md:text-lg font-semibold tracking-tight text-foreground truncate">
+                          {head.sale?.comprador ?? "—"}
+                          <Badge variant="outline" className="ml-2 align-middle text-[10px] bg-primary/10 text-primary border-primary/30">{headRoleLabel}</Badge>
+                        </div>
                         <div className="text-xs text-foreground/80 truncate mt-0.5">
                           <span className="text-foreground/95 font-medium">{head.sale?.empreendimento}</span>
                           <span className="text-muted-foreground"> / </span>
