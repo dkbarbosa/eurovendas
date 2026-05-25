@@ -705,6 +705,37 @@ function AdvancesTab() {
               if (!groups.has(k)) groups.set(k, [] as typeof filtered);
               groups.get(k)!.push(r);
             }
+
+            // Status consolidado por venda (3 papéis) para o resumo "Quem recebeu / Quem falta"
+            type RoleStatus = {
+              liq: number;
+              adiant: number;
+              final: number;
+              falta: number;
+              hasRequest: boolean;
+            };
+            const statusBySale = new Map<string, Record<string, RoleStatus>>();
+            for (const r of filtered) {
+              const sid = r.sale_id ?? "";
+              if (!sid) continue;
+              const role =
+                ((r as { requester_role?: string | null }).requester_role ?? "corretor") ||
+                "corretor";
+              const cur =
+                statusBySale.get(sid) ??
+                ({} as Record<string, RoleStatus>);
+              if (!cur[role]) {
+                cur[role] = {
+                  liq: Number(r.comissao_liq) || 0,
+                  adiant: Number(r.adiantado_pago) || 0,
+                  final: Number(r.final_pago) || 0,
+                  falta: Number(r.a_receber) || 0,
+                  hasRequest: true,
+                };
+              }
+              statusBySale.set(sid, cur);
+            }
+
             const groupList = Array.from(groups.entries())
               .map(([k, items]) => ({
                 key: k,
@@ -717,6 +748,7 @@ function AdvancesTab() {
                 const lb = b.items[b.items.length - 1].created_at;
                 return new Date(lb).getTime() - new Date(la).getTime();
               });
+
 
             return (
               <div className="space-y-4">
@@ -859,6 +891,87 @@ function AdvancesTab() {
                           )}
                         </div>
                       </div>
+
+                      {/* Resumo: quem já recebeu / quem falta receber (Corretor / Gerente / Gestão) */}
+                      {(() => {
+                        const sid = head.sale_id ?? "";
+                        const st = statusBySale.get(sid) ?? {};
+                        const roles: Array<{ key: string; label: string }> = [
+                          { key: "corretor", label: "Corretor" },
+                          { key: "gerente", label: "Gerente" },
+                          { key: "diretor", label: "Gestão" },
+                        ];
+                        return (
+                          <div className="px-4 py-3 border-b border-border/60 bg-secondary/10">
+                            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-2">
+                              Status de recebimento por papel
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              {roles.map((rl) => {
+                                const s = st[rl.key];
+                                const recebido = s ? s.adiant + s.final : 0;
+                                const falta = s ? s.falta : 0;
+                                const liq = s ? s.liq : 0;
+                                const quitado = !!s && liq > 0 && falta === 0;
+                                const semPedido = !s;
+                                const corBorda = semPedido
+                                  ? "border-border/50 bg-secondary/30"
+                                  : quitado
+                                    ? "border-emerald-400/40 bg-emerald-500/10"
+                                    : recebido > 0
+                                      ? "border-amber-400/40 bg-amber-500/10"
+                                      : "border-sky-400/40 bg-sky-500/10";
+                                return (
+                                  <div
+                                    key={rl.key}
+                                    className={`rounded-lg border ${corBorda} px-3 py-2 flex items-center justify-between gap-3`}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <input
+                                        type="checkbox"
+                                        readOnly
+                                        checked={quitado}
+                                        className="h-4 w-4 accent-emerald-400 cursor-default"
+                                      />
+                                      <div className="min-w-0">
+                                        <div className="text-xs font-semibold text-foreground truncate">
+                                          {rl.label}
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground">
+                                          {semPedido
+                                            ? "Sem solicitação"
+                                            : quitado
+                                              ? "Quitado"
+                                              : recebido > 0
+                                                ? "Parcial"
+                                                : "A receber"}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="text-right text-[11px] leading-tight">
+                                      <div className="text-foreground/90">
+                                        Recebido:{" "}
+                                        <span className="font-semibold text-emerald-300">
+                                          {BRL(recebido)}
+                                        </span>
+                                      </div>
+                                      <div className="text-foreground/90">
+                                        Falta:{" "}
+                                        <span
+                                          className={`font-semibold ${falta > 0 ? "text-primary" : "text-muted-foreground"}`}
+                                        >
+                                          {BRL(falta)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
 
                       {/* Pedidos desta venda */}
                       <table className="w-full text-sm min-w-[900px]">
