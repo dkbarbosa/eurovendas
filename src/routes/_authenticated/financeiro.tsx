@@ -386,7 +386,17 @@ function AdvancesTab() {
     if (!search.trim()) return data;
     const q = search.toLowerCase();
     return data.filter((r) =>
-      [r.sale?.comprador, r.sale?.empreendimento, r.sale?.unidade, r.corretor_profile?.display_name, r.corretor_profile?.email]
+      [
+        r.sale?.comprador,
+        r.sale?.empreendimento,
+        r.sale?.unidade,
+        r.corretor_profile?.display_name,
+        r.corretor_profile?.email,
+        (r as { gerente_profile?: { display_name?: string | null; email?: string | null } | null }).gerente_profile?.display_name,
+        (r as { gerente_profile?: { display_name?: string | null; email?: string | null } | null }).gerente_profile?.email,
+        (r as { diretor_profile?: { display_name?: string | null; email?: string | null } | null }).diretor_profile?.display_name,
+        (r as { diretor_profile?: { display_name?: string | null; email?: string | null } | null }).diretor_profile?.email,
+      ]
         .some((v) => v?.toLowerCase().includes(q)),
     );
   }, [data, search]);
