@@ -103,6 +103,26 @@ export const createDiretorCommissionRequest = createServerFn({ method: "POST" })
 
     if (statusUp === "RESERVADO") throw new Error("Venda RESERVADO não permite solicitação.");
 
+    // Bloqueio rígido: adiantamento exige sinal de negócio registrado na planilha.
+    if (data.tipo === "adiantamento" && sinal <= 0) {
+      throw new Error("Sinal insuficiente — esta venda não possui sinal de negócio registrado na planilha.");
+    }
+
+    // Após adiantamento PAGO à gestão, novo só libera quando status virar CAIXA.
+    if (data.tipo === "adiantamento" && statusUp !== "CAIXA") {
+      const { data: adiantPago } = await supabaseAdmin
+        .from("commission_requests")
+        .select("id")
+        .eq("sale_id", data.sale_id)
+        .eq("requester_role", "diretor")
+        .eq("diretor_user_id", context.userId)
+        .eq("tipo", "adiantamento")
+        .eq("status", "pago")
+        .limit(1);
+      if (adiantPago && adiantPago.length > 0)
+        throw new Error("Adiantamento já pago. Novo pedido somente quando o status da venda mudar para CAIXA.");
+    }
+
     if (statusUp !== "CAIXA") {
       if (data.tipo === "adiantamento") {
         if (sinal < 2999.99)
