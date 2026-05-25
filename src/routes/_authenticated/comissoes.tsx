@@ -584,10 +584,13 @@ function ComissoesPage() {
                   id: n.id,
                   valor_nf: (n as { valor_nf?: number | null }).valor_nf ?? null,
                   sale_id: n.sale_id,
+                  desconto_distrato: (n as { desconto_distrato?: number | null }).desconto_distrato ?? null,
+                  observacao_distrato: (n as { observacao_distrato?: string | null }).observacao_distrato ?? null,
                   sale: s
                     ? { comprador: s.comprador, empreendimento: s.empreendimento, unidade: s.unidade, data: s.data }
                     : null,
                 };
+
               });
             return pending.length > 0 ? (
               <GroupedNFEmitter

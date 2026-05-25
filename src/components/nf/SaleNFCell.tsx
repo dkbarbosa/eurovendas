@@ -34,6 +34,8 @@ export type MyNFItem = {
   created_at: string;
   sale_id: string;
   requester_role: "corretor" | "gerente" | "diretor" | string;
+  desconto_distrato?: number | null;
+  observacao_distrato?: string | null;
   sale: {
     id: string;
     data: string | null;
@@ -43,6 +45,7 @@ export type MyNFItem = {
     valor_venda: number | null;
   } | null;
 };
+
 
 const ROLE_LABEL: Record<string, string> = {
   corretor: "Corretor",
