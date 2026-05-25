@@ -204,6 +204,7 @@ export function GroupedNFEmitter({
               <div className="grid gap-1.5 sm:grid-cols-2">
                 {g.items.map((n) => {
                   const desc = Number(n.desconto_distrato) || 0;
+                  const distratoHistorico = n.observacao_distrato?.trim();
                   return (
                   <label
                     key={n.id}
@@ -221,12 +222,12 @@ export function GroupedNFEmitter({
                             <PopoverTrigger asChild>
                               <button
                                 type="button"
-                                onClick={(e) => e.preventDefault()}
+                                onClick={(e) => e.stopPropagation()}
                                 title="Ver histórico de desconto de distrato"
                                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 text-[10px] font-medium hover:bg-rose-500/25 transition-colors"
                               >
                                 <AlertTriangle className="w-3 h-3" />
-                                Distrato −{BRL(desc)}
+                                Distrato −{BRL(desc)} · Histórico
                               </button>
                             </PopoverTrigger>
                             <PopoverContent align="start" className="w-80 p-3 space-y-2">
@@ -236,10 +237,10 @@ export function GroupedNFEmitter({
                               <div className="text-xs text-muted-foreground">
                                 Valor descontado: <b className="text-foreground">{BRL(desc)}</b>
                               </div>
-                              {n.observacao_distrato ? (
+                              {distratoHistorico ? (
                                 <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-2">
                                   <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">
-                                    {n.observacao_distrato}
+                                    {distratoHistorico}
                                   </div>
                                 </div>
                               ) : (
@@ -251,6 +252,16 @@ export function GroupedNFEmitter({
                           </Popover>
                         )}
                       </div>
+                      {desc > 0 && (
+                        <div className="mt-1 rounded-md border border-rose-500/25 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-100">
+                          <div className="font-medium">Histórico do distrato · desconto {BRL(desc)}</div>
+                          {distratoHistorico && (
+                            <div className="mt-0.5 whitespace-pre-wrap break-words text-muted-foreground line-clamp-2">
+                              {distratoHistorico}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <div className="text-[10px] text-muted-foreground truncate">
                         {n.sale?.unidade ?? ""} · {fmtBR(n.sale?.data)}
                       </div>
