@@ -462,6 +462,123 @@ export const markNFEmitted = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---------- EMITIR 1 NF PARA VÁRIAS SOLICITAÇÕES (mesmo empreendimento) ----------
+const MarkEmittedBatchSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(50),
+  numero_nf: z.string().trim().min(1).max(80),
+  valor_nf_total: z.number().positive(),
+  observacao: z.string().trim().max(2000).optional(),
+  file_base64: z.string().min(10).max(20_000_000),
+  file_name: z.string().trim().min(1).max(255),
+  file_mime: z.string().trim().min(1).max(120),
+  file2: FileSchema.optional(),
+});
+
+export const markNFsEmittedBatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => MarkEmittedBatchSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    const isAdmin = roles.includes("admin");
+
+    const { data: rows } = await supabaseAdmin
+      .from("nf_requests")
+      .select("id,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,status,sale_id,valor_nf")
+      .in("id", data.ids);
+    if (!rows || rows.length !== data.ids.length) throw new Error("Uma ou mais NFs não foram encontradas.");
+    for (const r of rows) {
+      if (r.status !== "solicitada") throw new Error("Todas as NFs precisam estar 'solicitada'.");
+      const isOwner =
+        r.corretor_user_id === context.userId ||
+        r.gerente_user_id === context.userId ||
+        r.diretor_user_id === context.userId;
+      if (!isAdmin && !isOwner) throw new Error("Acesso negado a uma das NFs.");
+    }
+    const roleSet = new Set(rows.map((r) => r.requester_role ?? "corretor"));
+    if (roleSet.size > 1) throw new Error("Selecione NFs do mesmo perfil (corretor, gerente ou gestão).");
+
+    // Confirmar mesmo empreendimento
+    const saleIds = [...new Set(rows.map((r) => r.sale_id).filter((v): v is string => !!v))];
+    const { data: sales } = await supabaseAdmin
+      .from("sales").select("id,corretor,gerente,empreendimento,unidade,comprador").in("id", saleIds);
+    const empSet = new Set((sales ?? []).map((s) => (s.empreendimento ?? "").trim().toLowerCase()));
+    if (empSet.size > 1) throw new Error("Todas as NFs devem ser do mesmo empreendimento.");
+    const firstSale = sales?.[0];
+    const requesterRole = rows[0].requester_role ?? "corretor";
+
+    // Resolver pasta no Drive
+    let folderId: string | undefined;
+    if (firstSale) {
+      let folderOwnerName: string | null = null;
+      if (requesterRole === "corretor") folderOwnerName = firstSale.corretor ?? null;
+      else if (requesterRole === "gerente") folderOwnerName = firstSale.gerente ?? null;
+      else if (requesterRole === "diretor") {
+        const dirRow = rows.find((r) => r.diretor_user_id);
+        if (dirRow?.diretor_user_id) {
+          const { data: prof } = await supabaseAdmin
+            .from("profiles").select("display_name").eq("id", dirRow.diretor_user_id).maybeSingle();
+          folderOwnerName = prof?.display_name ?? "Gestao";
+        }
+      }
+      if (folderOwnerName) {
+        try {
+          folderId = await getCorretorDocFolder({
+            corretor: folderOwnerName,
+            tipo: "NF",
+            empreendimento: firstSale.empreendimento,
+            cliente: `LOTE-${data.numero_nf}`,
+          });
+        } catch (e) { console.error("getCorretorDocFolder batch:", e); }
+      }
+    }
+
+    const buf1 = b64ToBytes(data.file_base64);
+    const safeName1 = `LOTE-${data.numero_nf}-${data.file_name.replace(/[^\w.\-]+/g, "_")}`;
+    const uploaded = await uploadFileToDriveFolder({ buffer: buf1, filename: safeName1, mimeType: data.file_mime, folderId });
+
+    let uploaded2: { id: string; webViewLink: string } | null = null;
+    if (data.file2) {
+      try {
+        const buf2 = b64ToBytes(data.file2.file_base64);
+        const safeName2 = `LOTE-${data.numero_nf}-2-${data.file2.file_name.replace(/[^\w.\-]+/g, "_")}`;
+        uploaded2 = await uploadFileToDriveFolder({ buffer: buf2, filename: safeName2, mimeType: data.file2.file_mime, folderId });
+      } catch (e) {
+        try { await deleteDriveFile(uploaded.id); } catch { /* noop */ }
+        throw e;
+      }
+    }
+
+    const now = new Date().toISOString();
+    const { data: upd, error } = await supabaseAdmin
+      .from("nf_requests")
+      .update({
+        status: "recebida",
+        numero_nf: data.numero_nf,
+        observacao_corretor: data.observacao ?? null,
+        arquivo_nf_url: uploaded.webViewLink,
+        drive_file_id: uploaded.id,
+        arquivo_nf_url_2: uploaded2?.webViewLink ?? null,
+        drive_file_id_2: uploaded2?.id ?? null,
+        emitida_at: now,
+        recebida_at: now,
+      })
+      .in("id", data.ids)
+      .eq("status", "solicitada")
+      .select("id");
+    if (error) {
+      try { await deleteDriveFile(uploaded.id); } catch { /* noop */ }
+      if (uploaded2) { try { await deleteDriveFile(uploaded2.id); } catch { /* noop */ } }
+      throw new Error(error.message);
+    }
+    if (!upd?.length || upd.length !== data.ids.length) {
+      try { await deleteDriveFile(uploaded.id); } catch { /* noop */ }
+      if (uploaded2) { try { await deleteDriveFile(uploaded2.id); } catch { /* noop */ } }
+      throw new Error("Alguma NF mudou de status. Recarregue e tente novamente.");
+    }
+    return { ok: true, count: upd.length };
+  });
+
+
 // ---------- BAIXAR NF DO DRIVE (financeiro/admin/dono) ----------
 export const downloadNFFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
