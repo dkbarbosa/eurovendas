@@ -452,9 +452,33 @@ function GerentesPage() {
                     const stUp = (s.status ?? "").trim().toUpperCase();
                     const blocked = stUp === "RESERVADO" || stUp === "DISTRATO";
                     const isFinalizada = aReceber <= 0 && comLiq > 0;
+                    const sinalSale = Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
+                    const sinalOk = sinalSale >= 2999.99;
+                    const isCaixa = stUp === "CAIXA";
+                    const pend = pendByReq.get(s.id) ?? false;
+                    const ruleOk = !blocked && aReceber > 0 && (isCaixa || sinalOk);
+                    const d10 = (s.data ?? "").slice(0, 10);
+                    const isOutOfPeriod = !!d10 && ((dateFrom && d10 < dateFrom) || (dateTo && d10 > dateTo));
+                    const btnLabel = blocked
+                      ? stUp
+                      : pend
+                        ? "Pendente"
+                        : !isCaixa && !sinalOk
+                          ? "Sinal insuficiente"
+                          : "Solicitar";
+                    const btnTitle = !isCaixa && !sinalOk && !blocked
+                      ? `Sinal de ${BRL(sinalSale)} é menor que R$ 2.999,99 — adiantamento não liberado.`
+                      : "";
                     return (
-                      <tr key={s.id} className="border-t border-border align-top">
-                        <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
+                      <tr key={s.id} className={`border-t border-border align-top ${isOutOfPeriod ? "bg-primary/[0.04]" : ""}`}>
+                        <td className="p-3 whitespace-nowrap">
+                          <div>{fmtBR(s.data)}</div>
+                          {isOutOfPeriod && (
+                            <Badge variant="outline" className="mt-1 text-[10px] border-primary/40 text-primary bg-primary/10">
+                              Fora do período
+                            </Badge>
+                          )}
+                        </td>
                         <td className="p-3 font-medium">{s.comprador ?? "—"}</td>
                         <td className="p-3 text-muted-foreground">
                           <div>{s.empreendimento ?? "—"}</div>
@@ -477,7 +501,7 @@ function GerentesPage() {
                         </td>
                         <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
                         <td className="p-3">
-                          {pendByReq.get(s.id) && (
+                          {pend && (
                             <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30 mb-1">
                               NF · solicitada
                             </Badge>
@@ -487,11 +511,13 @@ function GerentesPage() {
                         <td className="p-3 text-right">
                           <Button
                             size="sm"
-                            disabled={blocked || aReceber <= 0}
+                            disabled={!ruleOk || pend}
+                            title={btnTitle}
                             onClick={() => openReq(s)}
-                            style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
+                            style={ruleOk && !pend ? { background: "var(--gradient-primary)", color: "var(--primary-foreground)" } : undefined}
+                            variant={ruleOk && !pend ? "default" : "outline"}
                           >
-                            <Send className="w-3 h-3 mr-1" /> Solicitar
+                            <Send className="w-3 h-3 mr-1" /> {btnLabel}
                           </Button>
                         </td>
                       </tr>
