@@ -119,8 +119,13 @@ function GerentesPage() {
       if (q && !`${s.comprador ?? ""} ${s.empreendimento ?? ""}`.toLowerCase().includes(q)) return false;
       if (corretorFilter !== "all" && (s.corretor ?? "") !== corretorFilter) return false;
       return true;
+    }).sort((a, b) => {
+      const aPodeSolicitar = eligibleSaleIds.has(a.id) && !(pendByReq.get(a.id) ?? false);
+      const bPodeSolicitar = eligibleSaleIds.has(b.id) && !(pendByReq.get(b.id) ?? false);
+      if (aPodeSolicitar !== bPodeSolicitar) return aPodeSolicitar ? -1 : 1;
+      return String(b.data ?? "").localeCompare(String(a.data ?? ""));
     });
-  }, [sales, dateFrom, dateTo, search, corretorFilter, eligibleSaleIds]);
+  }, [sales, dateFrom, dateTo, search, corretorFilter, eligibleSaleIds, pendByReq]);
 
   const corretoresDaEquipe = useMemo(() => {
     const set = new Set<string>();
