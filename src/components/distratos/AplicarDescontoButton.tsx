@@ -16,12 +16,14 @@ const BRL = (n: number | null | undefined) =>
 
 export function AplicarDescontoButton({
   commissionRequestId,
-  corretorUserId,
+  beneficiaryUserId,
+  beneficiaryRole = "corretor",
   valorSolicitado,
   descontoAtual,
 }: {
   commissionRequestId: string;
-  corretorUserId: string | null | undefined;
+  beneficiaryUserId: string | null | undefined;
+  beneficiaryRole?: "corretor" | "gerente" | "diretor";
   valorSolicitado: number;
   descontoAtual: number;
 }) {
@@ -35,9 +37,18 @@ export function AplicarDescontoButton({
   const [obs, setObs] = useState("");
 
   const { data: pendencias = [], isLoading } = useQuery({
-    queryKey: ["pendencias-distrato", corretorUserId],
-    queryFn: () => fnList({ data: corretorUserId ? { corretor_user_id: corretorUserId } : undefined }),
-    enabled: open && !!corretorUserId,
+    queryKey: ["pendencias-distrato", beneficiaryRole, beneficiaryUserId],
+    queryFn: () =>
+      fnList({
+        data: beneficiaryUserId
+          ? beneficiaryRole === "gerente"
+            ? { gerente_user_id: beneficiaryUserId }
+            : beneficiaryRole === "diretor"
+              ? { diretor_user_id: beneficiaryUserId }
+              : { corretor_user_id: beneficiaryUserId }
+          : undefined,
+      }),
+    enabled: open && !!beneficiaryUserId,
   });
 
   const selected = useMemo(
@@ -61,7 +72,7 @@ export function AplicarDescontoButton({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (!corretorUserId) return null;
+  if (!beneficiaryUserId) return null;
 
   const valorNum = Number((valor || "").replace(",", "."));
   const maxApply = selected ? Math.min(selected.saldo_restante, restanteRequest) : 0;
@@ -106,7 +117,7 @@ export function AplicarDescontoButton({
           {isLoading && <div className="p-6 text-center"><Loader2 className="w-4 h-4 animate-spin inline" /></div>}
           {!isLoading && pendencias.length === 0 && (
             <div className="rounded-lg border border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground text-center">
-              <Ban className="w-4 h-4 inline mr-1" /> Este corretor não possui pendências de distrato.
+              <Ban className="w-4 h-4 inline mr-1" /> Este beneficiário não possui pendências de distrato.
             </div>
           )}
 
