@@ -576,6 +576,17 @@ function AdvancesTab() {
 
   // Pedido em foco no diálogo de obs (para checar elegibilidade de distrato)
   const obsRequest = useMemo(() => data.find((r) => r.id === obs.id) ?? null, [data, obs.id]);
+  const obsBenefId = obsRequest
+    ? (obsRequest as { requester_role?: string }).requester_role === "gerente"
+      ? (obsRequest as { gerente_user_id?: string | null }).gerente_user_id ?? null
+      : (obsRequest as { requester_role?: string }).requester_role === "diretor"
+        ? (obsRequest as { diretor_user_id?: string | null }).diretor_user_id ?? null
+        : obsRequest.corretor_user_id ?? null
+    : null;
+  const obsBenefRole = ((obsRequest as { requester_role?: string } | null)?.requester_role ?? "corretor") as
+    | "corretor"
+    | "gerente"
+    | "diretor";
   const obsEligibleDistrato = !!(
     obsRequest &&
     obs.action === "aprovar" &&
@@ -584,14 +595,18 @@ function AdvancesTab() {
   );
 
   const { data: aprovPendencias = [], isLoading: aprovPendLoading } = useQuery({
-    queryKey: ["pendencias-distrato", obsRequest?.corretor_user_id ?? null],
+    queryKey: ["pendencias-distrato", obsBenefRole, obsBenefId],
     queryFn: () =>
       fnListPend({
-        data: obsRequest?.corretor_user_id
-          ? { corretor_user_id: obsRequest.corretor_user_id }
+        data: obsBenefId
+          ? obsBenefRole === "gerente"
+            ? { gerente_user_id: obsBenefId }
+            : obsBenefRole === "diretor"
+              ? { diretor_user_id: obsBenefId }
+              : { corretor_user_id: obsBenefId }
           : undefined,
       }),
-    enabled: obs.open && obsEligibleDistrato && !!obsRequest?.corretor_user_id,
+    enabled: obs.open && obsEligibleDistrato && !!obsBenefId,
   });
 
   const aprovSelected = aprovPendencias.find((p) => p.id === aprovDesc.distratoId) ?? null;
