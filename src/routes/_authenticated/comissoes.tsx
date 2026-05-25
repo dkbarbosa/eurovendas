@@ -392,13 +392,13 @@ function ComissoesPage() {
     sale: null,
   });
   const [reqForm, setReqForm] = useState<{
-    tipo: "adiantamento" | "comissao_final";
+    tipo: "" | "adiantamento" | "comissao_final";
     valor_sinal: number | null;
     bonus_corretor: number | null;
     valor_solicitado: number | null;
     observacao: string;
   }>({
-    tipo: "adiantamento",
+    tipo: "",
     valor_sinal: null,
     bonus_corretor: null,
     valor_solicitado: null,
@@ -407,12 +407,13 @@ function ComissoesPage() {
   const [comprovanteSinal, setComprovanteSinal] = useState<File | null>(null);
   const openReq = (sale: (typeof sales)[number]) => {
     const sinalSheet = Number((sale as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || null;
-    setReqForm({ tipo: "adiantamento", valor_sinal: sinalSheet, bonus_corretor: null, valor_solicitado: null, observacao: "" });
+    setReqForm({ tipo: "", valor_sinal: sinalSheet, bonus_corretor: null, valor_solicitado: null, observacao: "" });
     setComprovanteSinal(null);
     setReqDialog({ open: true, sale });
   };
   const createMut = useMutation({
     mutationFn: async () => {
+      if (!reqForm.tipo) throw new Error("Escolha entre Adiantamento ou Comissão final.");
       let comprovante: { file_base64: string; file_name: string; file_mime: string } | undefined;
       if (comprovanteSinal) {
         if (comprovanteSinal.size > 15 * 1024 * 1024) throw new Error("Comprovante muito grande (máx. 15 MB).");
@@ -1178,8 +1179,8 @@ function ComissoesPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label>Tipo</Label>
-                      <Select value={reqForm.tipo} onValueChange={(v) => setReqForm({ ...reqForm, tipo: v as typeof reqForm.tipo })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                      <Select value={reqForm.tipo || undefined} onValueChange={(v) => setReqForm({ ...reqForm, tipo: v as typeof reqForm.tipo })}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="adiantamento">Adiantamento</SelectItem>
                           <SelectItem value="comissao_final">Comissão final</SelectItem>
@@ -1279,7 +1280,7 @@ function ComissoesPage() {
                     const missingComprovante = needsComprovante && !comprovanteSinal;
                     return (
                       <Button
-                        disabled={createMut.isPending || !reqForm.valor_solicitado || excedeu || ruleViolated || missingComprovante}
+                        disabled={createMut.isPending || !reqForm.tipo || !reqForm.valor_solicitado || excedeu || ruleViolated || missingComprovante}
                         onClick={() => createMut.mutate()}
                         style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
                         title={missingComprovante ? "Anexe o comprovante de sinal para enviar" : undefined}

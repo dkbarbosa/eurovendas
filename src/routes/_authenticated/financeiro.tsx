@@ -592,8 +592,7 @@ function AdvancesTab() {
   const obsEligibleDistrato = !!(
     obsRequest &&
     obs.action === "aprovar" &&
-    obsRequest.tipo === "comissao_final" &&
-    ((obsRequest.sale?.status ?? "").toUpperCase() === "CAIXA" || !!obsRequest.nf_status)
+    obsRequest.tipo === "comissao_final"
   );
 
   const { data: aprovPendencias = [], isLoading: aprovPendLoading } = useQuery({
@@ -618,6 +617,7 @@ function AdvancesTab() {
   const aprovRestReq = Math.max(0, aprovValorReq - aprovDescAtual);
   const aprovMaxApply = aprovSelected ? Math.min(aprovSelected.saldo_restante, aprovRestReq) : 0;
   const aprovValorNum = Number((aprovDesc.valor || "").replace(",", "."));
+  const mustApplyDistrato = obsEligibleDistrato && !aprovPendLoading && aprovPendencias.length > 0;
 
   useEffect(() => {
     if (!obsEligibleDistrato || aprovPendLoading || aprovPendencias.length === 0 || aprovDesc.distratoId) return;
@@ -1565,7 +1565,7 @@ function AdvancesTab() {
             </DialogTitle>
             <DialogDescription>
               {obsEligibleDistrato
-                ? "Antes de aprovar, verifique se o beneficiário possui distrato pendente para devolução."
+                ? "Na aprovação de comissão final, o sistema carrega automaticamente os distratos pendentes do beneficiário."
                 : "Observação opcional para o beneficiário."}
             </DialogDescription>
           </DialogHeader>
@@ -1606,15 +1606,8 @@ function AdvancesTab() {
               )}
               {aprovPendencias.length > 0 && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Distrato para descontar (opcional)</Label>
+                  <Label className="text-xs">Distrato vinculado automaticamente</Label>
                   <div className="max-h-40 overflow-auto rounded-lg border border-border/60 divide-y divide-border/40">
-                    <button
-                      type="button"
-                      onClick={() => setAprovDesc({ distratoId: "", valor: "", obs: "" })}
-                      className={`w-full text-left px-3 py-2 text-xs hover:bg-secondary/40 transition ${aprovDesc.distratoId === "" ? "bg-secondary/40" : ""}`}
-                    >
-                      <span className="text-muted-foreground">— Não vincular distrato —</span>
-                    </button>
                     {aprovPendencias.map((p) => {
                       const sugerido = Math.min(p.saldo_restante, aprovRestReq);
                       const autoObs = `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`;
@@ -1651,6 +1644,9 @@ function AdvancesTab() {
                       );
                     })}
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    O primeiro distrato com saldo já vem selecionado; o financeiro pode alterar o distrato e o valor antes de confirmar.
+                  </p>
                 </div>
               )}
 
@@ -1715,8 +1711,9 @@ function AdvancesTab() {
               disabled={
                 decideMut.isPending ||
                 payMut.isPending ||
-                (obsEligibleDistrato &&
-                  !!aprovSelected &&
+                (obsEligibleDistrato && aprovPendLoading) ||
+                (mustApplyDistrato && !aprovSelected) ||
+                (mustApplyDistrato &&
                   (!(aprovValorNum > 0) || aprovValorNum > aprovMaxApply + 0.001))
               }
               onClick={() =>
