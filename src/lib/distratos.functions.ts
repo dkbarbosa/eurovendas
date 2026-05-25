@@ -539,7 +539,7 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
         .maybeSingle(),
       supabaseAdmin
         .from("commission_requests")
-        .select("id,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,valor_solicitado,desconto_distrato,status,sale_id")
+        .select("id,corretor_user_id,gerente_user_id,diretor_user_id,requester_role,valor_solicitado,desconto_distrato,observacao_financeiro,status,sale_id")
         .eq("id", data.commission_request_id)
         .maybeSingle(),
     ]);
@@ -567,6 +567,7 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
     const saldoDist = Math.max(0, Number(rec.valor_devolver) - Number(rec.valor_devolvido));
     const descontoAtual = Number(req.desconto_distrato) || 0;
     const restanteRequest = Math.max(0, Number(req.valor_solicitado) - descontoAtual);
+    const descontoStamp = data.observacao || `Desconto de distrato aplicado: R$ ${data.valor_desconto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
     if (data.valor_desconto > saldoDist + 0.001)
       throw new Error(`Valor excede o saldo do distrato.`);
     if (data.valor_desconto > restanteRequest + 0.001)
@@ -586,7 +587,10 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
 
     await supabaseAdmin
       .from("commission_requests")
-      .update({ desconto_distrato: descontoAtual + data.valor_desconto })
+      .update({
+        desconto_distrato: descontoAtual + data.valor_desconto,
+        observacao_financeiro: [req.observacao_financeiro, descontoStamp].filter(Boolean).join("\n"),
+      })
       .eq("id", data.commission_request_id);
 
     // Leva o desconto/histórico do distrato para a NF aberta automaticamente
@@ -601,13 +605,12 @@ export const aplicarDescontoDistrato = createServerFn({ method: "POST" })
       .limit(1);
     const activeNf = activeNfs?.[0];
     if (activeNf) {
-      const stamp = data.observacao || `Desconto de distrato aplicado: R$ ${data.valor_desconto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
       await supabaseAdmin
         .from("nf_requests")
         .update({
           distrato_id: data.distrato_id,
           desconto_distrato: (Number(activeNf.desconto_distrato) || 0) + data.valor_desconto,
-          observacao_distrato: [activeNf.observacao_distrato, stamp].filter(Boolean).join("\n"),
+          observacao_distrato: [activeNf.observacao_distrato, descontoStamp].filter(Boolean).join("\n"),
         })
         .eq("id", activeNf.id);
     }
