@@ -362,7 +362,7 @@ function DiretorPage() {
                               NF · solicitada
                             </Badge>
                           )}
-                          <SaleNFCell saleId={s.id} />
+                          <SaleNFCell saleId={s.id} role="diretor" />
                         </td>
                         <td className="p-3 text-center">
                           <Button
