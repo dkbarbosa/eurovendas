@@ -54,7 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const roleLabel = isAdmin
     ? "Administrador"
     : isDiretor
-    ? "Gerente Geral"
+    ? "Gestão"
     : isGerente
     ? "Gerente"
     : isFinanceiro
