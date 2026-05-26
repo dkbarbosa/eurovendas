@@ -1139,6 +1139,17 @@ function ComissoesPage() {
                                     : !allowed
                                       ? "Aguardando o Status da venda virar CAIXA (ou o financeiro solicitar a NF) para liberar nova solicitação."
                                       : "";
+                              if (stUp === "DISTRATO") {
+                                return (
+                                  <Badge
+                                    variant="outline"
+                                    title="Venda distratada — solicitação bloqueada."
+                                    className="text-[11px] bg-destructive/10 text-destructive border-destructive/40 w-fit cursor-not-allowed select-none"
+                                  >
+                                    Venda perdida
+                                  </Badge>
+                                );
+                              }
                               if (label === "Aguardando CAIXA") {
                                 return (
                                   <Badge
@@ -1162,6 +1173,7 @@ function ComissoesPage() {
                                 </Button>
                               );
                             })()
+
 
 
 

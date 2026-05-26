@@ -588,7 +588,15 @@ function GerentesPage() {
                           <SaleNFCell saleId={s.id} role="gerente" />
                         </td>
                         <td className="p-3 text-right">
-                          {aguardandoCaixa ? (
+                          {stUp === "DISTRATO" ? (
+                            <Badge
+                              variant="outline"
+                              title="Venda distratada — solicitação bloqueada."
+                              className="text-[11px] bg-destructive/10 text-destructive border-destructive/40 cursor-not-allowed select-none"
+                            >
+                              Venda perdida
+                            </Badge>
+                          ) : aguardandoCaixa ? (
                             <Badge
                               variant="outline"
                               title={btnTitle}
@@ -608,6 +616,7 @@ function GerentesPage() {
                               <Send className="w-3 h-3 mr-1" /> {btnLabel}
                             </Button>
                           )}
+
                         </td>
                       </tr>
                     );
