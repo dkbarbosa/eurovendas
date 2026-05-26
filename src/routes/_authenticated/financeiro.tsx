@@ -63,6 +63,7 @@ import {
 import { motion } from "framer-motion";
 import { DistratoButton } from "@/components/distratos/DistratoButton";
 import { DistratosPanel } from "@/components/distratos/DistratosPanel";
+import { ExtratoComissoesTab } from "@/components/financeiro/ExtratoComissoesTab";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   component: FinanceiroPage,
@@ -113,6 +114,10 @@ function FinanceiroPage() {
             <Ban className="w-3.5 h-3.5 mr-1.5" />
             Distratos
           </TabsTrigger>
+          <TabsTrigger value="extratos">
+            <FileText className="w-3.5 h-3.5 mr-1.5" />
+            Extratos
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard" className="mt-4">
           <DashboardTab />
@@ -128,6 +133,9 @@ function FinanceiroPage() {
         </TabsContent>
         <TabsContent value="distratos" className="mt-4">
           <DistratosPanel />
+        </TabsContent>
+        <TabsContent value="extratos" className="mt-4">
+          <ExtratoComissoesTab />
         </TabsContent>
       </Tabs>
     </div>

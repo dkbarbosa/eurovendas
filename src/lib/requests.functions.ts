@@ -825,3 +825,134 @@ export const markRequestPaid = createServerFn({ method: "POST" })
     // Aqui não somamos novamente para evitar duplicação.
     return { ok: true };
   });
+
+// ============== Extrato de Comissões Pagas (Financeiro) ==============
+const ExtractFilterSchema = z
+  .object({
+    from: z.string().optional(),
+    to: z.string().optional(),
+    empreendimento: z.string().trim().optional(),
+    role: z.enum(["corretor", "gerente", "diretor"]).optional(),
+    recipient_name: z.string().trim().optional(),
+  })
+  .optional();
+
+export const listCommissionExtract = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ExtractFilterSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertFinanceiro(context.userId);
+
+    let q = supabaseAdmin
+      .from("commission_requests")
+      .select(
+        "id,sale_id,tipo,valor_solicitado,bonus_corretor,desconto_distrato,requester_role,corretor_user_id,gerente_user_id,diretor_user_id,paid_at,decided_at,created_at",
+      )
+      .eq("status", "pago")
+      .order("paid_at", { ascending: false, nullsFirst: false })
+      .limit(5000);
+    if (data?.from) q = q.gte("paid_at", data.from);
+    if (data?.to) q = q.lte("paid_at", data.to);
+    if (data?.role) q = q.eq("requester_role", data.role);
+
+    const { data: reqs, error } = await q;
+    if (error) throw new Error(error.message);
+
+    const saleIds = [...new Set((reqs ?? []).map((r) => r.sale_id).filter(Boolean) as string[])];
+    const userIds = [
+      ...new Set(
+        (reqs ?? [])
+          .flatMap((r) => [r.corretor_user_id, r.gerente_user_id, r.diretor_user_id])
+          .filter((v): v is string => !!v),
+      ),
+    ];
+    const [{ data: sales }, { data: profs }] = await Promise.all([
+      saleIds.length
+        ? supabaseAdmin
+            .from("sales")
+            .select(
+              "id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,coaphar",
+            )
+            .in("id", saleIds)
+        : Promise.resolve({ data: [] as Array<{
+            id: string; data: string | null; comprador: string | null;
+            empreendimento: string | null; unidade: string | null; valor_venda: number | null;
+            corretor: string | null; gerente: string | null; coaphar: string | null;
+          }> }),
+      userIds.length
+        ? supabaseAdmin.from("profiles").select("id,display_name,email").in("id", userIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; display_name: string | null; email: string | null }> }),
+    ]);
+    const sMap = new Map(((sales ?? []) as Array<{ id: string }>).map((s) => [s.id, s]));
+    const pMap = new Map(
+      ((profs ?? []) as Array<{ id: string; display_name: string | null; email: string | null }>).map(
+        (p) => [p.id, p],
+      ),
+    );
+
+    const rows = (reqs ?? []).map((r) => {
+      const sale = sMap.get(r.sale_id) as
+        | {
+            id: string;
+            data: string | null;
+            comprador: string | null;
+            empreendimento: string | null;
+            unidade: string | null;
+            valor_venda: number | null;
+            corretor: string | null;
+            gerente: string | null;
+            coaphar: string | null;
+          }
+        | undefined;
+      const role = (r.requester_role ?? "corretor") as "corretor" | "gerente" | "diretor";
+      let recipientName: string | null = null;
+      if (role === "corretor") {
+        recipientName =
+          (r.corretor_user_id && pMap.get(r.corretor_user_id)?.display_name) ||
+          sale?.corretor ||
+          null;
+      } else if (role === "gerente") {
+        recipientName =
+          (r.gerente_user_id && pMap.get(r.gerente_user_id)?.display_name) ||
+          sale?.gerente ||
+          null;
+      } else {
+        recipientName =
+          (r.diretor_user_id && pMap.get(r.diretor_user_id)?.display_name) || "Gestão";
+      }
+      return {
+        id: r.id,
+        sale_id: r.sale_id,
+        role,
+        tipo: r.tipo as string,
+        valor_pago: Number(r.valor_solicitado) || 0,
+        bonus: Number(r.bonus_corretor) || 0,
+        desconto_distrato: Number(r.desconto_distrato) || 0,
+        paid_at: (r.paid_at ?? r.decided_at ?? r.created_at) as string | null,
+        recipient_name: recipientName,
+        sale: sale
+          ? {
+              data: sale.data,
+              comprador: sale.comprador,
+              empreendimento: sale.empreendimento,
+              unidade: sale.unidade,
+              valor_venda: Number(sale.valor_venda) || 0,
+              corretor: sale.corretor,
+              gerente: sale.gerente,
+            }
+          : null,
+      };
+    });
+
+    const empFilter = data?.empreendimento?.trim().toLowerCase();
+    const nameFilter = data?.recipient_name?.trim().toLowerCase();
+    const filtered = rows.filter((r) => {
+      if (empFilter && !(r.sale?.empreendimento ?? "").toLowerCase().includes(empFilter))
+        return false;
+      if (nameFilter && !(r.recipient_name ?? "").toLowerCase().includes(nameFilter))
+        return false;
+      return true;
+    });
+
+    return { rows: filtered };
+  });
