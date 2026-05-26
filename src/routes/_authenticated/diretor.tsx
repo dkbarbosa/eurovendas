@@ -501,15 +501,25 @@ function DiretorPage() {
                           <SaleNFCell saleId={s.id} role="diretor" />
                         </td>
                         <td className="p-3 text-center">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={!ruleOk || pend || (isAdmin && !isDiretor)}
-                            title={btnTitle}
-                            onClick={() => openReq(s)}
-                          >
-                            {btnLabel}
-                          </Button>
+                          {aguardandoCaixa ? (
+                            <Badge
+                              variant="outline"
+                              title={btnTitle}
+                              className="text-[11px] bg-sky-500/10 text-sky-400 border-sky-500/40"
+                            >
+                              Aguardando Caixa
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={!ruleOk || pend || (isAdmin && !isDiretor)}
+                              title={btnTitle}
+                              onClick={() => openReq(s)}
+                            >
+                              {btnLabel}
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     );
