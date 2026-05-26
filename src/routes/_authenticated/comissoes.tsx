@@ -773,8 +773,8 @@ function ComissoesPage() {
                   const finalPagoSale = paid?.finalPago ?? 0;
                   const totalPagoSale = adiantadoSale + finalPagoSale;
                   const aReceberSale = Math.max(0, money(comissaoLiq - totalPagoSale));
-                  // Quando o saldo exibido em "A Receber" zera, o processo fica finalizado e não abre nova solicitação.
-                  const isFinalizada = aReceberSale <= 0;
+                  // Saldo residual de até R$ 0,50 é considerado finalizado.
+                  const isFinalizada = aReceberSale <= 0.5;
                   // Pagamento antecipado: 100% pago e a venda está como "Caixa"
                   // (corretor recebeu adiantamento antes de a venda virar Caixa).
                   const isPagoAntecipado = isFinalizada && (s.status ?? "").trim().toUpperCase() === "CAIXA";
