@@ -718,15 +718,15 @@ export const markNFPaid = createServerFn({ method: "POST" })
       nf.gerente_user_id === context.userId ||
       nf.diretor_user_id === context.userId;
     if (!isStaff && !isOwner) throw new Error("Acesso negado.");
-    if (nf.status !== "paga" && nf.status !== "recebida")
-      throw new Error("NF precisa estar recebida para ser marcada como paga.");
+    if (nf.status !== "paga" && nf.status !== "recebida" && nf.status !== "emitida")
+      throw new Error("NF precisa estar emitida para ser marcada como recebida.");
 
-    if (nf.status === "recebida") {
+    if (nf.status === "recebida" || nf.status === "emitida") {
       const { error } = await supabaseAdmin
         .from("nf_requests")
         .update({ status: "paga", paga_at: new Date().toISOString(), paga_por: context.userId })
         .eq("id", data.id)
-        .eq("status", "recebida");
+        .in("status", ["recebida", "emitida"]);
       if (error) throw new Error(error.message);
     }
 
