@@ -441,7 +441,7 @@ function DiretorPage() {
                                     {dist ? (
                                       <>
                                         <div>Cliente: <b>{s.comprador ?? "—"}</b></div>
-                                        <div>Valor a devolver: <b className="text-destructive">{BRL(dist.valor_devolver)}</b></div>
+                                        <div>Valor a devolver: <b className="text-destructive">{BRL(dist.valor_devolver_role ?? dist.valor_devolver)}</b></div>
                                         <div>Status: <b className="capitalize">{dist.status.replace("_", " ")}</b></div>
                                         <div>Lançado em: {fmtBR(dist.created_at)}</div>
                                         {dist.motivo && (
