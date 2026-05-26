@@ -511,7 +511,7 @@ function GerentesPage() {
                                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/40 bg-destructive/10 text-destructive text-[10px] hover:bg-destructive/20 transition-colors"
                                     >
                                       <Ban className="w-2.5 h-2.5" />
-                                      {dist ? `Distrato · devolver ${BRL(dist.valor_devolver)}` : "Distrato"}
+                                      {dist ? `Distrato · devolver ${BRL((dist as { valor_devolver_role?: number }).valor_devolver_role ?? dist.valor_devolver)}` : "Distrato"}
                                       <span className="opacity-70">· Histórico</span>
                                     </button>
                                   </PopoverTrigger>
