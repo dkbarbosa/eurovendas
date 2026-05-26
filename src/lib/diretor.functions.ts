@@ -62,11 +62,36 @@ export const getDiretorOverview = createServerFn({ method: "GET" })
       ),
     }));
 
+    // Anexa a parte do distrato que cabe à Gestão (recipient.role='diretor').
+    const distratosBase = dists ?? [];
+    const distIds = distratosBase.map((d) => d.id);
+    const recMap = new Map<string, { valor_devolver: number; valor_devolvido: number; status: string }>();
+    if (distIds.length > 0) {
+      const { data: recs } = await supabaseAdmin
+        .from("distrato_recipients")
+        .select("distrato_id,role,valor_devolver,valor_devolvido,status")
+        .in("distrato_id", distIds)
+        .eq("role", "diretor");
+      for (const r of recs ?? []) {
+        recMap.set(r.distrato_id, {
+          valor_devolver: Number(r.valor_devolver) || 0,
+          valor_devolvido: Number(r.valor_devolvido) || 0,
+          status: r.status,
+        });
+      }
+    }
+    const distratos = distratosBase.map((d) => ({
+      ...d,
+      valor_devolver_role: recMap.get(d.id)?.valor_devolver ?? (Number(d.valor_devolver) || 0),
+      valor_devolvido_role: recMap.get(d.id)?.valor_devolvido ?? 0,
+      status_role: recMap.get(d.id)?.status ?? null,
+    }));
+
     return {
       diretorUserId: context.userId,
       sales,
       requests: reqs ?? [],
-      distratos: dists ?? [],
+      distratos,
     };
   });
 
