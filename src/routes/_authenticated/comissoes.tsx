@@ -801,7 +801,7 @@ function ComissoesPage() {
                               className={`text-[10px] gap-1 ${distrato.status === "devolvido" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-destructive/10 text-destructive border-destructive/30"}`}
                             >
                               <Ban className="w-2.5 h-2.5" />
-                              {distrato.status === "devolvido" ? "Distrato devolvido" : `Distrato · devolver ${BRL(distrato.valor_devolver)}`}
+                              {distrato.status === "devolvido" ? "Distrato devolvido" : `Distrato · devolver ${BRL(corretorShare(distrato))}`}
                             </Badge>
                             {distrato.motivo && (
                               <Popover>
