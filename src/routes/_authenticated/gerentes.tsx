@@ -83,6 +83,11 @@ function GerentesPage() {
   const sales = data?.sales ?? [];
   const requests = data?.requests ?? [];
   const distratos = data?.distratos ?? [];
+  const distratoBySale = useMemo(() => {
+    const m = new Map<string, (typeof distratos)[number]>();
+    for (const d of distratos) if (d.status !== "cancelado") m.set(d.sale_id, d);
+    return m;
+  }, [distratos]);
   const gerenteNome = data?.gerenteNome ?? null;
 
   // Marca venda como elegível para solicitação independentemente do período:
