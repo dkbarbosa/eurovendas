@@ -494,7 +494,30 @@ function GerentesPage() {
                             </Badge>
                           )}
                         </td>
-                        <td className="p-3 font-medium">{s.comprador ?? "—"}</td>
+                        <td className="p-3 font-medium">
+                          <div>{s.comprador ?? "—"}</div>
+                          {(() => {
+                            const dist = distratoBySale.get(s.id);
+                            const saldoDevedor = dist ? Math.max(0, pago) : 0;
+                            if (!dist && stUp !== "DISTRATO") return null;
+                            return (
+                              <div className="mt-1 space-y-0.5">
+                                <Badge variant="outline" className="text-[10px] gap-1 bg-destructive/10 text-destructive border-destructive/30">
+                                  <Ban className="w-2.5 h-2.5" />
+                                  {dist ? `Distrato · devolver ${BRL(dist.valor_devolver)}` : "Distrato"}
+                                </Badge>
+                                {saldoDevedor > 0 && (
+                                  <div className="text-[10px] text-destructive font-medium">
+                                    Saldo devedor: {BRL(saldoDevedor)}
+                                  </div>
+                                )}
+                                {dist?.motivo && (
+                                  <div className="text-[10px] text-muted-foreground line-clamp-2">{dist.motivo}</div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </td>
                         <td className="p-3 text-muted-foreground">
                           <div>{s.empreendimento ?? "—"}</div>
                           <div className="text-xs">Unid: {s.unidade ?? "—"}</div>
