@@ -819,7 +819,7 @@ function ComissoesPage() {
                                     {distrato.motivo}
                                   </div>
                                   <div className="text-[11px] text-muted-foreground">
-                                    Valor a devolver: <span className="font-semibold text-destructive">{BRL(distrato.valor_devolver)}</span>
+                                    Valor a devolver: <span className="font-semibold text-destructive">{BRL(corretorShare(distrato))}</span>
                                   </div>
                                 </PopoverContent>
                               </Popover>
