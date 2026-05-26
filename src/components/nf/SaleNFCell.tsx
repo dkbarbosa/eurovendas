@@ -342,6 +342,8 @@ export function SaleNFCell({ saleId, role }: { saleId: string; role?: "corretor"
 
   if (sNfs.length === 0) return null;
 
+  const hasEnviarNF = !!nfAberta;
+
   return (
     <>
       <div className="space-y-1">
@@ -353,7 +355,7 @@ export function SaleNFCell({ saleId, role }: { saleId: string; role?: "corretor"
             <div key={n.id} className="space-y-1">
               <div className="flex items-center gap-1 flex-wrap">
                 <NFPill n={n} saleStatus={n.sale?.status as string | undefined} />
-                {(n.status === "emitida" || n.status === "recebida") && (
+                {!hasEnviarNF && (n.status === "emitida" || n.status === "recebida") && (
                   <Button
                     size="sm"
                     disabled={payMut.isPending}
@@ -374,10 +376,10 @@ export function SaleNFCell({ saleId, role }: { saleId: string; role?: "corretor"
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-violet-400/40 bg-violet-500/10 text-violet-300 text-[10px] hover:bg-violet-500/20"
                       >
                         <AlertTriangle className="w-3 h-3" />
-                        {desc > 0 ? `Distrato −${BRL(desc)}` : "Distrato"} · Histórico
+                        {desc > 0 ? `Distrato −${BRL(desc)}` : "Distrato"} · Ver histórico
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80 text-xs space-y-1.5">
+                    <PopoverContent className="w-80 text-xs space-y-2">
                       <div className="font-medium flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5 text-violet-400" /> Histórico de distrato
                       </div>
@@ -391,11 +393,6 @@ export function SaleNFCell({ saleId, role }: { saleId: string; role?: "corretor"
                   </Popover>
                 )}
               </div>
-              {hasDist && distHist && (
-                <div className="text-[10px] text-muted-foreground line-clamp-2">
-                  <span className="text-violet-300 font-medium">Distrato:</span> {distHist}
-                </div>
-              )}
             </div>
           );
         })}
