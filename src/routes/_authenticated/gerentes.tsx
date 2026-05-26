@@ -432,7 +432,7 @@ function GerentesPage() {
           </div>
 
 
-          <MinhasDevolucoesPendentes compact />
+          
 
           {/* Tabela principal de comissão */}
           <section className="space-y-3">
