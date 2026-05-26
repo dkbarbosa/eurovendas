@@ -733,7 +733,7 @@ function ComissoesPage() {
             </div>
           </div>
 
-          <MinhasDevolucoesPendentes compact />
+          
 
           <div className="glass-card p-2 overflow-x-auto">
             <table className="w-full text-sm min-w-[1040px]">
