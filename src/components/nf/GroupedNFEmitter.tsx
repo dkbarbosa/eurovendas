@@ -204,6 +204,8 @@ export function GroupedNFEmitter({
               <div className="grid gap-1.5 sm:grid-cols-2">
                 {g.items.map((n) => {
                   const desc = Number(n.desconto_distrato) || 0;
+                  const liquido = Number(n.valor_nf) || 0;
+                  const pedido = liquido + desc;
                   const distratoHistorico = n.observacao_distrato?.trim();
                   return (
                   <label
@@ -223,50 +225,50 @@ export function GroupedNFEmitter({
                               <button
                                 type="button"
                                 onClick={(e) => e.stopPropagation()}
-                                title="Ver histórico de desconto de distrato"
+                                title="Ver detalhes do distrato"
                                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 text-[10px] font-medium hover:bg-rose-500/25 transition-colors"
                               >
                                 <AlertTriangle className="w-3 h-3" />
-                                Distrato −{BRL(desc)} · Histórico
+                                Distrato −{BRL(desc)} · Ver detalhes
                               </button>
                             </PopoverTrigger>
-                            <PopoverContent align="start" className="w-80 p-3 space-y-2">
-                              <div className="text-xs font-semibold uppercase tracking-wide text-rose-300 flex items-center gap-1.5">
-                                <AlertTriangle className="w-3.5 h-3.5" /> Histórico de distrato
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Valor descontado: <b className="text-foreground">{BRL(desc)}</b>
-                              </div>
-                              {distratoHistorico ? (
-                                <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-2">
-                                  <div className="text-sm whitespace-pre-wrap break-words text-foreground/90">
-                                    {distratoHistorico}
-                                  </div>
+                            <PopoverContent align="start" className="w-96 p-0 overflow-hidden border-rose-500/40">
+                              <div className="bg-rose-500/10 border-b border-rose-500/30 p-3 space-y-1">
+                                <div className="text-sm font-semibold flex items-center gap-1.5 text-rose-200">
+                                  <AlertTriangle className="w-4 h-4" /> DESCONTO DE DISTRATO
                                 </div>
-                              ) : (
-                                <div className="text-[11px] text-muted-foreground italic">
-                                  Sem observações adicionais do financeiro.
+                                <p className="text-[11px] text-muted-foreground leading-tight">
+                                  O financeiro vinculou este pedido a um distrato pendente. O valor abaixo será abatido do pagamento.
+                                </p>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2 p-3 border-b border-border/40 text-center">
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Pedido</div>
+                                  <div className="text-sm font-semibold tabular-nums">{BRL(pedido)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Desconto</div>
+                                  <div className="text-sm font-semibold tabular-nums text-rose-300">− {BRL(desc)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Líquido</div>
+                                  <div className="text-sm font-semibold tabular-nums text-emerald-300">{BRL(liquido)}</div>
+                                </div>
+                              </div>
+                              {distratoHistorico && (
+                                <div className="p-3 text-[11px] text-muted-foreground whitespace-pre-wrap break-words bg-background/40">
+                                  {distratoHistorico}
                                 </div>
                               )}
                             </PopoverContent>
                           </Popover>
                         )}
                       </div>
-                      {desc > 0 && (
-                        <div className="mt-1 rounded-md border border-rose-500/25 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-100">
-                          <div className="font-medium">Histórico do distrato · desconto {BRL(desc)}</div>
-                          {distratoHistorico && (
-                            <div className="mt-0.5 whitespace-pre-wrap break-words text-muted-foreground line-clamp-2">
-                              {distratoHistorico}
-                            </div>
-                          )}
-                        </div>
-                      )}
                       <div className="text-[10px] text-muted-foreground truncate">
                         {n.sale?.unidade ?? ""} · {fmtBR(n.sale?.data)}
                       </div>
                     </div>
-                    <div className="text-right tabular-nums font-medium">{BRL(Number(n.valor_nf) || 0)}</div>
+                    <div className="text-right tabular-nums font-medium">{BRL(liquido)}</div>
                   </label>
                   );
                 })}
