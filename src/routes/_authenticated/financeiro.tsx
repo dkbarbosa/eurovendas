@@ -1799,14 +1799,29 @@ function RequestNFTab() {
   const maxDesc = selectedDist?.saldo_restante ?? 0;
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return data;
-    const q = search.toLowerCase();
-    return data.filter((s) =>
-      [s.comprador, s.empreendimento, s.unidade, s.corretor].some((v) =>
-        v?.toLowerCase().includes(q),
-      ),
-    );
+    const base = !search.trim()
+      ? data
+      : data.filter((s) => {
+          const q = search.toLowerCase();
+          return [s.comprador, s.empreendimento, s.unidade, s.corretor].some((v) =>
+            v?.toLowerCase().includes(q),
+          );
+        });
+    // Prioriza vendas com pedido aprovado aguardando NF.
+    return [...base].sort((a, b) => {
+      const aPend =
+        (a.approved_pending_nf_corretor ? 1 : 0) +
+        (a.approved_pending_nf_gerente ? 1 : 0) +
+        (a.approved_pending_nf_diretor ? 1 : 0);
+      const bPend =
+        (b.approved_pending_nf_corretor ? 1 : 0) +
+        (b.approved_pending_nf_gerente ? 1 : 0) +
+        (b.approved_pending_nf_diretor ? 1 : 0);
+      if (aPend !== bPend) return bPend - aPend;
+      return 0;
+    });
   }, [data, search]);
+
 
   const reqMut = useMutation({
     mutationFn: (v: {
