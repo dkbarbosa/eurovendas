@@ -150,13 +150,13 @@ function DashboardTab() {
   const { data: reqs = [], isLoading: lr } = useQuery({
     queryKey: ["all-requests", "todos"],
     queryFn: () => fnListReqs({ data: undefined }),
-    refetchInterval: 10_000,
+    refetchInterval: 30_000,
     refetchOnWindowFocus: true,
   });
   const { data: nfs = [], isLoading: ln } = useQuery({
     queryKey: ["all-nfs"],
     queryFn: () => fnListNFs(),
-    refetchInterval: 10_000,
+    refetchInterval: 30_000,
     refetchOnWindowFocus: true,
   });
 
@@ -526,7 +526,7 @@ function AdvancesTab() {
     queryKey: ["all-requests", statusFilter],
     queryFn: () =>
       fnList({ data: statusFilter === "todos" ? undefined : { status: statusFilter } }),
-    refetchInterval: 10_000,
+    refetchInterval: 30_000,
     refetchOnWindowFocus: true,
   });
 
@@ -1753,7 +1753,7 @@ function RequestNFTab() {
   const { data = [], isLoading } = useQuery({
     queryKey: ["nf-eligible"],
     queryFn: () => fnList(),
-    refetchInterval: 10_000,
+    refetchInterval: 30_000,
     refetchOnWindowFocus: true,
   });
 
@@ -2270,7 +2270,7 @@ function NFTab() {
   const { data = [], isLoading } = useQuery({
     queryKey: ["all-nfs"],
     queryFn: () => fnList(),
-    refetchInterval: 10_000,
+    refetchInterval: 30_000,
     refetchOnWindowFocus: true,
   });
   const filtered = statusFilter === "todos" ? data : data.filter((n) => n.status === statusFilter);
