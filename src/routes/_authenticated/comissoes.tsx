@@ -280,17 +280,41 @@ function ComissoesPage() {
     // distratoBySale garante que só apareça badge na venda correspondente.
     return distratosAll;
   }, [distratosAll]);
+  // Valor que ESTE papel (corretor) deve devolver no distrato — vem do
+  // recipient com role='corretor' (cada papel devolve sua própria parte).
+  const corretorShare = (d: (typeof distratos)[number]): number => {
+    const recs = (d as { recipients?: Array<{ role: string; valor_devolver: number; valor_devolvido: number; status: string }> }).recipients ?? [];
+    const r = recs.find((x) => x.role === "corretor");
+    if (r) return Number(r.valor_devolver) || 0;
+    // fallback p/ registros antigos sem recipients
+    return Number(d.valor_devolver) || 0;
+  };
+  const corretorPendente = (d: (typeof distratos)[number]): number => {
+    const recs = (d as { recipients?: Array<{ role: string; valor_devolver: number; valor_devolvido: number; status: string }> }).recipients ?? [];
+    const r = recs.find((x) => x.role === "corretor");
+    if (r) return r.status === "pendente" ? Math.max(0, Number(r.valor_devolver) - Number(r.valor_devolvido)) : 0;
+    return d.status === "pendente_devolucao" ? Number(d.valor_devolver) || 0 : 0;
+  };
   const distratoBySale = useMemo(() => {
     const m = new Map<string, (typeof distratos)[number]>();
     for (const d of distratos) if (d.status !== "cancelado") m.set(d.sale_id, d);
     return m;
   }, [distratos]);
   const totalADevolver = useMemo(
-    () => distratos.filter((d) => d.status === "pendente_devolucao").reduce((s, d) => s + (Number(d.valor_devolver) || 0), 0),
+    () => distratos.reduce((s, d) => s + corretorPendente(d), 0),
     [distratos],
   );
   const totalDevolvido = useMemo(
-    () => distratos.filter((d) => d.status === "devolvido").reduce((s, d) => s + (Number(d.valor_devolver) || 0), 0),
+    () => {
+      let acc = 0;
+      for (const d of distratos) {
+        const recs = (d as { recipients?: Array<{ role: string; valor_devolvido: number }> }).recipients ?? [];
+        const r = recs.find((x) => x.role === "corretor");
+        if (r) acc += Number(r.valor_devolvido) || 0;
+        else if (d.status === "devolvido") acc += Number(d.valor_devolver) || 0;
+      }
+      return acc;
+    },
     [distratos],
   );
 
