@@ -182,7 +182,8 @@ function ComissoesPage() {
       const comLiq = Number(s.comissao_liq_corretor) || 0;
       const pago = paidMap.get(s.id) ?? 0;
       const aReceber = Math.round((comLiq - pago) * 100) / 100;
-      if (aReceber > 0) ids.add(s.id);
+      // Saldo residual de até R$ 0,50 é considerado finalizado.
+      if (aReceber > 0.5) ids.add(s.id);
     }
     return ids;
   }, [allSales, requests, nfs]);
