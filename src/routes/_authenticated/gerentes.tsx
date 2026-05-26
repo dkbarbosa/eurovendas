@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { SaleNFCell, useMyNFs, type MyNFItem } from "@/components/nf/SaleNFCell";
 import { GroupedNFEmitter, type PendingNFItem } from "@/components/nf/GroupedNFEmitter";
-import { MinhasDevolucoesPendentes } from "@/components/distratos/MinhasDevolucoesPendentes";
+
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 import { Badge } from "@/components/ui/badge";
@@ -432,7 +432,7 @@ function GerentesPage() {
           </div>
 
 
-          <MinhasDevolucoesPendentes compact />
+          
 
           {/* Tabela principal de comissão */}
           <section className="space-y-3">
