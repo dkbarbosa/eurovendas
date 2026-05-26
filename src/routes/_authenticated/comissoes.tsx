@@ -1139,6 +1139,17 @@ function ComissoesPage() {
                                     : !allowed
                                       ? "Aguardando o Status da venda virar CAIXA (ou o financeiro solicitar a NF) para liberar nova solicitação."
                                       : "";
+                              if (label === "Aguardando CAIXA") {
+                                return (
+                                  <Badge
+                                    variant="outline"
+                                    title={blockReason}
+                                    className="text-[11px] bg-sky-500/10 text-sky-400 border-sky-500/40 w-fit"
+                                  >
+                                    Aguardando Caixa
+                                  </Badge>
+                                );
+                              }
                               return (
                                 <Button
                                   size="sm"

@@ -588,16 +588,26 @@ function GerentesPage() {
                           <SaleNFCell saleId={s.id} role="gerente" />
                         </td>
                         <td className="p-3 text-right">
-                          <Button
-                            size="sm"
-                            disabled={!ruleOk || pend}
-                            title={btnTitle}
-                            onClick={() => openReq(s)}
-                            style={ruleOk && !pend ? { background: "var(--gradient-primary)", color: "var(--primary-foreground)" } : undefined}
-                            variant={ruleOk && !pend ? "default" : "outline"}
-                          >
-                            <Send className="w-3 h-3 mr-1" /> {btnLabel}
-                          </Button>
+                          {aguardandoCaixa ? (
+                            <Badge
+                              variant="outline"
+                              title={btnTitle}
+                              className="text-[11px] bg-sky-500/10 text-sky-400 border-sky-500/40"
+                            >
+                              Aguardando Caixa
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              disabled={!ruleOk || pend}
+                              title={btnTitle}
+                              onClick={() => openReq(s)}
+                              style={ruleOk && !pend ? { background: "var(--gradient-primary)", color: "var(--primary-foreground)" } : undefined}
+                              variant={ruleOk && !pend ? "default" : "outline"}
+                            >
+                              <Send className="w-3 h-3 mr-1" /> {btnLabel}
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     );
