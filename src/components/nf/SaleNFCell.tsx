@@ -86,18 +86,16 @@ function RoleRulesBlock({ role }: { role: string }) {
 
 
 export function NFPill({ n, saleStatus }: { n: { status: string; numero_nf: string | null }; saleStatus?: string | null }) {
-  // Exibe "Aguardando Caixa" para adiantamentos pagos quando a venda ainda
-  // não chegou em CAIXA. Quando estiver em CAIXA → "Finalizado".
-  let label: string = n.status;
+  let label: string | null = n.status;
   if (n.status === "paga") {
     const stUp = (saleStatus ?? "").trim().toUpperCase();
-    label = stUp === "CAIXA" ? "finalizado" : "aguardando caixa";
+    label = stUp === "CAIXA" ? "finalizado" : null;
   }
   const isPaga = n.status === "paga";
   return (
     <div className="inline-flex flex-wrap items-center gap-1">
       <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] rounded-full border ${STATUS_STYLE[n.status] ?? ""}`}>
-        <Receipt className="w-3 h-3" /> NF {n.numero_nf ? `#${n.numero_nf}` : ""} · {label}
+        <Receipt className="w-3 h-3" /> NF {n.numero_nf ? `#${n.numero_nf}` : ""}{label ? ` · ${label}` : ""}
       </div>
       {isPaga && (
         <>
@@ -112,6 +110,7 @@ export function NFPill({ n, saleStatus }: { n: { status: string; numero_nf: stri
     </div>
   );
 }
+
 
 export function useMyNFs() {
   const fnList = useServerFn(listMyNFs);
