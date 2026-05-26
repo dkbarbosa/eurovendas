@@ -472,19 +472,25 @@ function GerentesPage() {
                     const sinalOk = sinalSale >= 2999.99;
                     const isCaixa = stUp === "CAIXA";
                     const pend = pendByReq.get(s.id) ?? false;
-                    const ruleOk = !blocked && aReceber > 0 && (isCaixa || sinalOk);
+                    const jaTevePagamento = pago > 0;
+                    const aguardandoCaixa = jaTevePagamento && !isCaixa && aReceber > 0;
+                    const ruleOk = !blocked && aReceber > 0 && !aguardandoCaixa && (isCaixa || sinalOk);
                     const d10 = (s.data ?? "").slice(0, 10);
                     const isOutOfPeriod = !!d10 && ((dateFrom && d10 < dateFrom) || (dateTo && d10 > dateTo));
                     const btnLabel = blocked
                       ? stUp
                       : pend
                         ? "Pendente"
-                        : !isCaixa && !sinalOk
-                          ? "Sinal insuficiente"
-                          : "Solicitar";
-                    const btnTitle = !isCaixa && !sinalOk && !blocked
-                      ? `Sinal de ${BRL(sinalSale)} é menor que R$ 2.999,99 — adiantamento não liberado.`
-                      : "";
+                        : aguardandoCaixa
+                          ? "Aguardando CAIXA"
+                          : !isCaixa && !sinalOk
+                            ? "Sinal insuficiente"
+                            : "Solicitar";
+                    const btnTitle = aguardandoCaixa
+                      ? "Já existe um adiantamento pago para esta venda. Aguarde o status virar CAIXA para liberar nova solicitação."
+                      : !isCaixa && !sinalOk && !blocked
+                        ? `Sinal de ${BRL(sinalSale)} é menor que R$ 2.999,99 — adiantamento não liberado.`
+                        : "";
                     return (
                       <tr key={s.id} className={`border-t border-border align-top ${isOutOfPeriod ? "bg-primary/[0.04]" : ""}`}>
                         <td className="p-3 whitespace-nowrap">
