@@ -1072,7 +1072,7 @@ function ComissoesPage() {
                                     }
                                   }}
                                 >
-                                  <Wallet className="w-3 h-3 mr-1" />Pago
+                                  <Wallet className="w-3 h-3 mr-1" />Recebido
                                 </Button>
                               )}
                               {isAdmin && (
