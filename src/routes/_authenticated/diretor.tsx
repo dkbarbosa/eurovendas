@@ -87,7 +87,7 @@ function DiretorPage() {
 
   const sales = (data?.sales ?? []) as SaleWithCom[];
   const requests = data?.requests ?? [];
-  const distratos = (data as { distratos?: Array<{ sale_id: string; status: string; valor_devolver: number; motivo: string | null; observacao_financeiro: string | null; created_at: string }> } | undefined)?.distratos ?? [];
+  const distratos = (data as { distratos?: Array<{ sale_id: string; status: string; valor_devolver: number; valor_devolver_role?: number; motivo: string | null; observacao_financeiro: string | null; created_at: string }> } | undefined)?.distratos ?? [];
   const distratoBySale = useMemo(() => {
     const m = new Map<string, (typeof distratos)[number]>();
     for (const d of distratos) m.set(d.sale_id, d);
@@ -430,7 +430,7 @@ function DiretorPage() {
                                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/40 bg-destructive/10 text-destructive text-[10px] hover:bg-destructive/20 transition-colors"
                                     >
                                       <Ban className="w-2.5 h-2.5" />
-                                      {dist ? `Distrato · devolver ${BRL(dist.valor_devolver)}` : "Venda distratada"}
+                                      {dist ? `Distrato · devolver ${BRL(dist.valor_devolver_role ?? dist.valor_devolver)}` : "Venda distratada"}
                                       <span className="opacity-70">· Histórico</span>
                                     </button>
                                   </PopoverTrigger>
@@ -441,7 +441,7 @@ function DiretorPage() {
                                     {dist ? (
                                       <>
                                         <div>Cliente: <b>{s.comprador ?? "—"}</b></div>
-                                        <div>Valor a devolver: <b className="text-destructive">{BRL(dist.valor_devolver)}</b></div>
+                                        <div>Valor a devolver: <b className="text-destructive">{BRL(dist.valor_devolver_role ?? dist.valor_devolver)}</b></div>
                                         <div>Status: <b className="capitalize">{dist.status.replace("_", " ")}</b></div>
                                         <div>Lançado em: {fmtBR(dist.created_at)}</div>
                                         {dist.motivo && (

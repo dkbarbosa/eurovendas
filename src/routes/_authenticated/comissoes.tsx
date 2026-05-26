@@ -280,17 +280,41 @@ function ComissoesPage() {
     // distratoBySale garante que só apareça badge na venda correspondente.
     return distratosAll;
   }, [distratosAll]);
+  // Valor que ESTE papel (corretor) deve devolver no distrato — vem do
+  // recipient com role='corretor' (cada papel devolve sua própria parte).
+  const corretorShare = (d: (typeof distratos)[number]): number => {
+    const recs = (d as { recipients?: Array<{ role: string; valor_devolver: number; valor_devolvido: number; status: string }> }).recipients ?? [];
+    const r = recs.find((x) => x.role === "corretor");
+    if (r) return Number(r.valor_devolver) || 0;
+    // fallback p/ registros antigos sem recipients
+    return Number(d.valor_devolver) || 0;
+  };
+  const corretorPendente = (d: (typeof distratos)[number]): number => {
+    const recs = (d as { recipients?: Array<{ role: string; valor_devolver: number; valor_devolvido: number; status: string }> }).recipients ?? [];
+    const r = recs.find((x) => x.role === "corretor");
+    if (r) return r.status === "pendente" ? Math.max(0, Number(r.valor_devolver) - Number(r.valor_devolvido)) : 0;
+    return d.status === "pendente_devolucao" ? Number(d.valor_devolver) || 0 : 0;
+  };
   const distratoBySale = useMemo(() => {
     const m = new Map<string, (typeof distratos)[number]>();
     for (const d of distratos) if (d.status !== "cancelado") m.set(d.sale_id, d);
     return m;
   }, [distratos]);
   const totalADevolver = useMemo(
-    () => distratos.filter((d) => d.status === "pendente_devolucao").reduce((s, d) => s + (Number(d.valor_devolver) || 0), 0),
+    () => distratos.reduce((s, d) => s + corretorPendente(d), 0),
     [distratos],
   );
   const totalDevolvido = useMemo(
-    () => distratos.filter((d) => d.status === "devolvido").reduce((s, d) => s + (Number(d.valor_devolver) || 0), 0),
+    () => {
+      let acc = 0;
+      for (const d of distratos) {
+        const recs = (d as { recipients?: Array<{ role: string; valor_devolvido: number }> }).recipients ?? [];
+        const r = recs.find((x) => x.role === "corretor");
+        if (r) acc += Number(r.valor_devolvido) || 0;
+        else if (d.status === "devolvido") acc += Number(d.valor_devolver) || 0;
+      }
+      return acc;
+    },
     [distratos],
   );
 
@@ -777,7 +801,7 @@ function ComissoesPage() {
                               className={`text-[10px] gap-1 ${distrato.status === "devolvido" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-destructive/10 text-destructive border-destructive/30"}`}
                             >
                               <Ban className="w-2.5 h-2.5" />
-                              {distrato.status === "devolvido" ? "Distrato devolvido" : `Distrato · devolver ${BRL(distrato.valor_devolver)}`}
+                              {distrato.status === "devolvido" ? "Distrato devolvido" : `Distrato · devolver ${BRL(corretorShare(distrato))}`}
                             </Badge>
                             {distrato.motivo && (
                               <Popover>
@@ -795,7 +819,7 @@ function ComissoesPage() {
                                     {distrato.motivo}
                                   </div>
                                   <div className="text-[11px] text-muted-foreground">
-                                    Valor a devolver: <span className="font-semibold text-destructive">{BRL(distrato.valor_devolver)}</span>
+                                    Valor a devolver: <span className="font-semibold text-destructive">{BRL(corretorShare(distrato))}</span>
                                   </div>
                                 </PopoverContent>
                               </Popover>
@@ -1048,7 +1072,7 @@ function ComissoesPage() {
                                     }
                                   }}
                                 >
-                                  <Wallet className="w-3 h-3 mr-1" />Pago
+                                  <Wallet className="w-3 h-3 mr-1" />Recebido
                                 </Button>
                               )}
                               {isAdmin && (

@@ -141,9 +141,33 @@ export const getGerenteOverview = createServerFn({ method: "POST" })
       .neq("status", "cancelado")
       .order("created_at", { ascending: false })
       .limit(1000);
-    const distratos: DistratoRow[] = (dists ?? []).filter(
+    const distratosBase: DistratoRow[] = (dists ?? []).filter(
       (d) => (d.gerente_nome ?? "").trim().toLowerCase() === nomeNorm,
     );
+
+    // Anexa o valor que o gerente especificamente deve devolver (recipient.role='gerente').
+    const distIds = distratosBase.map((d) => d.id);
+    const recsByDist = new Map<string, { valor_devolver: number; valor_devolvido: number; status: string }>();
+    if (distIds.length > 0) {
+      const { data: recs } = await supabaseAdmin
+        .from("distrato_recipients")
+        .select("distrato_id,role,valor_devolver,valor_devolvido,status")
+        .in("distrato_id", distIds)
+        .eq("role", "gerente");
+      for (const r of recs ?? []) {
+        recsByDist.set(r.distrato_id, {
+          valor_devolver: Number(r.valor_devolver) || 0,
+          valor_devolvido: Number(r.valor_devolvido) || 0,
+          status: r.status,
+        });
+      }
+    }
+    const distratos = distratosBase.map((d) => ({
+      ...d,
+      valor_devolver_role: recsByDist.get(d.id)?.valor_devolver ?? (Number(d.valor_devolver) || 0),
+      valor_devolvido_role: recsByDist.get(d.id)?.valor_devolvido ?? 0,
+      status_role: recsByDist.get(d.id)?.status ?? null,
+    }));
 
     const reqIds = requests.map((r) => r.id);
     let descontos: DescontoRow[] = [];
