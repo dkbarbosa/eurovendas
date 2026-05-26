@@ -467,14 +467,15 @@ function GerentesPage() {
                     const aReceber = Math.max(0, comLiq - pago);
                     const stUp = (s.status ?? "").trim().toUpperCase();
                     const blocked = stUp === "RESERVADO" || stUp === "DISTRATO";
-                    const isFinalizada = aReceber <= 0 && comLiq > 0;
+                    // Saldo residual de até R$ 0,50 é considerado finalizado.
+                    const isFinalizada = aReceber <= 0.5 && comLiq > 0;
                     const sinalSale = Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
                     const sinalOk = sinalSale >= 2999.99;
                     const isCaixa = stUp === "CAIXA";
                     const pend = pendByReq.get(s.id) ?? false;
                     const jaTevePagamento = pago > 0;
-                    const aguardandoCaixa = jaTevePagamento && !isCaixa && aReceber > 0;
-                    const ruleOk = !blocked && aReceber > 0 && !aguardandoCaixa && (isCaixa || sinalOk);
+                    const aguardandoCaixa = jaTevePagamento && !isCaixa && aReceber > 0.5;
+                    const ruleOk = !blocked && aReceber > 0.5 && !aguardandoCaixa && (isCaixa || sinalOk);
                     const d10 = (s.data ?? "").slice(0, 10);
                     const isOutOfPeriod = !!d10 && ((dateFrom && d10 < dateFrom) || (dateTo && d10 > dateTo));
                     const btnLabel = blocked
