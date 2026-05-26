@@ -44,6 +44,7 @@ export type MyNFItem = {
     empreendimento: string | null;
     unidade: string | null;
     valor_venda: number | null;
+    status?: string | null;
   } | null;
 };
 
