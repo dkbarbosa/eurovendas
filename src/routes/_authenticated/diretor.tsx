@@ -393,8 +393,9 @@ function DiretorPage() {
                     const com = Number(s.comissao_diretor) || 0;
                     const aReceber = Math.max(0, com - pago);
                     const jaTevePagamento = pago > 0;
-                    const aguardandoCaixa = jaTevePagamento && !isCaixa && aReceber > 0;
-                    const ruleOk = !bloqueado && aReceber > 0 && !aguardandoCaixa && (isCaixa || sinalOk);
+                    // Saldo residual de até R$ 0,50 é considerado finalizado.
+                    const aguardandoCaixa = jaTevePagamento && !isCaixa && aReceber > 0.5;
+                    const ruleOk = !bloqueado && aReceber > 0.5 && !aguardandoCaixa && (isCaixa || sinalOk);
                     const d10 = (s.data ?? "").slice(0, 10);
                     const isOutOfPeriod = !!d10 && ((dateFrom && d10 < dateFrom) || (dateTo && d10 > dateTo));
                     const btnLabel = bloqueado
