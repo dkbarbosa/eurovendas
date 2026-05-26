@@ -1676,15 +1676,18 @@ function AdvancesTab() {
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label>Observação para o beneficiário</Label>
+          <div className="space-y-1.5 rounded-lg border border-border/60 bg-secondary/20 p-3">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-foreground/80">Observação para o beneficiário</Label>
             <Textarea
               value={obs.text}
               onChange={(e) => setObs({ ...obs, text: e.target.value })}
               rows={3}
               maxLength={2000}
+              placeholder="Opcional"
+              className="bg-background/60"
             />
           </div>
+
           <DialogFooter>
             <Button
               variant="ghost"
