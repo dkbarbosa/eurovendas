@@ -1,0 +1,1 @@
+UPDATE public.commission_requests SET status = 'pago' WHERE status = 'distratado';

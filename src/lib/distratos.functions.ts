@@ -106,10 +106,11 @@ export const createDistrato = createServerFn({ method: "POST" })
     );
     if (recErr) throw new Error(recErr.message);
 
-    const ids = items.map((r) => r.id);
-    if (ids.length > 0) {
-      await supabaseAdmin.from("commission_requests").update({ status: "distratado" }).in("id", ids);
-    }
+    // IMPORTANTE: NÃO flipamos commission_requests.status de "pago" para
+    // "distratado". O histórico real de pagamento precisa ser preservado para
+    // que os painéis (corretor/gerente/diretor) continuem exibindo o valor já
+    // adiantado e o saldo devedor decorrente do distrato. O vínculo do
+    // distrato fica registrado na tabela `distratos` + `distrato_recipients`.
 
     await supabaseAdmin.from("sales").update({ status: "DISTRATO" }).eq("id", sale.id);
     try {
