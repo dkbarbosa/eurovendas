@@ -93,9 +93,22 @@ export function NFPill({ n, saleStatus }: { n: { status: string; numero_nf: stri
     const stUp = (saleStatus ?? "").trim().toUpperCase();
     label = stUp === "CAIXA" ? "finalizado" : "aguardando caixa";
   }
+  const isPaga = n.status === "paga";
   return (
-    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] rounded-full border ${STATUS_STYLE[n.status] ?? ""}`}>
-      <Receipt className="w-3 h-3" /> NF {n.numero_nf ? `#${n.numero_nf}` : ""} · {label}
+    <div className="inline-flex flex-wrap items-center gap-1">
+      <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] rounded-full border ${STATUS_STYLE[n.status] ?? ""}`}>
+        <Receipt className="w-3 h-3" /> NF {n.numero_nf ? `#${n.numero_nf}` : ""} · {label}
+      </div>
+      {isPaga && (
+        <>
+          <div className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+            <CheckCircle2 className="w-3 h-3" /> NF recebida
+          </div>
+          <div className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border bg-primary/10 text-primary border-primary/30">
+            <Wallet className="w-3 h-3" /> Adiantamento pago
+          </div>
+        </>
+      )}
     </div>
   );
 }
