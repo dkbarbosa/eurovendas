@@ -44,7 +44,7 @@ export function DistratosPanel() {
           to: to ? new Date(to + "T23:59:59").toISOString() : undefined,
         },
       }),
-    refetchInterval: 15_000,
+    refetchInterval: 45_000,
     refetchOnWindowFocus: true,
   });
 
@@ -312,7 +312,7 @@ function DescontosInline({ distratoId }: { distratoId: string }) {
   const { data: descontos = [] } = useQuery({
     queryKey: ["distrato-descontos", distratoId],
     queryFn: () => fnList({ data: { distrato_id: distratoId } }),
-    refetchInterval: 20_000,
+    refetchInterval: 60_000,
   });
   const ativos = (descontos as Array<{ id: string; valor_desconto: number; status: string; observacao: string | null }>)
     .filter((d) => d.status === "aplicado");

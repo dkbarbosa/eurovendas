@@ -78,7 +78,7 @@ function GerentesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["gerente-overview", overviewArg],
     queryFn: () => fnOverview({ data: overviewArg ? { gerente_nome: overviewArg } : undefined }),
-    refetchInterval: 15_000,
+    refetchInterval: 45_000,
   });
 
   const sales = data?.sales ?? [];

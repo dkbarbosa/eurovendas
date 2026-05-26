@@ -81,7 +81,7 @@ function DiretorPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["diretor-overview"],
     queryFn: () => fnOverview(),
-    refetchInterval: 15_000,
+    refetchInterval: 45_000,
     enabled: isAdmin || isDiretor,
   });
 
