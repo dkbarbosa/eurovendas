@@ -522,7 +522,7 @@ function GerentesPage() {
                                     {dist ? (
                                       <>
                                         <div>Cliente: <b>{s.comprador ?? "—"}</b></div>
-                                        <div>Valor a devolver: <b className="text-destructive">{BRL(dist.valor_devolver)}</b></div>
+                                        <div>Valor a devolver: <b className="text-destructive">{BRL((dist as { valor_devolver_role?: number }).valor_devolver_role ?? dist.valor_devolver)}</b></div>
                                         <div>Status: <b className="capitalize">{String(dist.status).replace("_", " ")}</b></div>
                                         <div>Lançado em: {fmtBR((dist as { created_at?: string }).created_at ?? null)}</div>
                                         {dist.motivo && (
