@@ -406,7 +406,21 @@ function DiretorPage() {
                             </Badge>
                           )}
                         </td>
-                        <td className="p-3">{s.comprador ?? "—"}</td>
+                        <td className="p-3">
+                          <div>{s.comprador ?? "—"}</div>
+                          {stUp === "DISTRATO" && (
+                            <div className="mt-1 space-y-0.5">
+                              <Badge variant="outline" className="text-[10px] gap-1 bg-destructive/10 text-destructive border-destructive/30">
+                                <Ban className="w-2.5 h-2.5" /> Venda distratada
+                              </Badge>
+                              {pago > 0 && (
+                                <div className="text-[10px] text-destructive font-medium">
+                                  Saldo devedor: {BRL(pago)}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </td>
                         <td className="p-3 text-xs">
                           <div>{s.empreendimento ?? "—"}</div>
                           <div className="text-muted-foreground">{s.unidade ?? ""}</div>
