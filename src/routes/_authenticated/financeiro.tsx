@@ -1891,8 +1891,41 @@ function RequestNFTab() {
                 </td>
               </tr>
             )}
-            {filtered.map((s) => (
-              <tr key={s.id} className="border-t border-border">
+            {filtered.map((s) => {
+              const pendBadge = (role: "corretor" | "gerente" | "diretor") => {
+                const isPend =
+                  role === "corretor"
+                    ? s.approved_pending_nf_corretor
+                    : role === "gerente"
+                      ? s.approved_pending_nf_gerente
+                      : s.approved_pending_nf_diretor;
+                const isReaj =
+                  role === "corretor"
+                    ? s.approved_reajustada_corretor
+                    : role === "gerente"
+                      ? s.approved_reajustada_gerente
+                      : s.approved_reajustada_diretor;
+                if (!isPend) return null;
+                const label = role === "corretor" ? "Corretor" : role === "gerente" ? "Gerente" : "Gestão";
+                return (
+                  <Badge
+                    key={role}
+                    variant="outline"
+                    className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/40 w-fit"
+                  >
+                    {label} · Aprovado{isReaj ? "/Reajustada" : ""} — solicitar NF
+                  </Badge>
+                );
+              };
+              const anyPend =
+                s.approved_pending_nf_corretor ||
+                s.approved_pending_nf_gerente ||
+                s.approved_pending_nf_diretor;
+              return (
+              <tr
+                key={s.id}
+                className={`border-t border-border ${anyPend ? "bg-emerald-500/5" : ""}`}
+              >
                 <td className="p-3 whitespace-nowrap">{fmtBR(s.data)}</td>
                 <td className="p-3 font-medium">{s.comprador ?? "—"}</td>
                 <td className="p-3 text-muted-foreground">
@@ -1904,10 +1937,16 @@ function RequestNFTab() {
                 </td>
                 <td className="p-3 text-right">{BRL(s.comissao_liq_corretor)}</td>
                 <td className="p-3">
-                  <Badge variant="outline" className="text-xs">
-                    {s.status ?? "—"}
-                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge variant="outline" className="text-xs w-fit">
+                      {s.status ?? "—"}
+                    </Badge>
+                    {pendBadge("corretor")}
+                    {pendBadge("gerente")}
+                    {pendBadge("diretor")}
+                  </div>
                 </td>
+
                 <td className="p-3 text-right">
                   <div className="flex justify-end gap-1.5 flex-wrap">
                     <Button
