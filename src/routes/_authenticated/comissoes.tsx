@@ -275,14 +275,11 @@ function ComissoesPage() {
   });
 
   const distratos = useMemo(() => {
-    if (!displayName) return [];
-    // Para staff impersonando um corretor, filtrar pelo nome; corretor já vê só os seus pelo RLS.
-    if (isStaff) {
-      const dn = displayName.trim().toLowerCase();
-      return distratosAll.filter((d) => (d.corretor_nome ?? "").trim().toLowerCase() === dn);
-    }
+    // Server-side já escopa para o usuário (corretor/gerente/recipient).
+    // Para staff (admin/financeiro), retorna todos; o pareamento por sale_id no
+    // distratoBySale garante que só apareça badge na venda correspondente.
     return distratosAll;
-  }, [distratosAll, displayName, isStaff]);
+  }, [distratosAll]);
   const distratoBySale = useMemo(() => {
     const m = new Map<string, (typeof distratos)[number]>();
     for (const d of distratos) if (d.status !== "cancelado") m.set(d.sale_id, d);

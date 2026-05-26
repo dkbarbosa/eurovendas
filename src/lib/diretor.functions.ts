@@ -36,13 +36,19 @@ export const getDiretorOverview = createServerFn({ method: "GET" })
     const isDiretor = roles.includes("diretor");
     if (!isAdmin && !isDiretor) throw new Error("Acesso negado.");
 
-    const [{ data: salesData, error: sErr }, { data: reqs }] = await Promise.all([
+    const [{ data: salesData, error: sErr }, { data: reqs }, { data: dists }] = await Promise.all([
       supabaseAdmin.from("sales").select("*").order("data", { ascending: false }).limit(10000),
       supabaseAdmin
         .from("commission_requests")
         .select("*")
         .eq("diretor_user_id", context.userId)
         .eq("requester_role", "diretor")
+        .order("created_at", { ascending: false })
+        .limit(2000),
+      supabaseAdmin
+        .from("distratos")
+        .select("*")
+        .neq("status", "cancelado")
         .order("created_at", { ascending: false })
         .limit(2000),
     ]);
@@ -60,6 +66,7 @@ export const getDiretorOverview = createServerFn({ method: "GET" })
       diretorUserId: context.userId,
       sales,
       requests: reqs ?? [],
+      distratos: dists ?? [],
     };
   });
 

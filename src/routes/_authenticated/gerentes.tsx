@@ -19,6 +19,7 @@ import { CurrencyInput } from "@/components/CurrencyInput";
 import { SaleNFCell, useMyNFs, type MyNFItem } from "@/components/nf/SaleNFCell";
 import { GroupedNFEmitter, type PendingNFItem } from "@/components/nf/GroupedNFEmitter";
 import { MinhasDevolucoesPendentes } from "@/components/distratos/MinhasDevolucoesPendentes";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -502,22 +503,56 @@ function GerentesPage() {
                             if (!dist && stUp !== "DISTRATO") return null;
                             return (
                               <div className="mt-1 space-y-0.5">
-                                <Badge variant="outline" className="text-[10px] gap-1 bg-destructive/10 text-destructive border-destructive/30">
-                                  <Ban className="w-2.5 h-2.5" />
-                                  {dist ? `Distrato · devolver ${BRL(dist.valor_devolver)}` : "Distrato"}
-                                </Badge>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      type="button"
+                                      title="Ver histórico do distrato"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/40 bg-destructive/10 text-destructive text-[10px] hover:bg-destructive/20 transition-colors"
+                                    >
+                                      <Ban className="w-2.5 h-2.5" />
+                                      {dist ? `Distrato · devolver ${BRL(dist.valor_devolver)}` : "Distrato"}
+                                      <span className="opacity-70">· Histórico</span>
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="start" className="w-80 p-3 space-y-2 text-xs">
+                                    <div className="font-medium flex items-center gap-1.5 text-destructive">
+                                      <Ban className="w-3.5 h-3.5" /> Histórico do distrato
+                                    </div>
+                                    {dist ? (
+                                      <>
+                                        <div>Cliente: <b>{s.comprador ?? "—"}</b></div>
+                                        <div>Valor a devolver: <b className="text-destructive">{BRL(dist.valor_devolver)}</b></div>
+                                        <div>Status: <b className="capitalize">{String(dist.status).replace("_", " ")}</b></div>
+                                        <div>Lançado em: {fmtBR((dist as { created_at?: string }).created_at ?? null)}</div>
+                                        {dist.motivo && (
+                                          <div className="rounded-md border border-destructive/20 bg-destructive/5 p-2">
+                                            <div className="text-[10px] uppercase tracking-wide text-destructive mb-0.5">Motivo</div>
+                                            <div className="whitespace-pre-wrap break-words">{dist.motivo}</div>
+                                          </div>
+                                        )}
+                                        {(dist as { observacao_financeiro?: string | null }).observacao_financeiro && (
+                                          <div className="rounded-md border border-border bg-muted/30 p-2">
+                                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Observação do financeiro</div>
+                                            <div className="whitespace-pre-wrap break-words">{(dist as { observacao_financeiro?: string | null }).observacao_financeiro}</div>
+                                          </div>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <div className="text-muted-foreground italic">Status da venda marcado como distrato na planilha.</div>
+                                    )}
+                                  </PopoverContent>
+                                </Popover>
                                 {saldoDevedor > 0 && (
                                   <div className="text-[10px] text-destructive font-medium">
                                     Saldo devedor: {BRL(saldoDevedor)}
                                   </div>
                                 )}
-                                {dist?.motivo && (
-                                  <div className="text-[10px] text-muted-foreground line-clamp-2">{dist.motivo}</div>
-                                )}
                               </div>
                             );
                           })()}
                         </td>
+
                         <td className="p-3 text-muted-foreground">
                           <div>{s.empreendimento ?? "—"}</div>
                           <div className="text-xs">Unid: {s.unidade ?? "—"}</div>
