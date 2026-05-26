@@ -777,7 +777,8 @@ function ComissoesPage() {
                   const isFinalizada = aReceberSale <= 0.5;
                   // Pagamento antecipado: 100% pago e a venda está como "Caixa"
                   // (corretor recebeu adiantamento antes de a venda virar Caixa).
-                  const isPagoAntecipado = isFinalizada && (s.status ?? "").trim().toUpperCase() === "CAIXA";
+                  // Vendas com distrato/reajuste finalizam como pagamento normal.
+                  const isPagoAntecipado = isFinalizada && !distrato && (s.status ?? "").trim().toUpperCase() === "CAIXA";
                   const historico = (paid?.items ?? []).slice().sort((a, b) =>
                     (b.data ?? "").localeCompare(a.data ?? ""),
                   );
