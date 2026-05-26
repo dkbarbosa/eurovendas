@@ -1548,12 +1548,12 @@ function AdvancesTab() {
           if (!o) setAprovDescs({});
         }}
       >
-        <DialogContent className={obsEligibleDistrato ? "max-w-xl" : undefined}>
-          <DialogHeader>
-            <DialogTitle>
+        <DialogContent className={obsEligibleDistrato ? "max-w-xl border-primary/30 shadow-[0_0_60px_-15px_hsl(var(--primary)/0.4)]" : undefined}>
+          <DialogHeader className="border-b border-border/60 pb-3 -mx-6 px-6 -mt-6 pt-6 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-t-lg">
+            <DialogTitle className="text-lg font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               {obs.action === "aprovar" ? "Aprovar pedido" : "Marcar como pago"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-foreground/70">
               {obsEligibleDistrato
                 ? "Na aprovação de comissão final, o sistema carrega automaticamente os distratos pendentes do beneficiário."
                 : "Observação opcional para o beneficiário."}
@@ -1562,18 +1562,18 @@ function AdvancesTab() {
 
           {obsEligibleDistrato && (
             <div className="space-y-3">
-              <div className="rounded-lg border border-border/60 bg-secondary/30 p-3 grid grid-cols-3 gap-2 text-xs">
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground">Pedido</div>
-                  <div className="font-semibold">{BRL(aprovValorReq)}</div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-lg border border-sky-500/30 bg-gradient-to-br from-sky-500/15 to-sky-500/5 p-3">
+                  <div className="text-[10px] uppercase tracking-wide text-sky-300/80 font-semibold">Pedido</div>
+                  <div className="font-bold text-base text-sky-200 mt-0.5">{BRL(aprovValorReq)}</div>
                 </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground">Desc. atual</div>
-                  <div className="font-semibold text-rose-300">{BRL(aprovDescAtual)}</div>
+                <div className="rounded-lg border border-rose-500/30 bg-gradient-to-br from-rose-500/15 to-rose-500/5 p-3">
+                  <div className="text-[10px] uppercase tracking-wide text-rose-300/80 font-semibold">Desc. atual</div>
+                  <div className="font-bold text-base text-rose-300 mt-0.5">{BRL(aprovDescAtual)}</div>
                 </div>
-                <div>
-                  <div className="text-[10px] uppercase text-muted-foreground">Líquido</div>
-                  <div className="font-semibold text-emerald-300">
+                <div className="rounded-lg border border-emerald-500/30 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-3">
+                  <div className="text-[10px] uppercase tracking-wide text-emerald-300/80 font-semibold">Líquido</div>
+                  <div className="font-bold text-base text-emerald-300 mt-0.5">
                     {BRL(
                       Math.max(
                         0,
@@ -1590,10 +1590,11 @@ function AdvancesTab() {
                 </div>
               )}
               {!aprovPendLoading && aprovPendencias.length === 0 && (
-                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs text-emerald-300 text-center">
-                  Beneficiário sem distrato pendente.
+                <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-xs text-emerald-300 text-center font-medium">
+                  ✓ Beneficiário sem distrato pendente.
                 </div>
               )}
+
               {aprovPendencias.length > 0 && (
                 <div className="space-y-1.5">
                   <Label className="text-xs">Distratos vinculados automaticamente</Label>
