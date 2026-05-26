@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Loader2, Wallet, TrendingUp, Send, Search,
-  Clock, CheckCircle2, Timer, FileText, ShieldCheck,
+  Clock, CheckCircle2, Timer, FileText, ShieldCheck, Ban,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
