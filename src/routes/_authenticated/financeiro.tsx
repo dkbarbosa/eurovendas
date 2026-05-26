@@ -973,9 +973,15 @@ function AdvancesTab() {
                                         >
                                           <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={3} />
                                         </span>
+                                      ) : !semPedido ? (
+                                        <span
+                                          className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-emerald-500 border-2 border-emerald-300 shadow-[0_0_8px_hsl(142_76%_45%/0.6)] shrink-0"
+                                          title="Solicitação registrada"
+                                        />
                                       ) : (
                                         <span className="inline-flex items-center justify-center h-5 w-5 rounded-full border border-border/60 bg-background/40 shrink-0" />
                                       )}
+
                                       <div className="min-w-0">
                                         <div className="text-xs font-semibold text-foreground truncate flex items-center gap-1.5">
                                           {rl.label}
