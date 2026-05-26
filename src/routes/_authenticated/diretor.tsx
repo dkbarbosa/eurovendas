@@ -354,7 +354,7 @@ function DiretorPage() {
           </div>
 
 
-          <MinhasDevolucoesPendentes compact />
+          
 
           {/* Vendas + ação de pedido */}
           <section className="space-y-3">
