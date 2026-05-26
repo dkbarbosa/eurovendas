@@ -59,13 +59,17 @@ export const listEligibleSalesForNF = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFinanceiro(context.userId);
-    const [{ data: sales }, { data: nfs }] = await Promise.all([
+    const [{ data: sales }, { data: nfs }, { data: creqs }] = await Promise.all([
       supabaseAdmin
         .from("sales")
         .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,coaphar,comissao_liq_corretor,comissao_liq_gerente,status")
         .order("data", { ascending: false })
         .limit(2000),
       supabaseAdmin.from("nf_requests").select("sale_id,status,requester_role"),
+      supabaseAdmin
+        .from("commission_requests")
+        .select("sale_id,status,requester_role,desconto_distrato")
+        .eq("status", "aprovado"),
     ]);
     const activeByRole = new Set<string>();
     for (const n of nfs ?? []) {
@@ -73,16 +77,37 @@ export const listEligibleSalesForNF = createServerFn({ method: "GET" })
         activeByRole.add(`${n.sale_id}::${n.requester_role ?? "corretor"}`);
       }
     }
+    // Pedidos aprovados que ainda não têm NF ativa (a NF precisa ser emitida pelo financeiro).
+    const approvedByRole = new Map<string, { reajustada: boolean }>();
+    for (const r of creqs ?? []) {
+      const key = `${r.sale_id}::${r.requester_role ?? "corretor"}`;
+      if (activeByRole.has(key)) continue;
+      const prev = approvedByRole.get(key);
+      const reajustada = (Number(r.desconto_distrato) || 0) > 0;
+      approvedByRole.set(key, { reajustada: prev?.reajustada || reajustada });
+    }
     const { data: maps } = await supabaseAdmin.from("broker_mapping").select("user_id,corretor_nome").eq("ativo", true);
     const mapList = (maps ?? []) as { user_id: string; corretor_nome: string }[];
-    return (sales ?? []).map((s) => ({
-      ...s,
-      mapped_user_id: resolveBrokerUserId(s.corretor, mapList),
-      has_active_nf_corretor: activeByRole.has(`${s.id}::corretor`),
-      has_active_nf_gerente: activeByRole.has(`${s.id}::gerente`),
-      has_active_nf_diretor: activeByRole.has(`${s.id}::diretor`),
-    }));
+    return (sales ?? []).map((s) => {
+      const apC = approvedByRole.get(`${s.id}::corretor`);
+      const apG = approvedByRole.get(`${s.id}::gerente`);
+      const apD = approvedByRole.get(`${s.id}::diretor`);
+      return {
+        ...s,
+        mapped_user_id: resolveBrokerUserId(s.corretor, mapList),
+        has_active_nf_corretor: activeByRole.has(`${s.id}::corretor`),
+        has_active_nf_gerente: activeByRole.has(`${s.id}::gerente`),
+        has_active_nf_diretor: activeByRole.has(`${s.id}::diretor`),
+        approved_pending_nf_corretor: !!apC,
+        approved_pending_nf_gerente: !!apG,
+        approved_pending_nf_diretor: !!apD,
+        approved_reajustada_corretor: apC?.reajustada ?? false,
+        approved_reajustada_gerente: apG?.reajustada ?? false,
+        approved_reajustada_diretor: apD?.reajustada ?? false,
+      };
+    });
   });
+
 
 // ---------- RESOLVERS PARA GERENTE/DIRETOR ----------
 async function resolveGerenteUserIdForSale(saleGerenteNome: string | null | undefined): Promise<string | null> {
