@@ -86,6 +86,14 @@ function DiretorPage() {
 
   const sales = (data?.sales ?? []) as SaleWithCom[];
   const requests = data?.requests ?? [];
+  const distratos = (data as { distratos?: Array<{ sale_id: string; status: string; valor_devolver: number; motivo: string | null; observacao_financeiro: string | null; created_at: string }> } | undefined)?.distratos ?? [];
+  const distratoBySale = useMemo(() => {
+    const m = new Map<string, (typeof distratos)[number]>();
+    for (const d of distratos) m.set(d.sale_id, d);
+    return m;
+  }, [distratos]);
+
+
 
   // Vendas elegíveis aparecem mesmo fora do período (regra OK).
   const eligibleSaleIds = useMemo(() => {
