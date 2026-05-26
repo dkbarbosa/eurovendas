@@ -323,7 +323,7 @@ export const listMyNFs = createServerFn({ method: "GET" })
     const saleIds = [...new Set((nfs ?? []).map((n) => n.sale_id).filter((v): v is string => !!v))];
     const { data: sales } = await supabaseAdmin
       .from("sales")
-      .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente")
+      .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,status")
       .in("id", saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"]);
     const sMap = new Map((sales ?? []).map((s) => [s.id, s]));
     return (nfs ?? []).map((n) => ({ ...n, sale: sMap.get(n.sale_id) ?? null }));
