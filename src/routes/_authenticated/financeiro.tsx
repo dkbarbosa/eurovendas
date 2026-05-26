@@ -1597,8 +1597,8 @@ function AdvancesTab() {
 
               {aprovPendencias.length > 0 && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Distratos vinculados automaticamente</Label>
-                  <div className="max-h-72 overflow-auto rounded-lg border border-border/60 divide-y divide-border/40">
+                  <Label className="text-xs font-semibold text-primary uppercase tracking-wide">Distratos vinculados automaticamente</Label>
+                  <div className="max-h-72 overflow-auto rounded-lg border border-primary/30 divide-y divide-border/40 bg-gradient-to-b from-primary/5 to-transparent">
                     {aprovPendencias.map((p) => {
                       const sugerido = Math.min(p.saldo_restante, aprovRestReq);
                       const autoObs = `Desconto referente ao distrato da venda — Cliente: ${p.comprador ?? "—"} · ${p.empreendimento ?? "—"} / ${p.unidade ?? "—"}`;
@@ -1608,27 +1608,27 @@ function AdvancesTab() {
                       return (
                         <div
                           key={p.id}
-                          className="px-3 py-2 text-xs bg-primary/5"
+                          className="px-3 py-2.5 text-xs hover:bg-primary/10 transition-colors"
                         >
                           <div className="flex justify-between items-start gap-2">
                             <div className="min-w-0">
-                              <div className="font-medium truncate">{p.comprador ?? "—"}</div>
+                              <div className="font-semibold truncate text-foreground">{p.comprador ?? "—"}</div>
                               <div className="text-muted-foreground text-[10px] truncate">
                                 {p.empreendimento} / {p.unidade}
                               </div>
                             </div>
                             <div className="text-right whitespace-nowrap">
-                              <div className="font-semibold text-destructive">
+                              <div className="font-bold text-rose-300">
                                 {BRL(p.saldo_restante)}
                               </div>
-                              <Badge variant="outline" className="text-[9px]">
+                              <Badge variant="outline" className="text-[9px] border-rose-500/40 text-rose-300/80">
                                 saldo
                               </Badge>
                             </div>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-2 mt-2">
                             <div className="space-y-1">
-                              <Label className="text-[10px]">Valor descontado</Label>
+                              <Label className="text-[10px] text-primary/80">Valor descontado</Label>
                               <Input
                                 type="number"
                                 step="0.01"
@@ -1641,14 +1641,14 @@ function AdvancesTab() {
                                     [p.id]: { ...(prev[p.id] ?? { obs: autoObs }), valor: e.target.value },
                                   }))
                                 }
-                                className="h-8 font-semibold"
+                                className="h-8 font-bold border-primary/40 focus-visible:ring-primary"
                               />
                               {valorItem > maxItem + 0.001 && (
-                                <div className="text-[10px] text-destructive">Máx: {BRL(maxItem)}</div>
+                                <div className="text-[10px] text-destructive font-medium">Máx: {BRL(maxItem)}</div>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-[10px]">Histórico para o papel</Label>
+                              <Label className="text-[10px] text-primary/80">Histórico para o papel</Label>
                               <Textarea
                                 rows={2}
                                 value={form.obs}
@@ -1659,6 +1659,7 @@ function AdvancesTab() {
                                   }))
                                 }
                                 maxLength={2000}
+                                className="text-xs"
                               />
                             </div>
                           </div>
@@ -1666,11 +1667,12 @@ function AdvancesTab() {
                       );
                     })}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground italic">
                     Os valores já vêm preenchidos; o financeiro pode alterar antes de confirmar a aprovação.
                   </p>
                 </div>
               )}
+
             </div>
           )}
 
