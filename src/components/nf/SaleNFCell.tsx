@@ -44,6 +44,7 @@ export type MyNFItem = {
     empreendimento: string | null;
     unidade: string | null;
     valor_venda: number | null;
+    status?: string | null;
   } | null;
 };
 
@@ -84,8 +85,14 @@ function RoleRulesBlock({ role }: { role: string }) {
 }
 
 
-export function NFPill({ n }: { n: { status: string; numero_nf: string | null } }) {
-  const label = n.status === "paga" ? "finalizado" : n.status;
+export function NFPill({ n, saleStatus }: { n: { status: string; numero_nf: string | null }; saleStatus?: string | null }) {
+  // Exibe "Aguardando Caixa" para adiantamentos pagos quando a venda ainda
+  // não chegou em CAIXA. Quando estiver em CAIXA → "Finalizado".
+  let label: string = n.status;
+  if (n.status === "paga") {
+    const stUp = (saleStatus ?? "").trim().toUpperCase();
+    label = stUp === "CAIXA" ? "finalizado" : "aguardando caixa";
+  }
   return (
     <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] rounded-full border ${STATUS_STYLE[n.status] ?? ""}`}>
       <Receipt className="w-3 h-3" /> NF {n.numero_nf ? `#${n.numero_nf}` : ""} · {label}
@@ -333,18 +340,18 @@ export function SaleNFCell({ saleId, role }: { saleId: string; role?: "corretor"
           return (
             <div key={n.id} className="space-y-1">
               <div className="flex items-center gap-1 flex-wrap">
-                <NFPill n={n} />
+                <NFPill n={n} saleStatus={n.sale?.status as string | undefined} />
                 {(n.status === "emitida" || n.status === "recebida") && (
                   <Button
                     size="sm"
                     disabled={payMut.isPending}
                     onClick={() => {
-                      if (confirm("Confirmar que esta NF foi paga? Isso finaliza o processo.")) payMut.mutate(n.id);
+                      if (confirm("Confirmar que o pagamento foi recebido? Isso finaliza o processo.")) payMut.mutate(n.id);
                     }}
                     className="h-6 px-2 text-[11px]"
                     style={{ background: "var(--gradient-primary)", color: "var(--primary-foreground)" }}
                   >
-                    <Wallet className="w-3 h-3 mr-1" /> Pago
+                    <Wallet className="w-3 h-3 mr-1" /> Recebido
                   </Button>
                 )}
                 {hasDist && (

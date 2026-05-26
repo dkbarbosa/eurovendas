@@ -323,7 +323,7 @@ export const listMyNFs = createServerFn({ method: "GET" })
     const saleIds = [...new Set((nfs ?? []).map((n) => n.sale_id).filter((v): v is string => !!v))];
     const { data: sales } = await supabaseAdmin
       .from("sales")
-      .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente")
+      .select("id,data,comprador,empreendimento,unidade,valor_venda,corretor,gerente,status")
       .in("id", saleIds.length ? saleIds : ["00000000-0000-0000-0000-000000000000"]);
     const sMap = new Map((sales ?? []).map((s) => [s.id, s]));
     return (nfs ?? []).map((n) => ({ ...n, sale: sMap.get(n.sale_id) ?? null }));
@@ -718,15 +718,15 @@ export const markNFPaid = createServerFn({ method: "POST" })
       nf.gerente_user_id === context.userId ||
       nf.diretor_user_id === context.userId;
     if (!isStaff && !isOwner) throw new Error("Acesso negado.");
-    if (nf.status !== "paga" && nf.status !== "recebida")
-      throw new Error("NF precisa estar recebida para ser marcada como paga.");
+    if (nf.status !== "paga" && nf.status !== "recebida" && nf.status !== "emitida")
+      throw new Error("NF precisa estar emitida para ser marcada como recebida.");
 
-    if (nf.status === "recebida") {
+    if (nf.status === "recebida" || nf.status === "emitida") {
       const { error } = await supabaseAdmin
         .from("nf_requests")
         .update({ status: "paga", paga_at: new Date().toISOString(), paga_por: context.userId })
         .eq("id", data.id)
-        .eq("status", "recebida");
+        .in("status", ["recebida", "emitida"]);
       if (error) throw new Error(error.message);
     }
 
