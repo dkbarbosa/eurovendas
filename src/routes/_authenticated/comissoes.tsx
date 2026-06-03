@@ -887,13 +887,13 @@ function ComissoesPage() {
                                       <div className="flex flex-col">
                                         <span className="text-xs uppercase tracking-wide text-muted-foreground">
                                           {h.tipo === "adiantamento" ? "Adiantamento" : "Comissão final"}
-                                          <span className="ml-1 text-[10px] text-muted-foreground/70">({h.kind === "nf" ? "NF" : "Pedido"})</span>
+                                          <span className="ml-1 text-[10px] text-muted-foreground/70">({h.kind === "nf" ? "NF" : h.kind === "sheet" ? "Planilha" : "Pedido"})</span>
                                         </span>
-                                        <span className="text-xs text-muted-foreground">{fmtBR(h.data)}</span>
+                                        <span className="text-xs text-muted-foreground">{h.kind === "sheet" ? "Coluna K — Sheets" : fmtBR(h.data)}</span>
                                       </div>
                                       <div className="flex items-center gap-2">
                                         <span className="font-medium">{BRL(h.valor)}</span>
-                                        {isAdmin && (
+                                        {isAdmin && h.kind !== "sheet" && (
                                           <button
                                             title="Excluir lançamento (admin) — remove o pagamento do histórico"
                                             onClick={() => {
