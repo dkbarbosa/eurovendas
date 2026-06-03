@@ -347,8 +347,11 @@ function ComissoesPage() {
     let finalPago = 0;
     const saleIds = new Set(sales.map((s) => s.id));
     for (const s of sales) {
-      total += Number(s.comissao_liq_corretor) || 0;
       const p = paidBySale.get(s.id);
+      // Total = comissão líquida da planilha + adiantamento manual (K),
+      // pois a fórmula da coluna M já desconta K — somar de volta evita
+      // que o saldo a receber fique negativo quando há lançamento manual.
+      total += (Number(s.comissao_liq_corretor) || 0) + (p?.manualSheet ?? 0);
       if (p) {
         // Adiantamentos só permanecem visíveis enquanto a comissão final
         // daquela venda ainda não foi paga.
