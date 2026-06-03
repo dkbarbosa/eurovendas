@@ -794,10 +794,12 @@ function ComissoesPage() {
                   const paid = paidBySale.get(s.id);
                   const distrato = distratoBySale.get(s.id);
                   const comissaoLiq = Number(s.comissao_liq_corretor) || 0;
+                  const manualSheet = paid?.manualSheet ?? 0;
+                  const comissaoTotal = comissaoLiq + manualSheet;
                   const adiantadoSale = paid?.adiantado ?? 0;
                   const finalPagoSale = paid?.finalPago ?? 0;
                   const totalPagoSale = adiantadoSale + finalPagoSale;
-                  const aReceberSale = Math.max(0, money(comissaoLiq - totalPagoSale));
+                  const aReceberSale = Math.max(0, money(comissaoTotal - totalPagoSale));
                   // Saldo residual de até R$ 0,50 é considerado finalizado.
                   const isFinalizada = aReceberSale <= 0.5;
                   // Pagamento antecipado: 100% pago e a venda está como "Caixa"
