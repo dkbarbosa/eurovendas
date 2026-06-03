@@ -223,13 +223,14 @@ function ComissoesPage() {
       {
         adiantado: number;
         finalPago: number;
-        items: Array<{ id: string; tipo: string; valor: number; data: string | null; kind: "request" | "nf" }>;
+        manualSheet: number; // Adiantamento manual digitado na coluna K da planilha
+        items: Array<{ id: string; tipo: string; valor: number; data: string | null; kind: "request" | "nf" | "sheet" }>;
       }
     >();
     for (const r of requests) {
       if (r.status !== "pago") continue;
       if (((r as { requester_role?: string | null }).requester_role ?? "corretor") !== "corretor") continue;
-      const cur = m.get(r.sale_id) ?? { adiantado: 0, finalPago: 0, items: [] };
+      const cur = m.get(r.sale_id) ?? { adiantado: 0, finalPago: 0, manualSheet: 0, items: [] };
       const v = Number(r.valor_solicitado) || 0;
       if (r.tipo === "adiantamento") cur.adiantado += v;
       else if (r.tipo === "comissao_final") cur.finalPago += v;
@@ -250,7 +251,7 @@ function ComissoesPage() {
       if (n.status !== "paga") continue;
       const v = Number((n as { valor_nf?: number | null }).valor_nf) || 0;
       if (v <= 0) continue;
-      const cur = m.get(n.sale_id) ?? { adiantado: 0, finalPago: 0, items: [] };
+      const cur = m.get(n.sale_id) ?? { adiantado: 0, finalPago: 0, manualSheet: 0, items: [] };
       if (cur.adiantado > 0 || cur.finalPago > 0) continue; // já existe pedido pago → não duplica
       cur.finalPago += v;
       cur.items.push({
@@ -263,9 +264,30 @@ function ComissoesPage() {
       m.set(n.sale_id, cur);
     }
 
+    // Adiantamento manual via planilha (coluna K "Adiant. Corr.").
+    // Quando o financeiro digita em K um valor que excede o total já registrado
+    // como adiantamento pago via sistema, a diferença vira um lançamento manual
+    // exibido como "Adiantamento (Planilha)" no histórico/KPI.
+    for (const s of allSales) {
+      const sheetK = Number((s as { adiant_corretor?: number | null }).adiant_corretor) || 0;
+      if (sheetK <= 0) continue;
+      const cur = m.get(s.id) ?? { adiantado: 0, finalPago: 0, manualSheet: 0, items: [] };
+      const manual = Math.max(0, sheetK - cur.adiantado);
+      if (manual <= 0.005) continue;
+      cur.manualSheet += manual;
+      cur.adiantado += manual;
+      cur.items.push({
+        id: `sheet:${s.id}`,
+        tipo: "adiantamento",
+        valor: manual,
+        data: null,
+        kind: "sheet",
+      });
+      m.set(s.id, cur);
+    }
 
     return m;
-  }, [requests, nfs]);
+  }, [requests, nfs, allSales]);
 
   // ---- Distratos do corretor ----
   const { data: distratosAll = [] } = useQuery({
