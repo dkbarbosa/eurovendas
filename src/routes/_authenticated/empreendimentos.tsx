@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listUnidadesDisponiveis, type UnidadeDisponivel } from "@/lib/empreendimentos.functions";
-import { Building2, RefreshCw, Search, ExternalLink, Ruler, Car, Compass, Layers } from "lucide-react";
+import { Building2, RefreshCw, Search, Ruler, Car, Compass, Layers } from "lucide-react";
 import {
   Select,
   SelectContent,
