@@ -30,11 +30,27 @@ function EmpreendimentosPage() {
   });
 
   const [empFilter, setEmpFilter] = useState<string>("__all__");
+  const [torreFilter, setTorreFilter] = useState<string>("__all__");
+  const [andarFilter, setAndarFilter] = useState<string>("__all__");
+  const [faceFilter, setFaceFilter] = useState<string>("__all__");
   const [search, setSearch] = useState("");
 
   const items = data?.items ?? [];
+
   const empreendimentos = useMemo(
     () => Array.from(new Set(items.map((i) => i.empreendimento))).sort(),
+    [items],
+  );
+  const torres = useMemo(
+    () => Array.from(new Set(items.map((i) => i.torre).filter(Boolean))).sort() as string[],
+    [items],
+  );
+  const andares = useMemo(
+    () => Array.from(new Set(items.map((i) => i.andar).filter(Boolean))).sort() as string[],
+    [items],
+  );
+  const faces = useMemo(
+    () => Array.from(new Set(items.map((i) => i.orientacao).filter(Boolean))).sort() as string[],
     [items],
   );
 
@@ -42,6 +58,9 @@ function EmpreendimentosPage() {
     const q = search.trim().toLowerCase();
     return items.filter((u) => {
       if (empFilter !== "__all__" && u.empreendimento !== empFilter) return false;
+      if (torreFilter !== "__all__" && u.torre !== torreFilter) return false;
+      if (andarFilter !== "__all__" && u.andar !== andarFilter) return false;
+      if (faceFilter !== "__all__" && u.orientacao !== faceFilter) return false;
       if (!q) return true;
       return (
         u.unidade.toLowerCase().includes(q) ||
@@ -50,7 +69,7 @@ function EmpreendimentosPage() {
         (u.tipo ?? "").toLowerCase().includes(q)
       );
     });
-  }, [items, empFilter, search]);
+  }, [items, empFilter, torreFilter, andarFilter, faceFilter, search]);
 
   const totalDisp = filtered.length;
   const volume = filtered.reduce((s, u) => s + (u.valorVenda ?? 0), 0);
@@ -90,8 +109,8 @@ function EmpreendimentosPage() {
           <Building2 className="h-4 w-4" />
           <span className="font-medium">Empreendimento:</span>
         </div>
-        <Select value={empFilter} onValueChange={setEmpFilter}>
-          <SelectTrigger className="h-9 w-[240px] rounded-lg border border-input bg-background text-xs shadow-sm">
+        <Select value={empFilter} onValueChange={(v) => { setEmpFilter(v); setTorreFilter("__all__"); setAndarFilter("__all__"); setFaceFilter("__all__"); }}>
+          <SelectTrigger className="h-9 w-[220px] rounded-lg border border-input bg-background text-xs shadow-sm">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
@@ -102,13 +121,61 @@ function EmpreendimentosPage() {
           </SelectContent>
         </Select>
 
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Layers className="h-4 w-4" />
+          <span className="font-medium">Torre:</span>
+        </div>
+        <Select value={torreFilter} onValueChange={setTorreFilter}>
+          <SelectTrigger className="h-9 w-[140px] rounded-lg border border-input bg-background text-xs shadow-sm">
+            <SelectValue placeholder="Todas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todas</SelectItem>
+            {torres.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Layers className="h-4 w-4" />
+          <span className="font-medium">Andar:</span>
+        </div>
+        <Select value={andarFilter} onValueChange={setAndarFilter}>
+          <SelectTrigger className="h-9 w-[140px] rounded-lg border border-input bg-background text-xs shadow-sm">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos</SelectItem>
+            {andares.map((a) => (
+              <SelectItem key={a} value={a}>{a}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Compass className="h-4 w-4" />
+          <span className="font-medium">Face:</span>
+        </div>
+        <Select value={faceFilter} onValueChange={setFaceFilter}>
+          <SelectTrigger className="h-9 w-[180px] rounded-lg border border-input bg-background text-xs shadow-sm">
+            <SelectValue placeholder="Todas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todas</SelectItem>
+            {faces.map((f) => (
+              <SelectItem key={f} value={f}>{f}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <div className="relative ml-auto">
           <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar unidade, torre, andar, tipo…"
-            className="h-9 w-[280px] rounded-lg border border-input bg-background pl-8 pr-3 text-xs outline-none focus:ring-1 focus:ring-ring"
+            placeholder="Buscar unidade, tipo…"
+            className="h-9 w-[260px] rounded-lg border border-input bg-background pl-8 pr-3 text-xs outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
       </div>
@@ -197,17 +264,6 @@ function UnidadeCard({ u }: { u: UnidadeDisponivel }) {
           </div>
         )}
       </div>
-
-      {u.notionUrl && (
-        <a
-          href={u.notionUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-3 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary"
-        >
-          <ExternalLink className="h-3 w-3" /> Abrir no Notion
-        </a>
-      )}
     </div>
   );
 }
