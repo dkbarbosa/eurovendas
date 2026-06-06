@@ -127,6 +127,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SectionLabel className="mt-6">Painel Corretor</SectionLabel>
             <NavLink to="/comissoes" label="Comissões" icon={Wallet}
               active={loc.pathname === "/comissoes"} onNavigate={() => setMobileOpen(false)} />
+            <NavLink to="/empreendimentos" label="Empreendimentos" icon={Building2}
+              active={loc.pathname === "/empreendimentos"} onNavigate={() => setMobileOpen(false)} />
           </>
         )}
 
