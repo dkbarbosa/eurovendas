@@ -117,6 +117,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               active={loc.pathname === "/equipe"} onNavigate={() => setMobileOpen(false)} />
             <NavLink to="/gerentes" label="Painel Financeiro" icon={Wallet}
               active={loc.pathname === "/gerentes"} onNavigate={() => setMobileOpen(false)} />
+            <NavLink to="/empreendimentos" label="Empreendimentos" icon={Building2}
+              active={loc.pathname === "/empreendimentos"} onNavigate={() => setMobileOpen(false)} />
           </>
         )}
 
