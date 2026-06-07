@@ -23,12 +23,13 @@ function AuthLayout() {
       nav({ to: "/login" });
       return;
     }
-    // Redireciona usuário autenticado fora do escopo da role
     if (!loading && !rolesLoading && session && allowed && !routeOk) {
-      const home = homeRouteFor(caps);
+      const home = homeRouteFor({ isAdmin, isDiretor, isFinanceiro, isGerente, isCorretor });
       if (home !== loc.pathname) nav({ to: home, replace: true });
     }
-  }, [session, loading, rolesLoading, allowed, routeOk, loc.pathname, nav, caps]);
+    // caps é objeto novo a cada render — usar primitivos nas deps evita loop infinito
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, loading, rolesLoading, allowed, routeOk, loc.pathname, isAdmin, isDiretor, isFinanceiro, isGerente, isCorretor]);
 
   if (loading || !session || rolesLoading) {
     return (
