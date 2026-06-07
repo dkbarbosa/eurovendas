@@ -17,7 +17,7 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-type RoleKey = "admin" | "diretor" | "gerente" | "corretor" | "financeiro";
+type RoleKey = "diretor" | "gerente" | "corretor" | "financeiro";
 
 const ROLES: Array<{
   key: RoleKey;
@@ -26,11 +26,10 @@ const ROLES: Array<{
   icon: typeof Crown;
   caption: string;
 }> = [
-  { key: "admin",      label: "Desenvolvedor", short: "Dev",        icon: Crown,   caption: "Controle total · mecanismo da empresa" },
-  { key: "diretor",    label: "Gestão",        short: "Gestão",     icon: ShieldCheck, caption: "Visão completa · comissão sobre todas as vendas" },
-  { key: "gerente",    label: "Gerencia",      short: "Gerencia",   icon: UserCog, caption: "Painel da equipe · metas e comissões" },
-  { key: "corretor",   label: "Corretor",      short: "Corretor",   icon: Wallet,  caption: "Suas vendas e comissões em tempo real" },
-  { key: "financeiro", label: "Financeiro",    short: "Financeiro", icon: Receipt, caption: "Pagamentos, NFs e distratos" },
+  { key: "diretor",    label: "Diretoria",  short: "Diretoria",  icon: ShieldCheck, caption: "Visão completa · comissão sobre todas as vendas" },
+  { key: "gerente",    label: "Gerência",   short: "Gerência",   icon: UserCog,     caption: "Painel da equipe · metas e comissões" },
+  { key: "corretor",   label: "Corretor",   short: "Corretor",   icon: Wallet,      caption: "Suas vendas e comissões em tempo real" },
+  { key: "financeiro", label: "Financeiro", short: "Financeiro", icon: Receipt,     caption: "Pagamentos, NFs e distratos" },
 ];
 
 function LoginPage() {
@@ -39,7 +38,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [role, setRole] = useState<RoleKey>("admin");
+  const [role, setRole] = useState<RoleKey>("diretor");
 
   useEffect(() => {
     if (!loading && session) nav({ to: "/" });
