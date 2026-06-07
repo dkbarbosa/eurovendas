@@ -136,7 +136,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: error?.message ?? null };
     },
     signOut: async () => {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } finally {
+        // Limpa qualquer resíduo de sessão para evitar reuso indevido
+        try {
+          if (typeof window !== "undefined") {
+            Object.keys(window.localStorage)
+              .filter((k) => k.startsWith("sb-") || k.includes("supabase"))
+              .forEach((k) => window.localStorage.removeItem(k));
+          }
+        } catch {
+          /* noop */
+        }
+      }
     },
   };
 
