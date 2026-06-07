@@ -9,10 +9,10 @@ import { renderErrorPage } from "./lib/error-page";
 const SECURITY_HEADERS: Record<string, string> = {
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
   "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "SAMEORIGIN",
+  // X-Frame-Options omitido para permitir embed em previews do Lovable.
+  // Proteção de clickjacking em produção pode ser feita via CSP frame-ancestors.
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
-  "Cross-Origin-Opener-Policy": "same-origin",
 };
 
 function withSecurityHeaders(response: Response): Response {
