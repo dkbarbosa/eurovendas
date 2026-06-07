@@ -121,7 +121,7 @@ function LoginPage() {
               />
 
               {/* role tabs */}
-              <div className="grid grid-cols-5 gap-1 p-1 rounded-xl bg-secondary/40 border border-border/60 mb-6">
+              <div className="grid grid-cols-4 gap-1.5 p-1.5 rounded-xl bg-secondary/40 border border-border/60 mb-6">
                 {ROLES.map((r) => {
                   const Icon = r.icon;
                   const isActive = r.key === role;
@@ -130,19 +130,21 @@ function LoginPage() {
                       key={r.key}
                       type="button"
                       onClick={() => setRole(r.key)}
-                      className={`relative flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg text-[11px] font-medium transition-colors ${
-                        isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      className={`relative flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg text-xs font-semibold transition-colors ${
+                        isActive
+                          ? "text-primary-foreground"
+                          : "text-foreground/80 hover:text-foreground hover:bg-secondary/70"
                       }`}
                     >
                       {isActive && (
                         <motion.span
                           layoutId="login-role-pill"
-                          className="absolute inset-0 rounded-lg"
+                          className="absolute inset-0 rounded-lg shadow-lg"
                           style={{ background: "var(--gradient-primary)" }}
                           transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                         />
                       )}
-                      <Icon className="w-3.5 h-3.5 relative z-10" />
+                      <Icon className="w-5 h-5 relative z-10" />
                       <span className="relative z-10">{r.short}</span>
                     </button>
                   );
