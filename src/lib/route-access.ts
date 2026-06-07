@@ -44,7 +44,7 @@ const RULES: Rule[] = [
   { match: (p) => p === "/vendas" || p.startsWith("/vendas/"), allow: (c) => c.isAdmin || c.isDiretor },
   { match: (p) => p === "/agendamentos" || p.startsWith("/agendamentos/"), allow: (c) => c.isAdmin || c.isDiretor },
   { match: (p) => p === "/corretores" || p.startsWith("/corretores/"), allow: (c) => c.isAdmin || c.isDiretor },
-  { match: (p) => p === "/empreendimentos" || p.startsWith("/empreendimentos/"), allow: (c) => c.isAdmin || c.isDiretor },
+  { match: (p) => p === "/empreendimentos" || p.startsWith("/empreendimentos/"), allow: (c) => c.isAdmin || c.isDiretor || c.isGerente || c.isCorretor },
   { match: (p) => p === "/aprovacoes" || p.startsWith("/aprovacoes/"), allow: (c) => c.isAdmin || c.isDiretor },
   { match: (p) => p === "/insights" || p.startsWith("/insights/"), allow: (c) => c.isAdmin || c.isDiretor },
 ];
