@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import {
   Building2, Loader2, Mail, Lock, ArrowRight, ShieldCheck, Sparkles,
-  Crown, UserCog, Wallet, Receipt,
+  Crown, UserCog, Wallet, Receipt, // Crown kept for type ref
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
