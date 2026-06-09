@@ -1297,7 +1297,14 @@ function ComissoesPage() {
                     )}
                     {!isReservado && !isCaixa && (
                       <>
-                        <div className="text-muted-foreground">• <b>Assinado:</b> adiantamento exige <b>R$ 2.999,99</b> de sinal a cada <b>R$ 1.000</b>.</div>
+                        <div className="text-muted-foreground">
+                          • <b>Assinado:</b> adiantamento exige <b>mínimo de 3 vendas</b> no mês com{" "}
+                          <b>sinal ≥ R$ 3.000</b>. {saleYm && (
+                            <span className={mesOk ? "text-emerald-400" : "text-destructive"}>
+                              ({saleYm}: {mesCount} venda(s) elegível(eis))
+                            </span>
+                          )}
+                        </div>
                         <div className="text-muted-foreground">• Comissão final exige sinal ≥ <b>6%</b> da venda{valorVenda > 0 ? <> (mín. <b>{BRL(minSinalComissao)}</b>)</> : null}.</div>
                       </>
                     )}
