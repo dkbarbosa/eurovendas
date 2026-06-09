@@ -1330,8 +1330,8 @@ function ComissoesPage() {
                       {!excedeu && valor > 0 && (
                         <p className="text-xs text-muted-foreground">Restante após este pedido: {BRL(maxReceber - valor)}</p>
                       )}
-                      {reqForm.tipo === "adiantamento" && sinal >= 2999.99 && valor > maxAdiant && (
-                        <p className="text-xs text-destructive">Adiantamento máximo permitido: {BRL(maxAdiant)} (R$ 1.000 a cada R$ 2.999,99 de sinal).</p>
+                      {reqForm.tipo === "adiantamento" && !isCaixa && !mesOk && (
+                        <p className="text-xs text-destructive">Adiantamento bloqueado: mínimo 3 vendas no mês com sinal ≥ R$ 3.000 (atual: {mesCount}).</p>
                       )}
                     </div>
                     <div className="space-y-1.5">
