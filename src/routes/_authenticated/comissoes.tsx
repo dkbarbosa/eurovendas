@@ -1155,7 +1155,6 @@ function ComissoesPage() {
                               const isCaixa = stUp === "CAIXA";
                               const finSolicitou = !!nfAberta;
                               const jaTevePagamento = totalPagoSale > 0;
-                              const sinalSale = Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
                               const ym = (s.data ?? "").slice(0, 7);
                               const mesOk = ym ? adiantamentoMonthsOk.ok.has(ym) : false;
                               const mesCount = ym ? (adiantamentoMonthsOk.counts.get(ym) ?? 0) : 0;
@@ -1187,7 +1186,7 @@ function ComissoesPage() {
                                     ? `Adiantamento bloqueado: você tem ${mesCount} venda(s) em ${ym} com sinal ≥ R$ 3.000. Mínimo: 3 vendas no mês com sinal ≥ R$ 3.000.`
                                     : !allowed
                                       ? "Aguardando o Status da venda virar CAIXA (ou o financeiro solicitar a NF) para liberar nova solicitação."
-                                      : sinalSale > 0 ? "" : "";
+                                      : "";
                               if (stUp === "DISTRATO") {
                                 return (
                                   <Badge
