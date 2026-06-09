@@ -135,6 +135,22 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
       throw new Error("Venda com status RESERVADO não permite solicitação. Aguarde a assinatura.");
     }
 
+    // Trava: novo adiantamento na mesma venda só após CAIXA (evita duplicidade
+    // de adiantamento sobre a mesma venda quando ainda não foi para Caixa).
+    if (data.tipo === "adiantamento" && statusUp !== "CAIXA") {
+      const { data: adiantPago } = await supabaseAdmin
+        .from("commission_requests")
+        .select("id")
+        .eq("sale_id", data.sale_id)
+        .eq("requester_role", "corretor")
+        .eq("tipo", "adiantamento")
+        .eq("status", "pago")
+        .limit(1);
+      if (adiantPago && adiantPago.length > 0) {
+        throw new Error("Adiantamento já pago para esta venda. Novo pedido somente quando o status virar CAIXA.");
+      }
+    }
+
     // Nova regra de adiantamento (independente do valor do sinal desta venda):
     // O corretor só pode solicitar adiantamento se tiver no mínimo 3 vendas no
     // mês (mesmo mês/ano da venda solicitada) com sinal de negócio ≥ R$ 3.000.
