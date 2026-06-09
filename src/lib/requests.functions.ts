@@ -135,40 +135,43 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
       throw new Error("Venda com status RESERVADO não permite solicitação. Aguarde a assinatura.");
     }
 
-    // Bloqueio rígido: adiantamento exige sinal de negócio registrado na planilha.
-    if (data.tipo === "adiantamento" && sinalSheet <= 0) {
-      throw new Error("Sinal insuficiente — esta venda não possui sinal de negócio registrado na planilha.");
-    }
-
-    // Após adiantamento PAGO, novo adiantamento só libera quando o status virar CAIXA.
+    // Nova regra de adiantamento (independente do valor do sinal desta venda):
+    // O corretor só pode solicitar adiantamento se tiver no mínimo 3 vendas no
+    // mês (mesmo mês/ano da venda solicitada) com sinal de negócio ≥ R$ 3.000.
     if (data.tipo === "adiantamento" && statusUp !== "CAIXA") {
-      const { data: adiantPago } = await supabaseAdmin
-        .from("commission_requests")
-        .select("id")
-        .eq("sale_id", data.sale_id)
-        .eq("requester_role", "corretor")
-        .eq("tipo", "adiantamento")
-        .eq("status", "pago")
-        .limit(1);
-      if (adiantPago && adiantPago.length > 0) {
-        throw new Error("Adiantamento já pago. Novo pedido somente quando o status da venda mudar para CAIXA.");
+      const { data: saleFull } = await supabaseAdmin
+        .from("sales")
+        .select("data")
+        .eq("id", data.sale_id)
+        .maybeSingle();
+      const saleDate = (saleFull?.data ?? "").slice(0, 10);
+      if (!saleDate) {
+        throw new Error("Venda sem data — não é possível avaliar elegibilidade de adiantamento.");
+      }
+      const ym = saleDate.slice(0, 7); // YYYY-MM
+      const monthStart = `${ym}-01`;
+      // próximo mês
+      const [yy, mm] = ym.split("-").map(Number);
+      const nextYm = mm === 12 ? `${yy + 1}-01` : `${yy}-${String(mm + 1).padStart(2, "0")}`;
+      const monthEnd = `${nextYm}-01`;
+      const { data: monthSales } = await supabaseAdmin
+        .from("sales")
+        .select("id,valor_sinal_negocio,data")
+        .eq("corretor", nome)
+        .gte("data", monthStart)
+        .lt("data", monthEnd);
+      const elegiveis = (monthSales ?? []).filter(
+        (s) => (Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0) >= 3000,
+      ).length;
+      if (elegiveis < 3) {
+        throw new Error(
+          `Adiantamento bloqueado: você tem ${elegiveis} venda(s) no mês com sinal ≥ R$ 3.000. ` +
+            `É necessário no mínimo 3 vendas no mês com sinal ≥ R$ 3.000 para liberar adiantamento.`,
+        );
       }
     }
 
     if (statusUp !== "CAIXA") {
-      if (data.tipo === "adiantamento") {
-        if (sinal < 2999.99) {
-          throw new Error(
-            `Adiantamento liberado apenas com sinal a partir de ${fmt(2999.99)} (sinal informado: ${fmt(sinal)}).`,
-          );
-        }
-        const maxAdiant = Math.floor(sinal / 2999.99) * 1000;
-        if (data.valor_solicitado > maxAdiant + 0.001) {
-          throw new Error(
-            `Valor de adiantamento máximo permitido: ${fmt(maxAdiant)} (regra: R$1.000 a cada R$2.999,99 de sinal).`,
-          );
-        }
-      }
       if (data.tipo === "comissao_final") {
         const minSinal = valorVenda * 0.06;
         if (valorVenda > 0 && sinal < minSinal - 0.001) {
