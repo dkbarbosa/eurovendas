@@ -56,7 +56,7 @@ export function useLiveSync() {
 
   useEffect(() => {
     mounted.current = true;
-    if (!isAdmin || !session) return;
+    if (!canSync || !session) return;
     run();
     const id = setInterval(() => {
       if (document.visibilityState === "visible") run();
@@ -70,7 +70,7 @@ export function useLiveSync() {
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [isAdmin, session, run]);
+  }, [canSync, session, run]);
 
   return { state, lastAt, lastError, rows, refresh: run };
 }
