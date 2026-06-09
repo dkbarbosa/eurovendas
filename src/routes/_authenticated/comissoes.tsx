@@ -188,6 +188,22 @@ function ComissoesPage() {
     return ids;
   }, [allSales, requests, nfs]);
 
+  // Elegibilidade de adiantamento por mês: corretor precisa de ≥3 vendas no mês
+  // com sinal de negócio ≥ R$ 3.000 para liberar adiantamento (independente do
+  // sinal da venda específica). Indexamos por "YYYY-MM" da data da venda.
+  const adiantamentoMonthsOk = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of allSales) {
+      const d = (s.data ?? "").slice(0, 7);
+      if (!d) continue;
+      const sinal = Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
+      if (sinal >= 3000) counts.set(d, (counts.get(d) ?? 0) + 1);
+    }
+    const ok = new Set<string>();
+    for (const [ym, n] of counts) if (n >= 3) ok.add(ym);
+    return { ok, counts };
+  }, [allSales]);
+
   // aplica filtros (período + cliente)
   const sales = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
