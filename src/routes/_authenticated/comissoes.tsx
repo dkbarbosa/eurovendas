@@ -1271,10 +1271,12 @@ function ComissoesPage() {
             const excedeu = valor > maxReceber + 0.01;
             // Regras automáticas
             const minSinalComissao = valorVenda * 0.06;
-            const maxAdiant = Math.floor(sinal / 2999.99) * 1000;
             const isCaixa = statusUp === "CAIXA";
             const isReservado = statusUp === "RESERVADO";
-            const ruleAdiantOk = isCaixa || reqForm.tipo !== "adiantamento" || (sinal >= 2999.99 && valor <= maxAdiant);
+            const saleYm = (sale?.data ?? "").slice(0, 7);
+            const mesOk = saleYm ? adiantamentoMonthsOk.ok.has(saleYm) : false;
+            const mesCount = saleYm ? (adiantamentoMonthsOk.counts.get(saleYm) ?? 0) : 0;
+            const ruleAdiantOk = isCaixa || reqForm.tipo !== "adiantamento" || mesOk;
             const ruleComissaoOk = isCaixa || reqForm.tipo !== "comissao_final" || valorVenda === 0 || sinal >= minSinalComissao;
             const ruleViolated = isReservado || !ruleAdiantOk || !ruleComissaoOk;
             return (
