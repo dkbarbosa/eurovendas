@@ -9,7 +9,8 @@ export type SyncState = "idle" | "syncing" | "ok" | "error";
 const INTERVAL_MS = 90_000;
 
 export function useLiveSync() {
-  const { isAdmin, session } = useAuth();
+  const { isAdmin, isDiretor, isGerente, isFinanceiro, session } = useAuth();
+  const canSync = isAdmin || isDiretor || isGerente || isFinanceiro;
   const qc = useQueryClient();
   const sync = useServerFn(syncFromSheets);
   const [state, setState] = useState<SyncState>("idle");
@@ -55,7 +56,7 @@ export function useLiveSync() {
 
   useEffect(() => {
     mounted.current = true;
-    if (!isAdmin || !session) return;
+    if (!canSync || !session) return;
     run();
     const id = setInterval(() => {
       if (document.visibilityState === "visible") run();
@@ -69,7 +70,7 @@ export function useLiveSync() {
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [isAdmin, session, run]);
+  }, [canSync, session, run]);
 
   return { state, lastAt, lastError, rows, refresh: run };
 }
