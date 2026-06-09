@@ -49,6 +49,20 @@ function parseText(raw: unknown): string | null {
   return value || null;
 }
 
+function normalizeStatus(raw: unknown): string | null {
+  const v = parseText(raw);
+  if (!v) return null;
+  const up = v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .trim();
+  // Regra de negócio: "Pago" significa que o corretor não tem mais nada a receber.
+  // Exibir/armazenar como "FINALIZADO" para refletir que o ciclo terminou.
+  if (up === "PAGO") return "FINALIZADO";
+  return up;
+}
+
 function parseDate(raw: unknown): string | null {
   if (raw == null || raw === "") return null;
   if (raw instanceof Date) return raw.toISOString().slice(0, 10);
@@ -147,7 +161,7 @@ export function parseSheetRows(
       adiant_gerente,
       bonus_gerente,
       comissao_liq_gerente,
-      status: parseText(row[18]),
+      status: normalizeStatus(row[18]),
       mes_ano: row[19] ? String(row[19]) : data ? data.slice(0, 7) : null,
       observacoes: null,
       valor_sinal_negocio: parseNumber(row[20]),
