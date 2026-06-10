@@ -1039,11 +1039,14 @@ function AdvancesTab() {
                         const roleFalta = Number(headRoleItem?.a_receber) || 0;
                         const expandKey = `${key}::${role}`;
                         const isRoot = role === rootRole;
+                        const pendingCount = roleItems.filter((x) => x.status === "pendente").length;
+                        // Padrão: colapsado quando há múltiplos pedidos (financeiro aprova individual).
+                        // Mantém expandido por padrão apenas quando é o papel raiz e há um único pedido.
+                        const defaultExpanded = isRoot && roleItems.length <= 1;
                         const isExpanded =
                           roleOverride[expandKey] !== undefined
                             ? roleOverride[expandKey]
-                            : isRoot;
-                        const pendingCount = roleItems.filter((x) => x.status === "pendente").length;
+                            : defaultExpanded;
 
                         // Saldo corrente p/ exibir "Restante após" cada pagamento (por papel)
                         let saldoCorrente = roleLiq;
