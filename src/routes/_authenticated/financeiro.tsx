@@ -553,7 +553,7 @@ function AdvancesTab() {
   }, [data, search]);
 
   // Expansão dos blocos de papel (corretor/gerente/diretor) dentro do card unificado da venda.
-  // Padrão: o primeiro papel (raiz) começa aberto; demais começam fechados.
+  // Padrão: quando a mesma venda tem mais de um pedido, todos começam fechados.
   // Override por chave `${sale_id}::${role}`.
   const [roleOverride, setRoleOverride] = useState<Record<string, boolean>>({});
   const toggleRole = (k: string, currentlyOpen: boolean) =>
@@ -1040,9 +1040,9 @@ function AdvancesTab() {
                         const expandKey = `${key}::${role}`;
                         const isRoot = role === rootRole;
                         const pendingCount = roleItems.filter((x) => x.status === "pendente").length;
-                        // Padrão: colapsado quando há múltiplos pedidos (financeiro aprova individual).
-                        // Mantém expandido por padrão apenas quando é o papel raiz e há um único pedido.
-                        const defaultExpanded = isRoot && roleItems.length <= 1;
+                        // Se a venda/cliente tiver mais de um pedido no total, mantém tudo fechado
+                        // para o financeiro abrir e aprovar cada solicitação individualmente.
+                        const defaultExpanded = isRoot && items.length <= 1;
                         const isExpanded =
                           roleOverride[expandKey] !== undefined
                             ? roleOverride[expandKey]
