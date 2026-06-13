@@ -104,13 +104,19 @@ export const getDailyMessage = createServerFn({ method: "POST" })
 
     const { data: cached } = await supabaseAdmin
       .from("daily_messages")
-      .select("frase,acao_titulo,acao_descricao")
+      .select("frase,autor,acao_titulo,acao_descricao")
       .eq("role", role)
       .eq("date_key", dateKey)
       .maybeSingle();
 
     if (cached) {
-      return { frase: cached.frase, acaoTitulo: cached.acao_titulo, acaoDescricao: cached.acao_descricao, dateKey };
+      return {
+        frase: cached.frase,
+        autor: cached.autor ?? "",
+        acaoTitulo: cached.acao_titulo,
+        acaoDescricao: cached.acao_descricao,
+        dateKey,
+      };
     }
 
     try {
@@ -118,30 +124,46 @@ export const getDailyMessage = createServerFn({ method: "POST" })
       await supabaseAdmin
         .from("daily_messages")
         .upsert(
-          { role, date_key: dateKey, frase: gen.frase, acao_titulo: gen.acao_titulo, acao_descricao: gen.acao_descricao },
+          {
+            role,
+            date_key: dateKey,
+            frase: gen.frase,
+            autor: gen.autor || null,
+            acao_titulo: gen.acao_titulo,
+            acao_descricao: gen.acao_descricao,
+          },
           { onConflict: "role,date_key" },
         );
-      return { frase: gen.frase, acaoTitulo: gen.acao_titulo, acaoDescricao: gen.acao_descricao, dateKey };
+      return {
+        frase: gen.frase,
+        autor: gen.autor,
+        acaoTitulo: gen.acao_titulo,
+        acaoDescricao: gen.acao_descricao,
+        dateKey,
+      };
     } catch (e) {
       console.error("getDailyMessage falhou:", e);
-      const fb: Record<Role, { frase: string; t: string; d: string }> = {
+      const fb: Record<Role, { frase: string; autor: string; t: string; d: string }> = {
         corretor: {
-          frase: "Toda venda começa com uma conversa. Faça a sua hoje.",
+          frase: "Pessoas não compram por razões lógicas. Elas compram por razões emocionais.",
+          autor: "Zig Ziglar",
           t: "Reativar 5 leads frios",
           d: "Liste 5 contatos sem retorno há mais de 15 dias e envie uma mensagem nova com proposta de valor.",
         },
         gerente: {
-          frase: "Liderança é multiplicar resultado pelo time, não pelo esforço próprio.",
+          frase: "Líderes excepcionais saem do seu caminho para aumentar a autoestima do seu pessoal.",
+          autor: "Sam Walton",
           t: "1:1 rápido com 2 corretores",
           d: "Faça duas conversas de 15 minutos hoje: 1 ponto forte da semana, 1 bloqueio a destravar.",
         },
         diretor: {
-          frase: "O número diz o que aconteceu. Sua decisão diz o que vai acontecer.",
+          frase: "A melhor maneira de prever o futuro é criá-lo.",
+          autor: "Peter Drucker",
           t: "Revisar KPI do funil semanal",
           d: "Compare conversão por etapa com a semana anterior e alinhe 1 hipótese de ação com a gerência.",
         },
       };
       const f = fb[role];
-      return { frase: f.frase, acaoTitulo: f.t, acaoDescricao: f.d, dateKey };
+      return { frase: f.frase, autor: f.autor, acaoTitulo: f.t, acaoDescricao: f.d, dateKey };
     }
   });
