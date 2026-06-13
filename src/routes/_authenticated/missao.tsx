@@ -174,6 +174,177 @@ function MissaoPage() {
         </motion.div>
       </div>
 
+      {/* Pódio — varia por role */}
+      {totals.ticketMedio > 0 && (() => {
+        type Tier = {
+          key: string;
+          big: string;
+          unit: string;
+          label: string;
+          sub: string;
+          icon: React.ReactNode;
+          heightClass: string;
+          order: string;
+          grad: string;
+          ring: string;
+          comissao: number;
+          footer: string;
+        };
+
+        const styleSmall = {
+          icon: <Medal className="w-5 h-5" />,
+          heightClass: "md:min-h-44",
+          grad: "linear-gradient(135deg, oklch(0.72 0.13 240), oklch(0.55 0.18 250))",
+          ring: "ring-sky-400/30",
+          label: "Aquecendo",
+          sub: "Começo do mês",
+        };
+        const styleMid = {
+          icon: <Trophy className="w-5 h-5" />,
+          heightClass: "md:min-h-52",
+          grad: "var(--gradient-primary)",
+          ring: "ring-primary/30",
+          label: "Boa",
+          sub: "Mês forte",
+        };
+        const styleTop = {
+          icon: <Crown className="w-6 h-6" />,
+          heightClass: "md:min-h-64",
+          grad: "var(--gradient-gold)",
+          ring: "ring-amber-400/40",
+          label: "Lendária",
+          sub: "Top performer",
+        };
+
+        let title = "Pódio de comissão";
+        let subtitle = `Estimativa baseada no ticket médio das unidades disponíveis (${fmtBRL(totals.ticketMedio)}).`;
+        let tiers: Tier[] = [];
+
+        if (role === "corretor") {
+          const mk = (vendas: number, s: typeof styleSmall, order: string): Tier => {
+            const vgv = totals.ticketMedio * vendas;
+            return {
+              key: `v${vendas}`,
+              big: String(vendas),
+              unit: vendas === 1 ? "venda" : "vendas",
+              label: s.label, sub: s.sub, icon: s.icon,
+              heightClass: s.heightClass, grad: s.grad, ring: s.ring,
+              order,
+              comissao: vgv * pct,
+              footer: `sobre VGV de ${fmtBRLCompact(vgv)}`,
+            };
+          };
+          tiers = [
+            mk(5, styleMid, "md:order-1"),
+            mk(7, styleTop, "md:order-2"),
+            mk(2, styleSmall, "md:order-3"),
+          ];
+        } else if (role === "gerente") {
+          title = "Pódio do gerente";
+          subtitle = `Estimativa: cada corretor com 2 vendas/mês no ticket médio (${fmtBRL(totals.ticketMedio)}) e override de ${(pct * 100).toFixed(2).replace(".", ",")}%.`;
+          const vendasMedia = 2;
+          const mk = (corretores: number, s: typeof styleSmall, order: string): Tier => {
+            const vendas = corretores * vendasMedia;
+            const vgv = totals.ticketMedio * vendas;
+            return {
+              key: `c${corretores}`,
+              big: String(corretores),
+              unit: corretores === 1 ? "corretor ativo" : "corretores ativos",
+              label: s.label, sub: s.sub, icon: s.icon,
+              heightClass: s.heightClass, grad: s.grad, ring: s.ring,
+              order,
+              comissao: vgv * pct,
+              footer: `${vendas} vendas · VGV ${fmtBRLCompact(vgv)}`,
+            };
+          };
+          tiers = [
+            mk(10, styleMid, "md:order-1"),
+            mk(15, styleTop, "md:order-2"),
+            mk(5, styleSmall, "md:order-3"),
+          ];
+        } else {
+          // diretor
+          title = "Pódio da diretoria";
+          subtitle = `Override de ${(pct * 100).toFixed(2).replace(".", ",")}% sobre o VGV vendido pela construtora no mês.`;
+          const mk = (vgv: number, big: string, s: typeof styleSmall, order: string): Tier => ({
+            key: `d${vgv}`,
+            big,
+            unit: "em VGV",
+            label: s.label, sub: s.sub, icon: s.icon,
+            heightClass: s.heightClass, grad: s.grad, ring: s.ring,
+            order,
+            comissao: vgv * pct,
+            footer: `meta mensal da construtora`,
+          });
+          tiers = [
+            mk(7_000_000, "R$ 7M", styleMid, "md:order-1"),
+            mk(10_000_000, "R$ 10M", styleTop, "md:order-2"),
+            mk(5_000_000, "R$ 5M", styleSmall, "md:order-3"),
+          ];
+        }
+
+        return (
+          <section className="space-y-3">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <h2 className="font-display text-lg font-semibold">{title}</h2>
+                <p className="text-xs text-muted-foreground">{subtitle}</p>
+              </div>
+              <div className="text-[11px] uppercase tracking-widest text-muted-foreground hidden md:block">
+                Quanto você leva pra casa
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              {tiers.map((t, i) => (
+                <motion.div
+                  key={t.key}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08, duration: 0.45 }}
+                  className={`glass-card relative overflow-hidden p-6 flex flex-col justify-end ring-1 ${t.ring} ${t.heightClass} ${t.order}`}
+                >
+                  <div className="pointer-events-none absolute inset-0 opacity-25" style={{ background: t.grad }} />
+                  <div className="pointer-events-none absolute -top-20 -right-20 w-60 h-60 rounded-full blur-3xl opacity-50" style={{ background: t.grad }} />
+                  <div className="relative flex items-center justify-between">
+                    <span
+                      className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-md text-background"
+                      style={{ background: t.grad }}
+                    >
+                      {t.icon}
+                      {t.label}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      {t.sub}
+                    </span>
+                  </div>
+                  <div className="relative mt-4">
+                    <div className="font-display text-5xl md:text-6xl font-extrabold leading-none">
+                      {t.big}
+                      <span className="text-base font-medium text-muted-foreground ml-2">
+                        {t.unit}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="relative mt-4">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Comissão estimada
+                    </div>
+                    <div
+                      className="font-display text-3xl md:text-4xl font-bold bg-clip-text text-transparent"
+                      style={{ backgroundImage: t.grad }}
+                    >
+                      {fmtBRL(t.comissao)}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1">{t.footer}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
+
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KPICard
