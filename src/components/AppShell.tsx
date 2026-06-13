@@ -20,6 +20,7 @@ import {
   Ban,
   UserCircle,
   Users2,
+  Target,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+        {(isAdmin || isDiretor || isGerente || isCorretor) && (
+          <>
+            <SectionLabel>Missão</SectionLabel>
+            <NavLink to="/missao" label="Missão de hoje" icon={Target}
+              active={loc.pathname === "/missao"} onNavigate={() => setMobileOpen(false)} />
+          </>
+        )}
+
+
         {canManagementNav && (
           <>
             <SectionLabel>Visão da Gestão</SectionLabel>

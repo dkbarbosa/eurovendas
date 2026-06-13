@@ -19,6 +19,9 @@ const RULES: Rule[] = [
   // Conta — qualquer usuário autenticado
   { match: (p) => p === "/conta" || p.startsWith("/conta/"), allow: () => true },
 
+  // Missão (home para corretor/gerente/diretor) — admin também acessa
+  { match: (p) => p === "/missao" || p.startsWith("/missao/"), allow: (c) => c.isAdmin || c.isDiretor || c.isGerente || c.isCorretor },
+
   // Administração — só admin
   { match: (p) => p.startsWith("/admin"), allow: (c) => c.isAdmin },
 
@@ -58,9 +61,9 @@ export function canAccess(pathname: string, caps: Caps): boolean {
 /** Rota "home" da role (para onde redirecionar quando a rota atual é proibida). */
 export function homeRouteFor(caps: Caps): string {
   if (caps.isAdmin) return "/";
-  if (caps.isDiretor) return "/";
-  if (caps.isGerente) return "/equipe";
+  if (caps.isDiretor) return "/missao";
+  if (caps.isGerente) return "/missao";
   if (caps.isFinanceiro) return "/financeiro";
-  if (caps.isCorretor) return "/comissoes";
+  if (caps.isCorretor) return "/missao";
   return "/login";
 }
