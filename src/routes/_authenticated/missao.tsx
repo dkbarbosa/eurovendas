@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Target, Wallet, Building2, Layers, Loader2 } from "lucide-react";
+import { Sparkles, Target, Wallet, Building2, Layers, Loader2, Trophy, Medal, Crown } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { KPICard } from "@/components/KPICard";
 import { listUnidadesDisponiveis, type UnidadeDisponivel } from "@/lib/empreendimentos.functions";
