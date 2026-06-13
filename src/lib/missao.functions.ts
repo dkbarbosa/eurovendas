@@ -84,8 +84,8 @@ async function generateFromAI(role: Role): Promise<{ frase: string; autor: strin
   const json: { choices?: { message?: { content?: string } }[] } = await res.json();
   const content = json.choices?.[0]?.message?.content ?? "";
   const parsed = JSON.parse(content);
-  if (!parsed.frase || !parsed.acao_titulo || !parsed.acao_descricao) {
-    throw new Error("Resposta da IA incompleta.");
+  if (!parsed.frase || !parsed.autor || !parsed.acao_titulo || !parsed.acao_descricao) {
+    throw new Error("Resposta da IA incompleta (autor obrigatório).");
   }
   return {
     frase: String(parsed.frase).trim(),
