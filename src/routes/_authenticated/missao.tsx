@@ -174,83 +174,6 @@ function MissaoPage() {
         </motion.div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KPICard
-          label="Comissão na sua mesa"
-          value={totals.comissaoMesa}
-          format={fmtBRL}
-          icon={<Wallet className="w-5 h-5" />}
-          accent="gold"
-          hint={`Sua % de comissão: ${(pct * 100).toFixed(2).replace(".", ",")}%`}
-          index={0}
-        />
-        <KPICard
-          label="VGV disponível"
-          value={totals.vgvTotal}
-          format={fmtBRL}
-          icon={<Building2 className="w-5 h-5" />}
-          accent="teal"
-          hint="Soma do valor de tabela das unidades em estoque"
-          index={1}
-        />
-        <KPICard
-          label="Unidades disponíveis"
-          value={totals.nUnidades}
-          format={(n) => String(Math.round(n))}
-          icon={<Layers className="w-5 h-5" />}
-          accent="azure"
-          hint="Atualizado direto do Notion"
-          index={2}
-        />
-      </div>
-
-      {unidadesQ.isLoading && (
-        <div className="glass-card p-6 text-sm text-muted-foreground inline-flex items-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" /> Carregando estoque do Notion…
-        </div>
-      )}
-      {unidadesQ.error && (
-        <div className="glass-card p-6 text-sm text-destructive">
-          Falha ao carregar estoque: {String(unidadesQ.error)}
-        </div>
-      )}
-
-      {/* Por empreendimento */}
-      {totals.empreendimentos.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="font-display text-lg font-semibold">Por empreendimento</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {totals.empreendimentos.map((e, i) => (
-              <motion.div
-                key={e.nome}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="glass-card p-5"
-              >
-                <div className="text-sm font-semibold truncate">{e.nome}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {e.n} {e.n === 1 ? "unidade" : "unidades"} disponíveis
-                </div>
-                <div className="mt-4 flex items-end justify-between gap-3">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                      Comissão potencial
-                    </div>
-                    <div className="font-display text-xl font-semibold">{fmtBRL(e.comissao)}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">VGV</div>
-                    <div className="text-sm">{fmtBRLCompact(e.vgv)}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Pódio — varia por role */}
       {totals.ticketMedio > 0 && (() => {
         type Tier = {
@@ -421,6 +344,84 @@ function MissaoPage() {
           </section>
         );
       })()}
+
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <KPICard
+          label="Comissão na sua mesa"
+          value={totals.comissaoMesa}
+          format={fmtBRL}
+          icon={<Wallet className="w-5 h-5" />}
+          accent="gold"
+          hint={`Sua % de comissão: ${(pct * 100).toFixed(2).replace(".", ",")}%`}
+          index={0}
+        />
+        <KPICard
+          label="VGV disponível"
+          value={totals.vgvTotal}
+          format={fmtBRL}
+          icon={<Building2 className="w-5 h-5" />}
+          accent="teal"
+          hint="Soma do valor de tabela das unidades em estoque"
+          index={1}
+        />
+        <KPICard
+          label="Unidades disponíveis"
+          value={totals.nUnidades}
+          format={(n) => String(Math.round(n))}
+          icon={<Layers className="w-5 h-5" />}
+          accent="azure"
+          hint="Atualizado direto do Notion"
+          index={2}
+        />
+      </div>
+
+      {unidadesQ.isLoading && (
+        <div className="glass-card p-6 text-sm text-muted-foreground inline-flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Carregando estoque do Notion…
+        </div>
+      )}
+      {unidadesQ.error && (
+        <div className="glass-card p-6 text-sm text-destructive">
+          Falha ao carregar estoque: {String(unidadesQ.error)}
+        </div>
+      )}
+
+      {/* Por empreendimento */}
+      {totals.empreendimentos.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-display text-lg font-semibold">Por empreendimento</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {totals.empreendimentos.map((e, i) => (
+              <motion.div
+                key={e.nome}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="glass-card p-5"
+              >
+                <div className="text-sm font-semibold truncate">{e.nome}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {e.n} {e.n === 1 ? "unidade" : "unidades"} disponíveis
+                </div>
+                <div className="mt-4 flex items-end justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Comissão potencial
+                    </div>
+                    <div className="font-display text-xl font-semibold">{fmtBRL(e.comissao)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">VGV</div>
+                    <div className="text-sm">{fmtBRLCompact(e.vgv)}</div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
+
     </div>
   );
 }
