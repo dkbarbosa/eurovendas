@@ -247,46 +247,115 @@ function MissaoPage() {
         </section>
       )}
 
-      {/* Top unidades por empreendimento */}
-      {totals.porEmpTop.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="font-display text-lg font-semibold">Top unidades por empreendimento</h2>
-          {totals.porEmpTop.map((grupo) => (
-            <div key={grupo.nome} className="glass-card overflow-hidden">
-              <div className="px-4 py-3 border-b border-border/60 bg-secondary/30 flex items-center justify-between">
-                <div className="text-sm font-semibold">{grupo.nome}</div>
-                <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                  Top {grupo.top.length} por ticket
-                </div>
+      {/* Pódio de metas — quanto você ganha por número de vendas */}
+      {totals.ticketMedio > 0 && (() => {
+        const tiers = [
+          {
+            vendas: 5,
+            label: "Boa",
+            sub: "Mês forte",
+            icon: <Trophy className="w-5 h-5" />,
+            heightClass: "md:h-44",
+            order: "md:order-1",
+            grad: "var(--gradient-primary)",
+            ring: "ring-primary/30",
+          },
+          {
+            vendas: 7,
+            label: "Lendária",
+            sub: "Top performer",
+            icon: <Crown className="w-6 h-6" />,
+            heightClass: "md:h-56",
+            order: "md:order-2",
+            grad: "var(--gradient-gold)",
+            ring: "ring-amber-400/40",
+          },
+          {
+            vendas: 2,
+            label: "Aquecendo",
+            sub: "Começo do mês",
+            icon: <Medal className="w-5 h-5" />,
+            heightClass: "md:h-36",
+            order: "md:order-3",
+            grad: "linear-gradient(135deg, oklch(0.72 0.13 240), oklch(0.55 0.18 250))",
+            ring: "ring-sky-400/30",
+          },
+        ];
+        return (
+          <section className="space-y-3">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <h2 className="font-display text-lg font-semibold">Pódio de comissão</h2>
+                <p className="text-xs text-muted-foreground">
+                  Estimativa baseada no ticket médio das unidades disponíveis ({fmtBRL(totals.ticketMedio)}).
+                </p>
               </div>
-              <table className="w-full text-sm">
-                <thead className="text-xs uppercase tracking-widest text-muted-foreground bg-secondary/20">
-                  <tr>
-                    <th className="text-left px-4 py-2.5">Unidade</th>
-                    <th className="text-left px-4 py-2.5">Torre / Andar</th>
-                    <th className="text-right px-4 py-2.5">Valor</th>
-                    <th className="text-right px-4 py-2.5">Sua comissão</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {grupo.top.map((u) => (
-                    <tr key={u.id} className="border-t border-border/60">
-                      <td className="px-4 py-3 font-medium">{u.unidade}</td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {[u.torre, u.andar].filter(Boolean).join(" · ") || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right">{fmtBRL(u.valorVenda ?? 0)}</td>
-                      <td className="px-4 py-3 text-right font-semibold">
-                        {fmtBRL((u.valorVenda ?? 0) * pct)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="text-[11px] uppercase tracking-widest text-muted-foreground hidden md:block">
+                Quanto você leva pra casa
+              </div>
             </div>
-          ))}
-        </section>
-      )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              {tiers.map((t, i) => {
+                const comissao = totals.ticketMedio * t.vendas * pct;
+                const vgv = totals.ticketMedio * t.vendas;
+                return (
+                  <motion.div
+                    key={t.vendas}
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.08, duration: 0.45 }}
+                    className={`glass-card relative overflow-hidden p-6 flex flex-col justify-end ring-1 ${t.ring} ${t.heightClass} ${t.order}`}
+                  >
+                    <div
+                      className="pointer-events-none absolute inset-0 opacity-25"
+                      style={{ background: t.grad }}
+                    />
+                    <div
+                      className="pointer-events-none absolute -top-20 -right-20 w-60 h-60 rounded-full blur-3xl opacity-50"
+                      style={{ background: t.grad }}
+                    />
+                    <div className="relative flex items-center justify-between">
+                      <span
+                        className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-md text-background"
+                        style={{ background: t.grad }}
+                      >
+                        {t.icon}
+                        {t.label}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        {t.sub}
+                      </span>
+                    </div>
+                    <div className="relative mt-4">
+                      <div className="font-display text-5xl md:text-6xl font-extrabold leading-none">
+                        {t.vendas}
+                        <span className="text-base font-medium text-muted-foreground ml-2">
+                          {t.vendas === 1 ? "venda" : "vendas"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="relative mt-4">
+                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        Comissão estimada
+                      </div>
+                      <div
+                        className="font-display text-3xl md:text-4xl font-bold bg-clip-text text-transparent"
+                        style={{ backgroundImage: t.grad }}
+                      >
+                        {fmtBRL(comissao)}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-1">
+                        sobre VGV de {fmtBRLCompact(vgv)}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
     </div>
   );
 }
