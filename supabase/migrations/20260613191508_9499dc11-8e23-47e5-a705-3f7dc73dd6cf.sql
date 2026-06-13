@@ -1,0 +1,1 @@
+UPDATE public.daily_messages SET frase = 'Quem não mede não gerencia, quem não gerencia não melhora.', acao_titulo = 'Revisão de indicadores do funil', acao_descricao = 'Analise as taxas de conversão de cada corretor no CRM. Identifique em qual etapa as vendas travam e defina uma meta de melhoria imediata para a semana.' WHERE role = 'gerente' AND date_key = '2026-06-13';
