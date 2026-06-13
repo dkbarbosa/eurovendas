@@ -107,7 +107,7 @@ function FinanceiroPage() {
             <LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />
             Dashboard
           </TabsTrigger>
-          <TabsTrigger value="adiantamentos">Adiantamentos</TabsTrigger>
+          <TabsTrigger value="adiantamentos">Adiant./Pagto.</TabsTrigger>
           <TabsTrigger value="solicitar-nf">Solicitar NF</TabsTrigger>
           <TabsTrigger value="nfs">Notas Fiscais</TabsTrigger>
           <TabsTrigger value="distratos">
