@@ -64,7 +64,12 @@ export function KPICard({
         </motion.div>
       )}
       <div className="relative flex items-start justify-between gap-3 mb-3">
-        <div className="text-xs uppercase tracking-widest text-muted-foreground">{label}</div>
+        <div
+          className="text-xs uppercase tracking-widest font-semibold bg-clip-text text-transparent"
+          style={{ backgroundImage: ACCENTS[accent] }}
+        >
+          {label}
+        </div>
         <div className="flex items-center gap-2">
           {onToggleHidden && (
             <button
