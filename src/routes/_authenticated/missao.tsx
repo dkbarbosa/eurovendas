@@ -253,47 +253,44 @@ function MissaoPage() {
         </section>
       )}
 
-      {/* Top unidades */}
-      {totals.top.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="font-display text-lg font-semibold">Top 5 unidades por ticket</h2>
-          <div className="glass-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="text-xs uppercase tracking-widest text-muted-foreground bg-secondary/40">
-                <tr>
-                  <th className="text-left px-4 py-2.5">Empreendimento</th>
-                  <th className="text-left px-4 py-2.5">Unidade</th>
-                  <th className="text-right px-4 py-2.5">Valor</th>
-                  <th className="text-right px-4 py-2.5">Sua comissão</th>
-                  <th className="px-4 py-2.5"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {totals.top.map((u) => (
-                  <tr key={u.id} className="border-t border-border/60">
-                    <td className="px-4 py-3 truncate">{u.empreendimento}</td>
-                    <td className="px-4 py-3">{u.unidade}</td>
-                    <td className="px-4 py-3 text-right">{fmtBRL(u.valorVenda ?? 0)}</td>
-                    <td className="px-4 py-3 text-right font-semibold">
-                      {fmtBRL((u.valorVenda ?? 0) * pct)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {u.notionUrl && (
-                        <a
-                          href={u.notionUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          Notion <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </td>
+      {/* Top unidades por empreendimento */}
+      {totals.porEmpTop.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="font-display text-lg font-semibold">Top unidades por empreendimento</h2>
+          {totals.porEmpTop.map((grupo) => (
+            <div key={grupo.nome} className="glass-card overflow-hidden">
+              <div className="px-4 py-3 border-b border-border/60 bg-secondary/30 flex items-center justify-between">
+                <div className="text-sm font-semibold">{grupo.nome}</div>
+                <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                  Top {grupo.top.length} por ticket
+                </div>
+              </div>
+              <table className="w-full text-sm">
+                <thead className="text-xs uppercase tracking-widest text-muted-foreground bg-secondary/20">
+                  <tr>
+                    <th className="text-left px-4 py-2.5">Unidade</th>
+                    <th className="text-left px-4 py-2.5">Torre / Andar</th>
+                    <th className="text-right px-4 py-2.5">Valor</th>
+                    <th className="text-right px-4 py-2.5">Sua comissão</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {grupo.top.map((u) => (
+                    <tr key={u.id} className="border-t border-border/60">
+                      <td className="px-4 py-3 font-medium">{u.unidade}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {[u.torre, u.andar].filter(Boolean).join(" · ") || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right">{fmtBRL(u.valorVenda ?? 0)}</td>
+                      <td className="px-4 py-3 text-right font-semibold">
+                        {fmtBRL((u.valorVenda ?? 0) * pct)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
         </section>
       )}
     </div>
