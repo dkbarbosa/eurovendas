@@ -1,0 +1,1 @@
+ALTER TABLE public.daily_messages ADD COLUMN IF NOT EXISTS autor text;

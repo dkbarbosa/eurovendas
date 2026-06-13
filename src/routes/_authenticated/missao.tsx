@@ -43,6 +43,7 @@ function MissaoPage() {
     queryFn: () =>
       dailyFn({ data: { role } }) as Promise<{
         frase: string;
+        autor: string;
         acaoTitulo: string;
         acaoDescricao: string;
         dateKey: string;
@@ -99,22 +100,37 @@ function MissaoPage() {
           className="glass-card p-6 relative overflow-hidden"
         >
           <div
-            className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-20 blur-3xl"
+            className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-30 blur-3xl"
             style={{ background: "var(--gradient-gold)" }}
           />
-          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-            <Sparkles className="w-3.5 h-3.5" />
-            Mensagem do dia
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-md text-background"
+              style={{ background: "var(--gradient-gold)" }}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Mensagem do dia
+            </span>
           </div>
-          <div className="mt-3 font-display text-2xl leading-snug min-h-[3.5rem]">
-            {dailyQ.isLoading ? (
-              <span className="text-muted-foreground text-base inline-flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Recebendo inspiração…
-              </span>
-            ) : (
-              <>"{dailyQ.data?.frase}"</>
-            )}
-          </div>
+          {dailyQ.isLoading ? (
+            <div className="mt-4 text-muted-foreground inline-flex items-center gap-2 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" /> Recebendo inspiração…
+            </div>
+          ) : (
+            <>
+              <blockquote
+                className="mt-4 font-display text-2xl md:text-[1.7rem] leading-snug font-semibold bg-clip-text text-transparent"
+                style={{ backgroundImage: "linear-gradient(135deg, oklch(0.98 0.02 90), oklch(0.85 0.14 80))" }}
+              >
+                “{dailyQ.data?.frase}”
+              </blockquote>
+              {dailyQ.data?.autor && (
+                <div className="mt-3 text-sm font-medium tracking-wide text-foreground/80">
+                  — {dailyQ.data.autor}
+                </div>
+              )}
+            </>
+          )}
         </motion.div>
 
         <motion.div
@@ -124,21 +140,31 @@ function MissaoPage() {
           className="glass-card p-6 relative overflow-hidden"
         >
           <div
-            className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-20 blur-3xl"
+            className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-30 blur-3xl"
             style={{ background: "var(--gradient-primary)" }}
           />
-          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-            <Target className="w-3.5 h-3.5" />
-            Ação de hoje
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-md text-background"
+              style={{ background: "var(--gradient-primary)" }}
+            >
+              <Target className="w-3.5 h-3.5" />
+              Ação de hoje
+            </span>
           </div>
           {dailyQ.isLoading ? (
-            <div className="mt-3 text-muted-foreground inline-flex items-center gap-2 text-sm">
+            <div className="mt-4 text-muted-foreground inline-flex items-center gap-2 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" /> Preparando ação…
             </div>
           ) : (
             <>
-              <div className="mt-3 font-display text-xl font-semibold">{dailyQ.data?.acaoTitulo}</div>
-              <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+              <div
+                className="mt-4 font-display text-2xl md:text-[1.6rem] font-semibold leading-snug bg-clip-text text-transparent"
+                style={{ backgroundImage: "linear-gradient(135deg, oklch(0.95 0.03 200), oklch(0.78 0.16 195))" }}
+              >
+                {dailyQ.data?.acaoTitulo}
+              </div>
+              <p className="mt-2 text-[15px] text-foreground/85 leading-relaxed">
                 {dailyQ.data?.acaoDescricao}
               </p>
             </>

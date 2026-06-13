@@ -171,6 +171,7 @@ export type Database = {
         Row: {
           acao_descricao: string
           acao_titulo: string
+          autor: string | null
           created_at: string
           date_key: string
           frase: string
@@ -180,6 +181,7 @@ export type Database = {
         Insert: {
           acao_descricao: string
           acao_titulo: string
+          autor?: string | null
           created_at?: string
           date_key: string
           frase: string
@@ -189,6 +191,7 @@ export type Database = {
         Update: {
           acao_descricao?: string
           acao_titulo?: string
+          autor?: string | null
           created_at?: string
           date_key?: string
           frase?: string
