@@ -94,6 +94,14 @@ function AprovacoesPage() {
 
   const activeFilter = dateFrom || dateTo || teamFilter !== "__all__" || corretorFilter !== "__all__" || empreendimentoFilter !== "__all__";
 
+  if (isLoading) {
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
