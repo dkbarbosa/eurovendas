@@ -1,12 +1,18 @@
 export interface Approval {
+  analista: string;
+  cartaFinanciamento: string;
   cliente: string;
-  cpf?: string;
-  dataEntrada: string;
+  construtora: string;
   corretor: string;
+  cpf: string;
+  dataAprovacao: string;
+  dataEntrada: string;
   empreendimento: string;
-  unidade?: string;
-  valor?: number | string;
-  status?: string;
-  carta?: string;
-  [key: string]: unknown;
+  gerenteImobiliaria: string;
+  pendencia: string;
+  prazoMeses: number;
+  renda: number;
+  situacao: string;
+  valorFinanciamento: number;
+  vencSicaq: string;
 }
