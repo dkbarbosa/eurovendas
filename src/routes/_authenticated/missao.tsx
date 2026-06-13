@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Target, Wallet, Building2, Layers, ExternalLink, Loader2 } from "lucide-react";
+import { Sparkles, Target, Wallet, Building2, Layers, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { KPICard } from "@/components/KPICard";
 import { listUnidadesDisponiveis, type UnidadeDisponivel } from "@/lib/empreendimentos.functions";
@@ -66,15 +66,19 @@ function MissaoPage() {
     const empreendimentos = Array.from(porEmp.entries())
       .map(([nome, v]) => ({ nome, vgv: v.vgv, n: v.n, comissao: v.vgv * pct }))
       .sort((a, b) => b.vgv - a.vgv);
-    const top = [...comUnid]
-      .sort((a, b) => (b.valorVenda ?? 0) - (a.valorVenda ?? 0))
-      .slice(0, 5);
+    const porEmpTop = empreendimentos.map((e) => ({
+      nome: e.nome,
+      top: comUnid
+        .filter((u) => u.empreendimento === e.nome)
+        .sort((a, b) => (b.valorVenda ?? 0) - (a.valorVenda ?? 0))
+        .slice(0, 5),
+    }));
     return {
       vgvTotal,
       comissaoMesa,
       nUnidades: comUnid.length,
       empreendimentos,
-      top,
+      porEmpTop,
     };
   }, [unidadesQ.data, pct]);
 
