@@ -43,6 +43,7 @@ function MissaoPage() {
     queryFn: () =>
       dailyFn({ data: { role } }) as Promise<{
         frase: string;
+        autor: string;
         acaoTitulo: string;
         acaoDescricao: string;
         dateKey: string;
