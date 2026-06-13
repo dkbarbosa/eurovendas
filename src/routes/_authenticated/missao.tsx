@@ -275,7 +275,7 @@ function MissaoPage() {
             label: "Aquecendo",
             sub: "Começo do mês",
             icon: <Medal className="w-5 h-5" />,
-            heightClass: "md:h-36",
+            heightClass: "md:min-h-44",
             order: "md:order-3",
             grad: "linear-gradient(135deg, oklch(0.72 0.13 240), oklch(0.55 0.18 250))",
             ring: "ring-sky-400/30",
