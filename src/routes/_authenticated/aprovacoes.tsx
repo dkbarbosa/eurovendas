@@ -1,7 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import data from "@/data/approvals.json";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import type { Approval } from "@/components/aprovacoes/types";
+import { getApprovals } from "@/lib/approvals.functions";
 import { KpiCards } from "@/components/aprovacoes/KpiCards";
 import { StatusDonut } from "@/components/aprovacoes/StatusDonut";
 import { BrokerBars } from "@/components/aprovacoes/BrokerBars";
@@ -30,7 +33,13 @@ export const Route = createFileRoute("/_authenticated/aprovacoes")({
 });
 
 function AprovacoesPage() {
-  const allRows = data as Approval[];
+  const fetchApprovals = useServerFn(getApprovals);
+  const { data: approvalsData, isLoading } = useQuery({
+    queryKey: ["approvals"],
+    queryFn: () => fetchApprovals(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const allRows = (approvalsData ?? []) as Approval[];
   const today = new Date();
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
