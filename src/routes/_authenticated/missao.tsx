@@ -80,12 +80,16 @@ function MissaoPage() {
     ((user?.user_metadata?.display_name as string | undefined) ?? user?.email ?? "")
       .split(/[\s@]/)[0] || "";
 
+  const hour = new Date().getHours();
+  const greeting =
+    hour >= 5 && hour < 12 ? "Bom dia" : hour >= 12 && hour < 18 ? "Boa tarde" : "Boa noite";
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
         <div className="text-xs uppercase tracking-widest text-muted-foreground">Missão de hoje</div>
         <h1 className="font-display text-3xl font-semibold">
-          Bom dia{firstName ? `, ${firstName}` : ""} <span className="text-muted-foreground text-base">· {ROLE_LABEL[role]}</span>
+          {greeting}{firstName ? `, ${firstName}` : ""} <span className="text-muted-foreground text-base">· {ROLE_LABEL[role]}</span>
         </h1>
       </div>
 
