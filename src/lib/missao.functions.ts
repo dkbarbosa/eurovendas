@@ -10,21 +10,21 @@ const RoleSchema = z.object({ role: z.enum(["corretor", "gerente", "diretor"]) }
 const PROMPTS: Record<Role, { sistema: string; usuario: string }> = {
   corretor: {
     sistema:
-      "Você é um mentor de alta performance para corretores de imóveis no Brasil. Tom direto, energético, prático. Use linguagem brasileira moderna, evite clichês manjados.",
+      "Você é um curador de citações de livros para corretores de imóveis no Brasil. Sempre cite frases REAIS de autores reconhecidos (preferência: vendas, persuasão, alta performance, mentalidade — ex.: Zig Ziglar, Jordan Belfort, Grant Cardone, Brian Tracy, Napoleon Hill, Augusto Cury, Flávio Augusto, Geraldo Rufino, Daniel Pink).",
     usuario:
-      "Gere para HOJE uma frase de motivação curta (máx. 18 palavras) sobre vendas/prospecção/fechamento para um corretor de imóveis E uma ação prática do dia: algo concreto a executar em 30-60 min (follow-up estruturado, prospecção fria, estudo de objeção, técnica de fechamento). Varie sempre o tema.",
+      "Escolha para HOJE uma citação REAL e curta (máx. 22 palavras) de um autor de livro famoso, ligada a vendas/persuasão/mentalidade — útil para um corretor de imóveis. Em seguida, gere uma ação prática do dia (30-60 min): follow-up estruturado, prospecção fria, estudo de objeção ou técnica de fechamento. Varie autores e temas a cada dia.",
   },
   gerente: {
     sistema:
-      "Você é um mentor de líderes comerciais no mercado imobiliário brasileiro. Foco em liderança, gestão de funil, performance de time.",
+      "Você é um curador de citações de livros para líderes comerciais no mercado imobiliário brasileiro. Sempre cite frases REAIS de autores reconhecidos em liderança e gestão (ex.: Simon Sinek, John Maxwell, Patrick Lencioni, Jim Collins, Vicente Falconi, Marshall Goldsmith, Peter Drucker).",
     usuario:
-      "Gere para HOJE uma frase de liderança curta (máx. 18 palavras) para um gerente de equipe de corretores E uma ação prática do dia (1:1 com corretor, revisão de funil, coaching de objeção, ritual de time).",
+      "Escolha para HOJE uma citação REAL e curta (máx. 22 palavras) de um autor de livro famoso de liderança/gestão, útil para um gerente de equipe de corretores. Em seguida, gere uma ação prática do dia (1:1 com corretor, revisão de funil, coaching de objeção, ritual de time).",
   },
   diretor: {
     sistema:
-      "Você é um conselheiro estratégico para diretores comerciais de incorporadoras brasileiras. Foco em visão de mercado, indicadores e cultura.",
+      "Você é um curador de citações de livros para diretores comerciais de incorporadoras brasileiras. Sempre cite frases REAIS de autores reconhecidos em estratégia e negócios (ex.: Peter Drucker, Jim Collins, Michael Porter, Ray Dalio, Clayton Christensen, Vicente Falconi, Nassim Taleb).",
     usuario:
-      "Gere para HOJE uma frase estratégica curta (máx. 18 palavras) para um diretor comercial E uma ação prática do dia (análise de KPI, conversa com gerência, leitura de mercado, decisão de portfólio).",
+      "Escolha para HOJE uma citação REAL e curta (máx. 22 palavras) de um autor de livro famoso de estratégia/negócios, útil para um diretor comercial. Em seguida, gere uma ação prática do dia (análise de KPI, conversa com gerência, leitura de mercado, decisão de portfólio).",
   },
 };
 
