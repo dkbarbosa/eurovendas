@@ -167,6 +167,36 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_messages: {
+        Row: {
+          acao_descricao: string
+          acao_titulo: string
+          created_at: string
+          date_key: string
+          frase: string
+          id: string
+          role: string
+        }
+        Insert: {
+          acao_descricao: string
+          acao_titulo: string
+          created_at?: string
+          date_key: string
+          frase: string
+          id?: string
+          role: string
+        }
+        Update: {
+          acao_descricao?: string
+          acao_titulo?: string
+          created_at?: string
+          date_key?: string
+          frase?: string
+          id?: string
+          role?: string
+        }
+        Relationships: []
+      }
       distrato_descontos: {
         Row: {
           aplicado_at: string
