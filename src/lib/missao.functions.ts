@@ -69,7 +69,8 @@ async function generateFromAI(role: Role): Promise<{ frase: string; autor: strin
           content:
             p.usuario +
             '\n\nResponda APENAS em JSON estrito no formato: {"frase":"...","autor":"Nome do Autor","acao_titulo":"...","acao_descricao":"..."}. ' +
-            "frase: citação REAL do autor (sem inventar). autor: nome completo do autor da citação. acao_titulo: 3-7 palavras. acao_descricao: 1-2 frases, no máximo 35 palavras. Sem emojis. Sem aspas extras dentro dos campos.",
+            "frase: citação REAL do autor (sem inventar). autor: nome completo do autor da citação. acao_titulo: 3-7 palavras. acao_descricao: 1-2 frases, no máximo 35 palavras. Sem emojis. Sem aspas extras dentro dos campos. " +
+            "REGRAS DE PORTUGUÊS (OBRIGATÓRIO): use português do Brasil impecável, com acentuação completa (á, ã, ç, ê, õ, ú), pontuação correta (vírgulas, ponto final no fim de cada frase), concordância verbal e nominal corretas, sem erros de digitação, sem espaços duplos, sem caracteres estranhos. Revise antes de responder.",
         },
       ],
       response_format: { type: "json_object" },

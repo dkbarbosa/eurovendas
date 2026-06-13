@@ -314,8 +314,8 @@ function MissaoPage() {
           ];
         } else if (role === "gerente") {
           title = "Pódio do gerente";
-          subtitle = `Estimativa: cada corretor com 3 vendas/mês no ticket médio (${fmtBRL(totals.ticketMedio)}) e override de ${(pct * 100).toFixed(2).replace(".", ",")}%.`;
-          const vendasMedia = 3;
+          subtitle = `Estimativa: cada corretor com 2 vendas/mês no ticket médio (${fmtBRL(totals.ticketMedio)}) e override de ${(pct * 100).toFixed(2).replace(".", ",")}%.`;
+          const vendasMedia = 2;
           const mk = (corretores: number, s: typeof styleSmall, order: string): Tier => {
             const vendas = corretores * vendasMedia;
             const vgv = totals.ticketMedio * vendas;
@@ -350,9 +350,9 @@ function MissaoPage() {
             footer: `meta mensal da construtora`,
           });
           tiers = [
-            mk(50_000_000, "R$ 50M", styleMid, "md:order-1"),
-            mk(100_000_000, "R$ 100M", styleTop, "md:order-2"),
-            mk(20_000_000, "R$ 20M", styleSmall, "md:order-3"),
+            mk(7_000_000, "R$ 7M", styleMid, "md:order-1"),
+            mk(10_000_000, "R$ 10M", styleTop, "md:order-2"),
+            mk(5_000_000, "R$ 5M", styleSmall, "md:order-3"),
           ];
         }
 
