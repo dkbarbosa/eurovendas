@@ -48,7 +48,7 @@ function getDateKeySaoPaulo(): string {
   return date.toISOString().slice(0, 10);
 }
 
-async function generateFromAI(role: Role): Promise<{ frase: string; acao_titulo: string; acao_descricao: string }> {
+async function generateFromAI(role: Role): Promise<{ frase: string; autor: string; acao_titulo: string; acao_descricao: string }> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY ausente.");
   const p = PROMPTS[role];
@@ -68,8 +68,8 @@ async function generateFromAI(role: Role): Promise<{ frase: string; acao_titulo:
           role: "user",
           content:
             p.usuario +
-            '\n\nResponda APENAS em JSON estrito no formato: {"frase":"...","acao_titulo":"...","acao_descricao":"..."}. ' +
-            "acao_titulo: 3-7 palavras. acao_descricao: 1-2 frases, no máximo 35 palavras. Sem emojis. Sem aspas extras.",
+            '\n\nResponda APENAS em JSON estrito no formato: {"frase":"...","autor":"Nome do Autor","acao_titulo":"...","acao_descricao":"..."}. ' +
+            "frase: citação REAL do autor (sem inventar). autor: nome completo do autor da citação. acao_titulo: 3-7 palavras. acao_descricao: 1-2 frases, no máximo 35 palavras. Sem emojis. Sem aspas extras dentro dos campos.",
         },
       ],
       response_format: { type: "json_object" },
@@ -89,6 +89,7 @@ async function generateFromAI(role: Role): Promise<{ frase: string; acao_titulo:
   }
   return {
     frase: String(parsed.frase).trim(),
+    autor: String(parsed.autor ?? "").trim(),
     acao_titulo: String(parsed.acao_titulo).trim(),
     acao_descricao: String(parsed.acao_descricao).trim(),
   };
