@@ -66,19 +66,13 @@ function MissaoPage() {
     const empreendimentos = Array.from(porEmp.entries())
       .map(([nome, v]) => ({ nome, vgv: v.vgv, n: v.n, comissao: v.vgv * pct }))
       .sort((a, b) => b.vgv - a.vgv);
-    const porEmpTop = empreendimentos.map((e) => ({
-      nome: e.nome,
-      top: comUnid
-        .filter((u) => u.empreendimento === e.nome)
-        .sort((a, b) => (b.valorVenda ?? 0) - (a.valorVenda ?? 0))
-        .slice(0, 5),
-    }));
+    const ticketMedio = comUnid.length > 0 ? vgvTotal / comUnid.length : 0;
     return {
       vgvTotal,
       comissaoMesa,
       nUnidades: comUnid.length,
       empreendimentos,
-      porEmpTop,
+      ticketMedio,
     };
   }, [unidadesQ.data, pct]);
 
