@@ -56,19 +56,25 @@ function EmpreendimentosPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return items.filter((u) => {
-      if (empFilter !== "__all__" && u.empreendimento !== empFilter) return false;
-      if (torreFilter !== "__all__" && u.torre !== torreFilter) return false;
-      if (andarFilter !== "__all__" && u.andar !== andarFilter) return false;
-      if (faceFilter !== "__all__" && u.orientacao !== faceFilter) return false;
-      if (!q) return true;
-      return (
-        u.unidade.toLowerCase().includes(q) ||
-        (u.torre ?? "").toLowerCase().includes(q) ||
-        (u.andar ?? "").toLowerCase().includes(q) ||
-        (u.tipo ?? "").toLowerCase().includes(q)
-      );
-    });
+    return items
+      .filter((u) => {
+        if (empFilter !== "__all__" && u.empreendimento !== empFilter) return false;
+        if (torreFilter !== "__all__" && u.torre !== torreFilter) return false;
+        if (andarFilter !== "__all__" && u.andar !== andarFilter) return false;
+        if (faceFilter !== "__all__" && u.orientacao !== faceFilter) return false;
+        if (!q) return true;
+        return (
+          u.unidade.toLowerCase().includes(q) ||
+          (u.torre ?? "").toLowerCase().includes(q) ||
+          (u.andar ?? "").toLowerCase().includes(q) ||
+          (u.tipo ?? "").toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => {
+        const na = parseInt(a.unidade, 10) || 0;
+        const nb = parseInt(b.unidade, 10) || 0;
+        return na - nb;
+      });
   }, [items, empFilter, torreFilter, andarFilter, faceFilter, search]);
 
   const totalDisp = filtered.length;
