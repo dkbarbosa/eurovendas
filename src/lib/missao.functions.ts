@@ -131,7 +131,18 @@ export const getDailyMessage = createServerFn({ method: "POST" })
     }
 
     try {
-      const gen = await generateFromAI(role);
+      const { data: recent } = await supabaseAdmin
+        .from("daily_messages")
+        .select("frase,autor,date_key")
+        .eq("role", role)
+        .neq("date_key", dateKey)
+        .order("date_key", { ascending: false })
+        .limit(10);
+      const avoid = {
+        autores: Array.from(new Set((recent ?? []).map((r) => r.autor).filter((a): a is string => !!a))),
+        frases: (recent ?? []).map((r) => r.frase).filter((f): f is string => !!f),
+      };
+      const gen = await generateFromAI(role, dateKey, avoid);
       await supabaseAdmin
         .from("daily_messages")
         .upsert(
