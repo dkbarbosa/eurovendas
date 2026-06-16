@@ -26,6 +26,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { LiveSyncBadge } from "@/components/LiveSyncBadge";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import logoAsset from "@/assets/logo.png.asset.json";
 
 // Visão da gestão — SOMENTE admin (controle total do mecanismo da empresa).
 const MANAGEMENT_NAV = [
