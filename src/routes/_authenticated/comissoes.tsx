@@ -881,9 +881,26 @@ function ComissoesPage() {
                       <td className="p-3 text-right whitespace-nowrap font-medium">{BRL(comissaoLiq)}</td>
                       <td className="p-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
-                          <span className={adiantadoSale > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}>
-                            {BRL(adiantadoSale)}
-                          </span>
+                          <SaleTimelineButton
+                            sale={{
+                              comprador: s.comprador,
+                              empreendimento: s.empreendimento,
+                              unidade: s.unidade,
+                              data: s.data,
+                              valor_venda: s.valor_venda,
+                            }}
+                            requests={reqs as never}
+                            nfs={sNfs as never}
+                          >
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              title="Ver linha do tempo desta venda"
+                              className={`cursor-pointer underline-offset-2 hover:underline outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded ${adiantadoSale > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}`}
+                            >
+                              {BRL(adiantadoSale)}
+                            </span>
+                          </SaleTimelineButton>
                           {historico.length > 0 && (
                             <Popover>
                               <PopoverTrigger asChild>
