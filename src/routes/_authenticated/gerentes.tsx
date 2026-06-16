@@ -160,6 +160,27 @@ function GerentesPage() {
     return m;
   }, [requests]);
 
+  const { data: allNfs = [] } = useMyNFs();
+  const nfsBySale = useMemo(() => {
+    const m = new Map<string, MyNFItem[]>();
+    for (const n of allNfs) {
+      const arr = m.get(n.sale_id) ?? [];
+      arr.push(n);
+      m.set(n.sale_id, arr);
+    }
+    return m;
+  }, [allNfs]);
+  const requestsBySale = useMemo(() => {
+    const m = new Map<string, typeof requests>();
+    for (const r of requests) {
+      const arr = m.get(r.sale_id) ?? [];
+      arr.push(r);
+      m.set(r.sale_id, arr);
+    }
+    return m;
+  }, [requests]);
+
+
   const kpis = useMemo(() => {
     let comGerente = 0;
     let count = 0;
