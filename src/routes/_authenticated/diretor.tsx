@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { SaleNFCell, useMyNFs, type MyNFItem } from "@/components/nf/SaleNFCell";
 import { GroupedNFEmitter, type PendingNFItem } from "@/components/nf/GroupedNFEmitter";
+import { SaleTimelineButton } from "@/components/history/SaleTimelineButton";
 
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
