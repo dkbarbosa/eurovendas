@@ -1700,6 +1700,7 @@ function RequestPill({ r, descontos = [] }: { r: { id: string; tipo: string; val
             <button
               type="button"
               title="Ver detalhes do desconto de distrato"
+              onClick={(e) => e.stopPropagation()}
               className="inline-flex items-center gap-1 text-[10px] rounded-md border border-violet-400/40 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 transition px-2 py-0.5 self-start"
             >
               <Ban className="w-2.5 h-2.5" /> Desc. distrato: {BRL(desc)} · Líq. {BRL(liquido)}
