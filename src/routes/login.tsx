@@ -110,15 +110,11 @@ function LoginPage() {
             className="w-full max-w-md"
           >
             <div className="flex flex-col items-center mb-8">
-              <div className="relative">
-                <div
-                  className="absolute inset-0 rounded-full blur-2xl opacity-50"
-                  style={{ background: "var(--gradient-gold)" }}
-                />
+              <div className="rounded-2xl bg-secondary/40 border border-border/50 p-4 flex items-center justify-center">
                 <img
                   src={logoAsset.url}
                   alt="Euro Empreendimentos"
-                  className="relative h-24 sm:h-28 w-auto object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
+                  className="h-20 sm:h-24 w-auto object-contain opacity-95"
                 />
               </div>
               <div

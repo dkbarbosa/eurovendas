@@ -76,18 +76,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <div className="p-5">
         <div className="flex items-center gap-3">
-          <div
-            className="relative w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-sidebar-border/60"
-            style={{ background: "color-mix(in oklab, var(--sidebar-background) 85%, transparent)" }}
-          >
-            <div
-              className="absolute inset-0 rounded-xl opacity-40 blur-md"
-              style={{ background: "var(--gradient-gold)" }}
-            />
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-sidebar-border/60 bg-secondary/50">
             <img
               src={logoAsset.url}
               alt="Euro Empreendimentos"
-              className="relative w-10 h-10 object-contain"
+              className="w-10 h-10 object-contain opacity-95"
             />
           </div>
           <div className="min-w-0">
