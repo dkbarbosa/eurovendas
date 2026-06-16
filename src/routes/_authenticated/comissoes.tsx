@@ -1162,7 +1162,21 @@ function ComissoesPage() {
 
 
                           {reqs.length === 0 && sNfs.length === 0 && (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <SaleTimelineButton
+                              sale={{
+                                comprador: s.comprador,
+                                empreendimento: s.empreendimento,
+                                unidade: s.unidade,
+                                data: s.data,
+                                valor_venda: s.valor_venda,
+                              }}
+                              requests={reqs as never}
+                              nfs={sNfs as never}
+                            >
+                              <span role="button" tabIndex={0} title="Ver linha do tempo desta venda" className="cursor-pointer text-xs text-muted-foreground underline-offset-2 hover:underline outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded">
+                                Ver linha do tempo
+                              </span>
+                            </SaleTimelineButton>
                           )}
                         </div>
                       </td>
