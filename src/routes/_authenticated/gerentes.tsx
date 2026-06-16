@@ -609,7 +609,21 @@ function GerentesPage() {
                             </Badge>
                           )}
                           <SaleNFCell saleId={s.id} role="gerente" />
+                          <div className="mt-1.5">
+                            <SaleTimelineButton
+                              sale={{
+                                comprador: s.comprador,
+                                empreendimento: s.empreendimento,
+                                unidade: s.unidade,
+                                data: s.data,
+                                valor_venda: s.valor_venda,
+                              }}
+                              requests={(requestsBySale.get(s.id) ?? []) as never}
+                              nfs={(nfsBySale.get(s.id) ?? []) as never}
+                            />
+                          </div>
                         </td>
+
                         <td className="p-3 text-right">
                           {stUp === "DISTRATO" ? (
                             <Badge
