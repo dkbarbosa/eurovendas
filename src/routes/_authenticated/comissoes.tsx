@@ -1054,26 +1054,7 @@ function ComissoesPage() {
                             const hasDist = nDesc > 0 || !!nDistHist;
                             return (
                             <div key={n.id} className="flex items-center gap-1 flex-wrap">
-                              <SaleTimelineButton
-                                sale={{
-                                  comprador: s.comprador,
-                                  empreendimento: s.empreendimento,
-                                  unidade: s.unidade,
-                                  data: s.data,
-                                  valor_venda: s.valor_venda,
-                                }}
-                                requests={reqs as never}
-                                nfs={sNfs as never}
-                              >
-                                <span
-                                  role="button"
-                                  tabIndex={0}
-                                  className="cursor-pointer rounded-full outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50"
-                                  title="Ver linha do tempo desta venda"
-                                >
-                                  <NFPill n={n} />
-                                </span>
-                              </SaleTimelineButton>
+                              <NFPill n={n} />
                               {hasDist && (
                                 <Popover>
                                   <PopoverTrigger asChild>
