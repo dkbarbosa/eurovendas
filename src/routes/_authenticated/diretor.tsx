@@ -513,7 +513,28 @@ function DiretorPage() {
                         <td className="p-3 text-right">{BRL(s.valor_venda)}</td>
                         <td className="p-3 text-right">{BRL(s.valor_sinal_negocio)}</td>
                         <td className="p-3 text-right font-medium">{BRL(s.comissao_diretor)}</td>
-                        <td className="p-3 text-right text-emerald-400">{BRL(pago)}</td>
+                        <td className="p-3 text-right">
+                          <SaleTimelineButton
+                            sale={{
+                              comprador: s.comprador,
+                              empreendimento: s.empreendimento,
+                              unidade: s.unidade,
+                              data: s.data,
+                              valor_venda: s.valor_venda,
+                            }}
+                            requests={(requestsBySale.get(s.id) ?? []) as never}
+                            nfs={(nfsBySale.get(s.id) ?? []) as never}
+                          >
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              title="Ver linha do tempo desta venda"
+                              className="cursor-pointer text-emerald-400 underline-offset-2 hover:underline outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+                            >
+                              {BRL(pago)}
+                            </span>
+                          </SaleTimelineButton>
+                        </td>
                         <td className="p-3">
                           {pend && (
                             <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30 mb-1">
