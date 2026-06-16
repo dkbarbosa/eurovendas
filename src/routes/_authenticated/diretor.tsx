@@ -544,28 +544,6 @@ function DiretorPage() {
                           <SaleNFCell
                             saleId={s.id}
                             role="diretor"
-                            renderPillWrapper={(pill) => (
-                              <SaleTimelineButton
-                                sale={{
-                                  comprador: s.comprador,
-                                  empreendimento: s.empreendimento,
-                                  unidade: s.unidade,
-                                  data: s.data,
-                                  valor_venda: s.valor_venda,
-                                }}
-                                requests={(requestsBySale.get(s.id) ?? []) as never}
-                                nfs={(nfsBySale.get(s.id) ?? []) as never}
-                              >
-                                <span
-                                  role="button"
-                                  tabIndex={0}
-                                  className="cursor-pointer rounded-full outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50"
-                                  title="Ver linha do tempo desta venda"
-                                >
-                                  {pill}
-                                </span>
-                              </SaleTimelineButton>
-                            )}
                           />
                         </td>
                         <td className="p-3 text-center">
