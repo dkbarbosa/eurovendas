@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { SaleNFCell, useMyNFs, type MyNFItem } from "@/components/nf/SaleNFCell";
 import { GroupedNFEmitter, type PendingNFItem } from "@/components/nf/GroupedNFEmitter";
+import { SaleTimelineButton } from "@/components/history/SaleTimelineButton";
 
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
@@ -158,6 +159,27 @@ function GerentesPage() {
     }
     return m;
   }, [requests]);
+
+  const { data: allNfs = [] } = useMyNFs();
+  const nfsBySale = useMemo(() => {
+    const m = new Map<string, MyNFItem[]>();
+    for (const n of allNfs) {
+      const arr = m.get(n.sale_id) ?? [];
+      arr.push(n);
+      m.set(n.sale_id, arr);
+    }
+    return m;
+  }, [allNfs]);
+  const requestsBySale = useMemo(() => {
+    const m = new Map<string, typeof requests>();
+    for (const r of requests) {
+      const arr = m.get(r.sale_id) ?? [];
+      arr.push(r);
+      m.set(r.sale_id, arr);
+    }
+    return m;
+  }, [requests]);
+
 
   const kpis = useMemo(() => {
     let comGerente = 0;
@@ -587,7 +609,21 @@ function GerentesPage() {
                             </Badge>
                           )}
                           <SaleNFCell saleId={s.id} role="gerente" />
+                          <div className="mt-1.5">
+                            <SaleTimelineButton
+                              sale={{
+                                comprador: s.comprador,
+                                empreendimento: s.empreendimento,
+                                unidade: s.unidade,
+                                data: s.data,
+                                valor_venda: s.valor_venda,
+                              }}
+                              requests={(requestsBySale.get(s.id) ?? []) as never}
+                              nfs={(nfsBySale.get(s.id) ?? []) as never}
+                            />
+                          </div>
                         </td>
+
                         <td className="p-3 text-right">
                           {stUp === "DISTRATO" ? (
                             <Badge
