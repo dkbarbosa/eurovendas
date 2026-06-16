@@ -73,22 +73,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const SidebarContent = (
     <>
-      <div className="p-6">
+      <div className="p-5">
         <div className="flex items-center gap-3">
           <div
-            className="w-9 h-9 rounded-xl glow-primary flex items-center justify-center"
-            style={{ background: "var(--gradient-primary)" }}
+            className="relative w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-sidebar-border/60"
+            style={{ background: "color-mix(in oklab, var(--sidebar-background) 85%, transparent)" }}
           >
-            <Building2 className="w-5 h-5 text-primary-foreground" />
+            <div
+              className="absolute inset-0 rounded-xl opacity-40 blur-md"
+              style={{ background: "var(--gradient-gold)" }}
+            />
+            <img
+              src={logoAsset.url}
+              alt="Euro Empreendimentos"
+              className="relative w-10 h-10 object-contain"
+            />
           </div>
-          <div>
-            <div className="font-semibold leading-none text-sidebar-foreground">Gestão Comercial</div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-              Euro Empreendimentos
+          <div className="min-w-0">
+            <div className="font-semibold leading-none text-sidebar-foreground truncate">Euro Empreendimentos</div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1.5">
+              Gestão Comercial
             </div>
           </div>
         </div>
       </div>
+
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {(isAdmin || isDiretor || isGerente || isCorretor) && (
