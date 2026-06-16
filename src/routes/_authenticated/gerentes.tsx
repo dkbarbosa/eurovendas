@@ -590,7 +590,26 @@ function GerentesPage() {
                         <td className="p-3 text-right tabular-nums whitespace-nowrap">{BRL(s.valor_venda)}</td>
                         <td className="p-3 text-right tabular-nums whitespace-nowrap font-medium">{BRL(comLiq)}</td>
                         <td className="p-3 text-right tabular-nums whitespace-nowrap">
-                          <span className={pago > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}>{BRL(pago)}</span>
+                          <SaleTimelineButton
+                            sale={{
+                              comprador: s.comprador,
+                              empreendimento: s.empreendimento,
+                              unidade: s.unidade,
+                              data: s.data,
+                              valor_venda: s.valor_venda,
+                            }}
+                            requests={(requestsBySale.get(s.id) ?? []) as never}
+                            nfs={(nfsBySale.get(s.id) ?? []) as never}
+                          >
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              title="Ver linha do tempo desta venda"
+                              className={`cursor-pointer underline-offset-2 hover:underline outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded ${pago > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}`}
+                            >
+                              {BRL(pago)}
+                            </span>
+                          </SaleTimelineButton>
                         </td>
                         <td className="p-3 text-right tabular-nums whitespace-nowrap">
                           {isFinalizada ? (
