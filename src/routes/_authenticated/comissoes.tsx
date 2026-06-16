@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { Loader2, Wallet, TrendingUp, FileText, Receipt, CheckCircle2, Clock, XCircle, Search, Trash2, AlertTriangle, MessageSquareWarning, MessageSquare, Ban, Send, Timer, Paperclip, X } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from "recharts";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SaleTimelineButton } from "@/components/history/SaleTimelineButton";
 
 export const Route = createFileRoute("/_authenticated/comissoes")({
   component: ComissoesPage,
