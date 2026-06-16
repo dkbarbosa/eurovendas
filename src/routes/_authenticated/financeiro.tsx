@@ -963,17 +963,6 @@ function AdvancesTab() {
                               totalPago={adiantadoTot + finalPago}
                             />
                           )}
-                          <SaleTimelineButton
-                            sale={{
-                              comprador: head.sale?.comprador,
-                              empreendimento: head.sale?.empreendimento,
-                              unidade: head.sale?.unidade,
-                              data: head.sale?.data,
-                              valor_venda: head.sale?.valor_venda,
-                            }}
-                            requests={items as never}
-                            nfs={(nfsBySaleTimeline.get(head.sale_id ?? "") ?? []) as never}
-                          />
                         </div>
                       </div>
 
