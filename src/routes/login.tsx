@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { getCurrentUserContext } from "@/lib/auth.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import logoAsset from "@/assets/logo.png.asset.json";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -108,12 +109,23 @@ function LoginPage() {
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             className="w-full max-w-md"
           >
-            <h1
-              className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-center mb-6 bg-clip-text text-transparent"
-              style={{ backgroundImage: "var(--gradient-primary)" }}
-            >
-              Painel Euro
-            </h1>
+            <div className="flex flex-col items-center mb-8">
+              <div className="relative">
+                <div
+                  className="absolute inset-0 rounded-full blur-2xl opacity-50"
+                  style={{ background: "var(--gradient-gold)" }}
+                />
+                <img
+                  src={logoAsset.url}
+                  alt="Euro Empreendimentos"
+                  className="relative h-24 sm:h-28 w-auto object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
+                />
+              </div>
+              <div
+                className="mt-4 h-px w-24 opacity-70"
+                style={{ background: "var(--gradient-primary)" }}
+              />
+            </div>
 
             <div className="glass-card p-8 sm:p-10 relative">
               <div
