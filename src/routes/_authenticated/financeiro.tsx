@@ -64,6 +64,7 @@ import { motion } from "framer-motion";
 import { DistratoButton } from "@/components/distratos/DistratoButton";
 import { DistratosPanel } from "@/components/distratos/DistratosPanel";
 import { ExtratoComissoesTab } from "@/components/financeiro/ExtratoComissoesTab";
+import { SaleTimelineButton } from "@/components/history/SaleTimelineButton";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   component: FinanceiroPage,
