@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { getCurrentUserContext } from "@/lib/auth.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import logoAsset from "@/assets/logo.png.asset.json";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
