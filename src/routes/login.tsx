@@ -111,13 +111,11 @@ function LoginPage() {
           >
             <div className="glass-card p-8 sm:p-10 relative">
               <div className="flex flex-col items-center mb-6">
-                <div className="rounded-2xl bg-secondary/40 border border-border/50 p-4 flex items-center justify-center">
-                  <img
-                    src={logoAsset.url}
-                    alt="Euro Empreendimentos"
-                    className="h-20 sm:h-24 w-auto object-contain opacity-95"
-                  />
-                </div>
+                <img
+                  src={logoAsset.url}
+                  alt="Euro Empreendimentos"
+                  className="h-20 sm:h-24 w-auto object-contain opacity-95"
+                />
               </div>
 
               {/* role tabs */}
