@@ -109,25 +109,16 @@ function LoginPage() {
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             className="w-full max-w-md"
           >
-            <div className="flex flex-col items-center mb-8">
-              <div className="rounded-2xl bg-secondary/40 border border-border/50 p-4 flex items-center justify-center">
-                <img
-                  src={logoAsset.url}
-                  alt="Euro Empreendimentos"
-                  className="h-20 sm:h-24 w-auto object-contain opacity-95"
-                />
-              </div>
-              <div
-                className="mt-4 h-px w-24 opacity-70"
-                style={{ background: "var(--gradient-primary)" }}
-              />
-            </div>
-
             <div className="glass-card p-8 sm:p-10 relative">
-              <div
-                className="absolute top-0 left-8 right-8 h-px opacity-60"
-                style={{ background: "var(--gradient-primary)" }}
-              />
+              <div className="flex flex-col items-center mb-6">
+                <div className="rounded-2xl bg-secondary/40 border border-border/50 p-4 flex items-center justify-center">
+                  <img
+                    src={logoAsset.url}
+                    alt="Euro Empreendimentos"
+                    className="h-20 sm:h-24 w-auto object-contain opacity-95"
+                  />
+                </div>
+              </div>
 
               {/* role tabs */}
               <div className="grid grid-cols-4 gap-1.5 p-1.5 rounded-xl bg-secondary/40 border border-border/60 mb-6">
