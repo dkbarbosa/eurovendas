@@ -318,7 +318,15 @@ export function NFEmitDialog({
  * Per-sale-row cell rendering the NF pills + Enviar NF button + download/pago actions.
  * Mirrors the corretor's PEDIDOS/NF column structure.
  */
-export function SaleNFCell({ saleId, role }: { saleId: string; role?: "corretor" | "gerente" | "diretor" }) {
+export function SaleNFCell({
+  saleId,
+  role,
+  renderPillWrapper,
+}: {
+  saleId: string;
+  role?: "corretor" | "gerente" | "diretor";
+  renderPillWrapper?: (pill: React.ReactNode, nf: MyNFItem) => React.ReactNode;
+}) {
   const qc = useQueryClient();
   const fnPay = useServerFn(markNFPaid);
   const { data: nfs = [] } = useMyNFs();
@@ -351,10 +359,11 @@ export function SaleNFCell({ saleId, role }: { saleId: string; role?: "corretor"
           const desc = Number(n.desconto_distrato) || 0;
           const distHist = n.observacao_distrato?.trim();
           const hasDist = desc > 0 || !!distHist;
+          const pillNode = <NFPill n={n} saleStatus={n.sale?.status as string | undefined} />;
           return (
             <div key={n.id} className="space-y-1">
               <div className="flex items-center gap-1 flex-wrap">
-                <NFPill n={n} saleStatus={n.sale?.status as string | undefined} />
+                {renderPillWrapper ? renderPillWrapper(pillNode, n) : pillNode}
                 {!hasEnviarNF && (n.status === "emitida" || n.status === "recebida") && (
                   <Button
                     size="sm"

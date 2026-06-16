@@ -906,16 +906,33 @@ function AdvancesTab() {
                             </div>
                             <div className="font-semibold text-foreground">{BRL(comissaoLiq)}</div>
                           </div>
-                          <div className="text-right">
-                            <div className="uppercase text-[10px] tracking-wider text-muted-foreground">
-                              Adiantado
-                            </div>
-                            <div
-                              className={`font-semibold ${adiantadoTot > 0 ? "text-amber-300" : "text-muted-foreground"}`}
+                          <SaleTimelineButton
+                            sale={{
+                              comprador: head.sale?.comprador,
+                              empreendimento: head.sale?.empreendimento,
+                              unidade: head.sale?.unidade,
+                              data: head.sale?.data,
+                              valor_venda: head.sale?.valor_venda,
+                            }}
+                            requests={items as never}
+                            nfs={(nfsBySaleTimeline.get(head.sale_id ?? "") ?? []) as never}
+                          >
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              title="Ver linha do tempo desta venda"
+                              className="text-right cursor-pointer rounded-md outline-none transition hover:bg-amber-500/5 hover:ring-1 hover:ring-amber-400/30 focus-visible:ring-2 focus-visible:ring-primary/50 px-1.5 py-0.5"
                             >
-                              {BRL(adiantadoTot)}
-                            </div>
-                          </div>
+                              <div className="uppercase text-[10px] tracking-wider text-muted-foreground">
+                                Adiantado
+                              </div>
+                              <div
+                                className={`font-semibold ${adiantadoTot > 0 ? "text-amber-300" : "text-muted-foreground"}`}
+                              >
+                                {BRL(adiantadoTot)}
+                              </div>
+                            </span>
+                          </SaleTimelineButton>
                           <div className="text-right">
                             <div className="uppercase text-[10px] tracking-wider text-muted-foreground">
                               Comissão Paga
@@ -946,17 +963,6 @@ function AdvancesTab() {
                               totalPago={adiantadoTot + finalPago}
                             />
                           )}
-                          <SaleTimelineButton
-                            sale={{
-                              comprador: head.sale?.comprador,
-                              empreendimento: head.sale?.empreendimento,
-                              unidade: head.sale?.unidade,
-                              data: head.sale?.data,
-                              valor_venda: head.sale?.valor_venda,
-                            }}
-                            requests={items as never}
-                            nfs={(nfsBySaleTimeline.get(head.sale_id ?? "") ?? []) as never}
-                          />
                         </div>
                       </div>
 

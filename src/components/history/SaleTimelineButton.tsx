@@ -456,7 +456,8 @@ export function SaleTimelineButton({
   nfs = [],
   triggerLabel = "Linha do tempo",
   className,
-}: Props) {
+  children,
+}: Props & { children?: React.ReactNode }) {
   const { matchedNfIds, sortedRequests, standaloneNfs } = useMemo(() => {
     const sortedReqs = [...requests].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -486,16 +487,18 @@ export function SaleTimelineButton({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className={`h-7 gap-1.5 text-[11px] ${className ?? ""}`}
-          title="Ver linha do tempo das solicitações desta venda"
-        >
-          <History className="h-3 w-3" />
-          {triggerLabel}
-        </Button>
+        {children ?? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className={`h-7 gap-1.5 text-[11px] ${className ?? ""}`}
+            title="Ver linha do tempo das solicitações desta venda"
+          >
+            <History className="h-3 w-3" />
+            {triggerLabel}
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>

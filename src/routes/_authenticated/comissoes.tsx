@@ -938,17 +938,6 @@ function ComissoesPage() {
                               </PopoverContent>
                             </Popover>
                           )}
-                          <SaleTimelineButton
-                            sale={{
-                              comprador: s.comprador,
-                              empreendimento: s.empreendimento,
-                              unidade: s.unidade,
-                              data: s.data,
-                              valor_venda: s.valor_venda,
-                            }}
-                            requests={reqs as never}
-                            nfs={sNfs as never}
-                          />
                         </div>
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
@@ -980,7 +969,26 @@ function ComissoesPage() {
 
                           {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1 flex-wrap">
-                              <RequestPill r={r} descontos={descontosByRequest.get(r.id) ?? []} />
+                              <SaleTimelineButton
+                                sale={{
+                                  comprador: s.comprador,
+                                  empreendimento: s.empreendimento,
+                                  unidade: s.unidade,
+                                  data: s.data,
+                                  valor_venda: s.valor_venda,
+                                }}
+                                requests={reqs as never}
+                                nfs={sNfs as never}
+                              >
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  className="cursor-pointer rounded-full outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50"
+                                  title="Ver linha do tempo desta venda"
+                                >
+                                  <RequestPill r={r} descontos={descontosByRequest.get(r.id) ?? []} />
+                                </span>
+                              </SaleTimelineButton>
 
                               {r.status === "negado" && r.motivo_negacao && (
                                 <Popover>
@@ -1048,7 +1056,26 @@ function ComissoesPage() {
                             const hasDist = nDesc > 0 || !!nDistHist;
                             return (
                             <div key={n.id} className="flex items-center gap-1 flex-wrap">
-                              <NFPill n={n} />
+                              <SaleTimelineButton
+                                sale={{
+                                  comprador: s.comprador,
+                                  empreendimento: s.empreendimento,
+                                  unidade: s.unidade,
+                                  data: s.data,
+                                  valor_venda: s.valor_venda,
+                                }}
+                                requests={reqs as never}
+                                nfs={sNfs as never}
+                              >
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  className="cursor-pointer rounded-full outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50"
+                                  title="Ver linha do tempo desta venda"
+                                >
+                                  <NFPill n={n} />
+                                </span>
+                              </SaleTimelineButton>
                               {hasDist && (
                                 <Popover>
                                   <PopoverTrigger asChild>
@@ -1673,6 +1700,7 @@ function RequestPill({ r, descontos = [] }: { r: { id: string; tipo: string; val
             <button
               type="button"
               title="Ver detalhes do desconto de distrato"
+              onClick={(e) => e.stopPropagation()}
               className="inline-flex items-center gap-1 text-[10px] rounded-md border border-violet-400/40 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 transition px-2 py-0.5 self-start"
             >
               <Ban className="w-2.5 h-2.5" /> Desc. distrato: {BRL(desc)} · Líq. {BRL(liquido)}
