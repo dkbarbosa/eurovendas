@@ -514,6 +514,9 @@ function DiretorPage() {
                         <td className="p-3 text-right">{BRL(s.valor_sinal_negocio)}</td>
                         <td className="p-3 text-right font-medium">{BRL(s.comissao_diretor)}</td>
                         <td className="p-3 text-right">
+                          <span className="text-emerald-400">{BRL(pago)}</span>
+                        </td>
+                        <td className="p-3">
                           <SaleTimelineButton
                             sale={{
                               comprador: s.comprador,
@@ -525,26 +528,25 @@ function DiretorPage() {
                             requests={(requestsBySale.get(s.id) ?? []) as never}
                             nfs={(nfsBySale.get(s.id) ?? []) as never}
                           >
-                            <span
+                            <div
                               role="button"
                               tabIndex={0}
                               title="Ver linha do tempo desta venda"
-                              className="cursor-pointer text-emerald-400 underline-offset-2 hover:underline outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+                              className="cursor-pointer rounded outline-none focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-secondary/30 -m-1 p-1 transition-colors"
                             >
-                              {BRL(pago)}
-                            </span>
+                              {pend && (
+                                <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30 mb-1">
+                                  NF · solicitada
+                                </Badge>
+                              )}
+                              <SaleNFCell saleId={s.id} role="diretor" />
+                              {!pend && (nfsBySale.get(s.id) ?? []).length === 0 && (
+                                <span className="text-[11px] text-muted-foreground underline-offset-2 hover:underline">
+                                  Ver linha do tempo
+                                </span>
+                              )}
+                            </div>
                           </SaleTimelineButton>
-                        </td>
-                        <td className="p-3">
-                          {pend && (
-                            <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30 mb-1">
-                              NF · solicitada
-                            </Badge>
-                          )}
-                          <SaleNFCell
-                            saleId={s.id}
-                            role="diretor"
-                          />
                         </td>
                         <td className="p-3 text-center">
                           {stUp === "DISTRATO" ? (

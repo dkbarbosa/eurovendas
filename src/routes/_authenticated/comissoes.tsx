@@ -881,26 +881,9 @@ function ComissoesPage() {
                       <td className="p-3 text-right whitespace-nowrap font-medium">{BRL(comissaoLiq)}</td>
                       <td className="p-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
-                          <SaleTimelineButton
-                            sale={{
-                              comprador: s.comprador,
-                              empreendimento: s.empreendimento,
-                              unidade: s.unidade,
-                              data: s.data,
-                              valor_venda: s.valor_venda,
-                            }}
-                            requests={reqs as never}
-                            nfs={sNfs as never}
-                          >
-                            <span
-                              role="button"
-                              tabIndex={0}
-                              title="Ver linha do tempo desta venda"
-                              className={`cursor-pointer underline-offset-2 hover:underline outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded ${adiantadoSale > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}`}
-                            >
-                              {BRL(adiantadoSale)}
-                            </span>
-                          </SaleTimelineButton>
+                          <span className={adiantadoSale > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}>
+                            {BRL(adiantadoSale)}
+                          </span>
                           {historico.length > 0 && (
                             <Popover>
                               <PopoverTrigger asChild>
@@ -986,7 +969,21 @@ function ComissoesPage() {
 
                           {reqs.map((r) => (
                             <div key={r.id} className="flex items-center gap-1 flex-wrap">
-                              <RequestPill r={r} descontos={descontosByRequest.get(r.id) ?? []} />
+                              <SaleTimelineButton
+                                sale={{
+                                  comprador: s.comprador,
+                                  empreendimento: s.empreendimento,
+                                  unidade: s.unidade,
+                                  data: s.data,
+                                  valor_venda: s.valor_venda,
+                                }}
+                                requests={reqs as never}
+                                nfs={sNfs as never}
+                              >
+                                <span role="button" tabIndex={0} title="Ver linha do tempo desta venda" className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded">
+                                  <RequestPill r={r} descontos={descontosByRequest.get(r.id) ?? []} />
+                                </span>
+                              </SaleTimelineButton>
 
                               {r.status === "negado" && r.motivo_negacao && (
                                 <Popover>
@@ -1054,7 +1051,21 @@ function ComissoesPage() {
                             const hasDist = nDesc > 0 || !!nDistHist;
                             return (
                             <div key={n.id} className="flex items-center gap-1 flex-wrap">
-                              <NFPill n={n} />
+                              <SaleTimelineButton
+                                sale={{
+                                  comprador: s.comprador,
+                                  empreendimento: s.empreendimento,
+                                  unidade: s.unidade,
+                                  data: s.data,
+                                  valor_venda: s.valor_venda,
+                                }}
+                                requests={reqs as never}
+                                nfs={sNfs as never}
+                              >
+                                <span role="button" tabIndex={0} title="Ver linha do tempo desta venda" className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded">
+                                  <NFPill n={n} />
+                                </span>
+                              </SaleTimelineButton>
                               {hasDist && (
                                 <Popover>
                                   <PopoverTrigger asChild>
@@ -1151,7 +1162,21 @@ function ComissoesPage() {
 
 
                           {reqs.length === 0 && sNfs.length === 0 && (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <SaleTimelineButton
+                              sale={{
+                                comprador: s.comprador,
+                                empreendimento: s.empreendimento,
+                                unidade: s.unidade,
+                                data: s.data,
+                                valor_venda: s.valor_venda,
+                              }}
+                              requests={reqs as never}
+                              nfs={sNfs as never}
+                            >
+                              <span role="button" tabIndex={0} title="Ver linha do tempo desta venda" className="cursor-pointer text-xs text-muted-foreground underline-offset-2 hover:underline outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded">
+                                Ver linha do tempo
+                              </span>
+                            </SaleTimelineButton>
                           )}
                         </div>
                       </td>

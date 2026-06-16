@@ -590,26 +590,9 @@ function GerentesPage() {
                         <td className="p-3 text-right tabular-nums whitespace-nowrap">{BRL(s.valor_venda)}</td>
                         <td className="p-3 text-right tabular-nums whitespace-nowrap font-medium">{BRL(comLiq)}</td>
                         <td className="p-3 text-right tabular-nums whitespace-nowrap">
-                          <SaleTimelineButton
-                            sale={{
-                              comprador: s.comprador,
-                              empreendimento: s.empreendimento,
-                              unidade: s.unidade,
-                              data: s.data,
-                              valor_venda: s.valor_venda,
-                            }}
-                            requests={(requestsBySale.get(s.id) ?? []) as never}
-                            nfs={(nfsBySale.get(s.id) ?? []) as never}
-                          >
-                            <span
-                              role="button"
-                              tabIndex={0}
-                              title="Ver linha do tempo desta venda"
-                              className={`cursor-pointer underline-offset-2 hover:underline outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded ${pago > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}`}
-                            >
-                              {BRL(pago)}
-                            </span>
-                          </SaleTimelineButton>
+                          <span className={pago > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}>
+                            {BRL(pago)}
+                          </span>
                         </td>
                         <td className="p-3 text-right tabular-nums whitespace-nowrap">
                           {isFinalizada ? (
@@ -622,15 +605,36 @@ function GerentesPage() {
                         </td>
                         <td className="p-3"><Badge variant="outline" className="text-xs">{s.status ?? "—"}</Badge></td>
                         <td className="p-3">
-                          {pend && (
-                            <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30 mb-1">
-                              NF · solicitada
-                            </Badge>
-                          )}
-                          <SaleNFCell
-                            saleId={s.id}
-                            role="gerente"
-                          />
+                          <SaleTimelineButton
+                            sale={{
+                              comprador: s.comprador,
+                              empreendimento: s.empreendimento,
+                              unidade: s.unidade,
+                              data: s.data,
+                              valor_venda: s.valor_venda,
+                            }}
+                            requests={(requestsBySale.get(s.id) ?? []) as never}
+                            nfs={(nfsBySale.get(s.id) ?? []) as never}
+                          >
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              title="Ver linha do tempo desta venda"
+                              className="cursor-pointer rounded outline-none focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-secondary/30 -m-1 p-1 transition-colors"
+                            >
+                              {pend && (
+                                <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30 mb-1">
+                                  NF · solicitada
+                                </Badge>
+                              )}
+                              <SaleNFCell saleId={s.id} role="gerente" />
+                              {!pend && (nfsBySale.get(s.id) ?? []).length === 0 && (
+                                <span className="text-[11px] text-muted-foreground underline-offset-2 hover:underline">
+                                  Ver linha do tempo
+                                </span>
+                              )}
+                            </div>
+                          </SaleTimelineButton>
                         </td>
 
                         <td className="p-3 text-right">
