@@ -531,6 +531,23 @@ function AdvancesTab() {
     refetchOnWindowFocus: true,
   });
 
+  const fnListAllNFs = useServerFn(listAllNFs);
+  const { data: allNFs = [] } = useQuery({
+    queryKey: ["all-nfs-timeline"],
+    queryFn: () => fnListAllNFs(),
+    refetchInterval: 60_000,
+  });
+  const nfsBySaleTimeline = useMemo(() => {
+    const m = new Map<string, typeof allNFs>();
+    for (const n of allNFs) {
+      if (!n.sale_id) continue;
+      const arr = m.get(n.sale_id) ?? [];
+      arr.push(n);
+      m.set(n.sale_id, arr);
+    }
+    return m;
+  }, [allNFs]);
+
   const filtered = useMemo(() => {
     if (!search.trim()) return data;
     const q = search.toLowerCase();
