@@ -64,6 +64,7 @@ import { motion } from "framer-motion";
 import { DistratoButton } from "@/components/distratos/DistratoButton";
 import { DistratosPanel } from "@/components/distratos/DistratosPanel";
 import { ExtratoComissoesTab } from "@/components/financeiro/ExtratoComissoesTab";
+import { SaleTimelineButton } from "@/components/history/SaleTimelineButton";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   component: FinanceiroPage,
@@ -530,6 +531,23 @@ function AdvancesTab() {
     refetchOnWindowFocus: true,
   });
 
+  const fnListAllNFs = useServerFn(listAllNFs);
+  const { data: allNFs = [] } = useQuery({
+    queryKey: ["all-nfs-timeline"],
+    queryFn: () => fnListAllNFs(),
+    refetchInterval: 60_000,
+  });
+  const nfsBySaleTimeline = useMemo(() => {
+    const m = new Map<string, typeof allNFs>();
+    for (const n of allNFs) {
+      if (!n.sale_id) continue;
+      const arr = m.get(n.sale_id) ?? [];
+      arr.push(n);
+      m.set(n.sale_id, arr);
+    }
+    return m;
+  }, [allNFs]);
+
   const filtered = useMemo(() => {
     if (!search.trim()) return data;
     const q = search.toLowerCase();
@@ -928,6 +946,17 @@ function AdvancesTab() {
                               totalPago={adiantadoTot + finalPago}
                             />
                           )}
+                          <SaleTimelineButton
+                            sale={{
+                              comprador: head.sale?.comprador,
+                              empreendimento: head.sale?.empreendimento,
+                              unidade: head.sale?.unidade,
+                              data: head.sale?.data,
+                              valor_venda: head.sale?.valor_venda,
+                            }}
+                            requests={items as never}
+                            nfs={(nfsBySaleTimeline.get(head.sale_id ?? "") ?? []) as never}
+                          />
                         </div>
                       </div>
 
