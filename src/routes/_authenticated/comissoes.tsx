@@ -189,21 +189,18 @@ function ComissoesPage() {
     return ids;
   }, [allSales, requests, nfs]);
 
-  // Elegibilidade de adiantamento por mês: corretor precisa de ≥3 vendas no mês
-  // com sinal de negócio ≥ R$ 3.000 para liberar adiantamento (independente do
-  // sinal da venda específica). Indexamos por "YYYY-MM" da data da venda.
-  const adiantamentoMonthsOk = useMemo(() => {
-    const counts = new Map<string, number>();
+  // Elegibilidade de adiantamento (cumulativa, sem limite de mês):
+  // o corretor precisa de ≥ 2 vendas acumuladas com sinal ≥ R$ 3.000
+  // em todo o histórico para liberar adiantamento.
+  const adiantamentoElegivel = useMemo(() => {
+    let count = 0;
     for (const s of allSales) {
-      const d = (s.data ?? "").slice(0, 7);
-      if (!d) continue;
       const sinal = Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
-      if (sinal >= 3000) counts.set(d, (counts.get(d) ?? 0) + 1);
+      if (sinal >= 3000) count++;
     }
-    const ok = new Set<string>();
-    for (const [ym, n] of counts) if (n >= 3) ok.add(ym);
-    return { ok, counts };
+    return { ok: count >= 2, count };
   }, [allSales]);
+
 
   // aplica filtros (período + cliente)
   const sales = useMemo(() => {
@@ -1199,10 +1196,10 @@ function ComissoesPage() {
                               const finSolicitou = !!nfAberta;
                               const jaTevePagamento = totalPagoSale > 0;
                               const ym = (s.data ?? "").slice(0, 7);
-                              const mesOk = ym ? adiantamentoMonthsOk.ok.has(ym) : false;
-                              const mesCount = ym ? (adiantamentoMonthsOk.counts.get(ym) ?? 0) : 0;
-                              // Nova regra: ASSINADO só libera adiantamento se houver ≥3 vendas
-                              // no mesmo mês (do corretor) com sinal ≥ R$ 3.000.
+                              const mesOk = adiantamentoElegivel.ok;
+                              const mesCount = adiantamentoElegivel.count;
+                              // Nova regra: ASSINADO só libera adiantamento se o corretor
+                              // tiver ≥ 2 vendas acumuladas com sinal ≥ R$ 3.000 (qualquer mês).
                               // CAIXA/NF liberam sempre.
                               const allowed =
                                 !isReservado &&
@@ -1219,17 +1216,18 @@ function ComissoesPage() {
                                       : isAssinado && mesOk
                                         ? "Solicitar adiantamento"
                                         : isAssinado && !mesOk
-                                          ? "Bloqueado (mín. 3 vendas/mês)"
+                                          ? "Bloqueado (mín. 2 vendas acumuladas)"
                                           : "Aguardando CAIXA";
                               const blockReason = isReservado
                                 ? "Venda reservada não permite solicitação."
                                 : hasPending
                                   ? "Já existe uma solicitação pendente para esta venda."
                                   : isAssinado && !mesOk && !jaTevePagamento
-                                    ? `Adiantamento bloqueado: você tem ${mesCount} venda(s) em ${ym} com sinal ≥ R$ 3.000. Mínimo: 3 vendas no mês com sinal ≥ R$ 3.000.`
+                                    ? `Adiantamento bloqueado: você possui ${mesCount} venda(s) acumulada(s) com sinal ≥ R$ 3.000. Mínimo: 2 vendas válidas acumuladas (qualquer mês).`
                                     : !allowed
                                       ? "Aguardando o Status da venda virar CAIXA (ou o financeiro solicitar a NF) para liberar nova solicitação."
                                       : "";
+                              void ym;
                               if (stUp === "DISTRATO") {
                                 return (
                                   <Badge
@@ -1317,8 +1315,9 @@ function ComissoesPage() {
             const isCaixa = statusUp === "CAIXA";
             const isReservado = statusUp === "RESERVADO";
             const saleYm = (sale?.data ?? "").slice(0, 7);
-            const mesOk = saleYm ? adiantamentoMonthsOk.ok.has(saleYm) : false;
-            const mesCount = saleYm ? (adiantamentoMonthsOk.counts.get(saleYm) ?? 0) : 0;
+            const mesOk = adiantamentoElegivel.ok;
+            const mesCount = adiantamentoElegivel.count;
+            void saleYm;
             const ruleAdiantOk = isCaixa || reqForm.tipo !== "adiantamento" || mesOk;
             const ruleComissaoOk = isCaixa || reqForm.tipo !== "comissao_final" || valorVenda === 0 || sinal >= minSinalComissao;
             const ruleViolated = isReservado || !ruleAdiantOk || !ruleComissaoOk;
@@ -1341,17 +1340,17 @@ function ComissoesPage() {
                     {!isReservado && !isCaixa && (
                       <>
                         <div className="text-muted-foreground">
-                          • <b>Assinado:</b> adiantamento exige <b>mínimo de 3 vendas</b> no mês com{" "}
-                          <b>sinal ≥ R$ 3.000</b>. {saleYm && (
-                            <span className={mesOk ? "text-emerald-400" : "text-destructive"}>
-                              ({saleYm}: {mesCount} venda(s) elegível(eis))
-                            </span>
-                          )}
+                          • <b>Assinado:</b> adiantamento exige <b>mínimo de 2 vendas acumuladas</b> com{" "}
+                          <b>sinal ≥ R$ 3.000</b> (qualquer mês).{" "}
+                          <span className={mesOk ? "text-emerald-400" : "text-destructive"}>
+                            (você possui {mesCount} venda(s) válida(s))
+                          </span>
                         </div>
                         <div className="text-muted-foreground">• Comissão final exige sinal ≥ <b>6%</b> da venda{valorVenda > 0 ? <> (mín. <b>{BRL(minSinalComissao)}</b>)</> : null}.</div>
                       </>
                     )}
                   </div>
+
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
@@ -1374,7 +1373,7 @@ function ComissoesPage() {
                         <p className="text-xs text-muted-foreground">Restante após este pedido: {BRL(maxReceber - valor)}</p>
                       )}
                       {reqForm.tipo === "adiantamento" && !isCaixa && !mesOk && (
-                        <p className="text-xs text-destructive">Adiantamento bloqueado: mínimo 3 vendas no mês com sinal ≥ R$ 3.000 (atual: {mesCount}).</p>
+                        <p className="text-xs text-destructive">Adiantamento bloqueado: mínimo 2 vendas válidas acumuladas com sinal ≥ R$ 3.000 (atual: {mesCount}).</p>
                       )}
                     </div>
                     <div className="space-y-1.5">

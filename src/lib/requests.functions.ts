@@ -151,41 +151,25 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
       }
     }
 
-    // Nova regra de adiantamento (independente do valor do sinal desta venda):
-    // O corretor só pode solicitar adiantamento se tiver no mínimo 3 vendas no
-    // mês (mesmo mês/ano da venda solicitada) com sinal de negócio ≥ R$ 3.000.
+    // Nova regra de adiantamento (cumulativa, sem limite de mês):
+    // O corretor só pode solicitar adiantamento se tiver acumulado, em todo o
+    // seu histórico, no mínimo 2 vendas com sinal de negócio ≥ R$ 3.000.
     if (data.tipo === "adiantamento" && statusUp !== "CAIXA") {
-      const { data: saleFull } = await supabaseAdmin
+      const { data: allCorretorSales } = await supabaseAdmin
         .from("sales")
-        .select("data")
-        .eq("id", data.sale_id)
-        .maybeSingle();
-      const saleDate = (saleFull?.data ?? "").slice(0, 10);
-      if (!saleDate) {
-        throw new Error("Venda sem data — não é possível avaliar elegibilidade de adiantamento.");
-      }
-      const ym = saleDate.slice(0, 7); // YYYY-MM
-      const monthStart = `${ym}-01`;
-      // próximo mês
-      const [yy, mm] = ym.split("-").map(Number);
-      const nextYm = mm === 12 ? `${yy + 1}-01` : `${yy}-${String(mm + 1).padStart(2, "0")}`;
-      const monthEnd = `${nextYm}-01`;
-      const { data: monthSales } = await supabaseAdmin
-        .from("sales")
-        .select("id,valor_sinal_negocio,data")
-        .eq("corretor", nome)
-        .gte("data", monthStart)
-        .lt("data", monthEnd);
-      const elegiveis = (monthSales ?? []).filter(
+        .select("id,valor_sinal_negocio")
+        .eq("corretor", nome);
+      const elegiveis = (allCorretorSales ?? []).filter(
         (s) => (Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0) >= 3000,
       ).length;
-      if (elegiveis < 3) {
+      if (elegiveis < 2) {
         throw new Error(
-          `Adiantamento bloqueado: você tem ${elegiveis} venda(s) no mês com sinal ≥ R$ 3.000. ` +
-            `É necessário no mínimo 3 vendas no mês com sinal ≥ R$ 3.000 para liberar adiantamento.`,
+          `Adiantamento bloqueado: você possui ${elegiveis} venda(s) válida(s) acumulada(s) com sinal ≥ R$ 3.000. ` +
+            `É necessário no mínimo 2 vendas válidas (acumuladas, em qualquer mês) para liberar adiantamento.`,
         );
       }
     }
+
 
     if (statusUp !== "CAIXA") {
       if (data.tipo === "comissao_final") {
