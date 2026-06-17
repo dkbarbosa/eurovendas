@@ -1196,10 +1196,10 @@ function ComissoesPage() {
                               const finSolicitou = !!nfAberta;
                               const jaTevePagamento = totalPagoSale > 0;
                               const ym = (s.data ?? "").slice(0, 7);
-                              const mesOk = ym ? adiantamentoMonthsOk.ok.has(ym) : false;
-                              const mesCount = ym ? (adiantamentoMonthsOk.counts.get(ym) ?? 0) : 0;
-                              // Nova regra: ASSINADO só libera adiantamento se houver ≥3 vendas
-                              // no mesmo mês (do corretor) com sinal ≥ R$ 3.000.
+                              const mesOk = adiantamentoElegivel.ok;
+                              const mesCount = adiantamentoElegivel.count;
+                              // Nova regra: ASSINADO só libera adiantamento se o corretor
+                              // tiver ≥ 2 vendas acumuladas com sinal ≥ R$ 3.000 (qualquer mês).
                               // CAIXA/NF liberam sempre.
                               const allowed =
                                 !isReservado &&
@@ -1216,17 +1216,18 @@ function ComissoesPage() {
                                       : isAssinado && mesOk
                                         ? "Solicitar adiantamento"
                                         : isAssinado && !mesOk
-                                          ? "Bloqueado (mín. 3 vendas/mês)"
+                                          ? "Bloqueado (mín. 2 vendas acumuladas)"
                                           : "Aguardando CAIXA";
                               const blockReason = isReservado
                                 ? "Venda reservada não permite solicitação."
                                 : hasPending
                                   ? "Já existe uma solicitação pendente para esta venda."
                                   : isAssinado && !mesOk && !jaTevePagamento
-                                    ? `Adiantamento bloqueado: você tem ${mesCount} venda(s) em ${ym} com sinal ≥ R$ 3.000. Mínimo: 3 vendas no mês com sinal ≥ R$ 3.000.`
+                                    ? `Adiantamento bloqueado: você possui ${mesCount} venda(s) acumulada(s) com sinal ≥ R$ 3.000. Mínimo: 2 vendas válidas acumuladas (qualquer mês).`
                                     : !allowed
                                       ? "Aguardando o Status da venda virar CAIXA (ou o financeiro solicitar a NF) para liberar nova solicitação."
                                       : "";
+                              void ym;
                               if (stUp === "DISTRATO") {
                                 return (
                                   <Badge
