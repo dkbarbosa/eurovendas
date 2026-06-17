@@ -1373,7 +1373,7 @@ function ComissoesPage() {
                         <p className="text-xs text-muted-foreground">Restante após este pedido: {BRL(maxReceber - valor)}</p>
                       )}
                       {reqForm.tipo === "adiantamento" && !isCaixa && !mesOk && (
-                        <p className="text-xs text-destructive">Adiantamento bloqueado: mínimo 3 vendas no mês com sinal ≥ R$ 3.000 (atual: {mesCount}).</p>
+                        <p className="text-xs text-destructive">Adiantamento bloqueado: mínimo 2 vendas válidas acumuladas com sinal ≥ R$ 3.000 (atual: {mesCount}).</p>
                       )}
                     </div>
                     <div className="space-y-1.5">
