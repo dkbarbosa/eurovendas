@@ -9,8 +9,8 @@ export type SyncState = "idle" | "syncing" | "ok" | "error";
 const INTERVAL_MS = 90_000;
 
 export function useLiveSync() {
-  const { isAdmin, isDiretor, isGerente, isFinanceiro, session } = useAuth();
-  const canSync = isAdmin || isDiretor || isGerente || isFinanceiro;
+  const { session } = useAuth();
+  const canSync = !!session;
   const qc = useQueryClient();
   const sync = useServerFn(syncFromSheets);
   const [state, setState] = useState<SyncState>("idle");
