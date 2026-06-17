@@ -233,7 +233,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Sheet>
 
             <div className="flex items-center gap-3 ml-auto">
-              {false && isAdmin && <LiveSyncBadge />}
+              {isAdmin && <LiveSyncBadge />}
               <Button
                 variant="ghost"
                 size="sm"
