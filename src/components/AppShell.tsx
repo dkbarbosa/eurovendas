@@ -25,6 +25,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { LiveSyncBadge } from "@/components/LiveSyncBadge";
+import { useLiveSync } from "@/hooks/use-live-sync";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import logoAsset from "@/assets/logo.png.asset.json";
 
