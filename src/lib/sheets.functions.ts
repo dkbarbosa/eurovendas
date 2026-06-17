@@ -46,20 +46,17 @@ async function assertAdmin(userId: string) {
 }
 
 async function assertCanSync(userId: string) {
-  const { data } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
-  const roles = (data ?? []).map((r) => r.role as string);
-  if (!roles.some((r) => ["admin", "diretor", "gerente", "financeiro"].includes(r))) {
-    throw new Response("Forbidden", { status: 403 });
-  }
+  // Qualquer usuário autenticado pode disparar a sincronização (operação
+  // somente leitura do Sheets + upsert idempotente). Garantimos apenas que
+  // exista um userId válido vindo do middleware de auth.
+  if (!userId) throw new Response("Forbidden", { status: 403 });
 }
 
 export const syncFromSheets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertCanSync(context.userId);
+
 
     try {
       // Idempotência: aborta se já há sync em andamento iniciado há < 5 minutos.
