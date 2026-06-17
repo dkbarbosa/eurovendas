@@ -1198,13 +1198,16 @@ function ComissoesPage() {
                               const ym = (s.data ?? "").slice(0, 7);
                               const mesOk = adiantamentoElegivel.ok;
                               const mesCount = adiantamentoElegivel.count;
+                              const sinalVenda = Number((s as { valor_sinal_negocio?: number | null }).valor_sinal_negocio) || 0;
+                              const sinalOk = sinalVenda >= 3000;
                               // Nova regra: ASSINADO só libera adiantamento se o corretor
-                              // tiver ≥ 2 vendas acumuladas com sinal ≥ R$ 3.000 (qualquer mês).
+                              // tiver ≥ 2 vendas acumuladas com sinal ≥ R$ 3.000 (qualquer mês)
+                              // E a própria venda também tiver sinal ≥ R$ 3.000.
                               // CAIXA/NF liberam sempre.
                               const allowed =
                                 !isReservado &&
                                 !hasPending &&
-                                (isCaixa || finSolicitou || (isAssinado && !jaTevePagamento && mesOk));
+                                (isCaixa || finSolicitou || (isAssinado && !jaTevePagamento && mesOk && sinalOk));
                               const label = isReservado
                                 ? "Reservado"
                                 : hasPending
@@ -1213,20 +1216,24 @@ function ComissoesPage() {
                                     ? "Solicitar pagamento"
                                     : jaTevePagamento
                                       ? "Aguardando CAIXA"
-                                      : isAssinado && mesOk
+                                      : isAssinado && mesOk && sinalOk
                                         ? "Solicitar adiantamento"
                                         : isAssinado && !mesOk
                                           ? "Bloqueado (mín. 2 vendas acumuladas)"
-                                          : "Aguardando CAIXA";
+                                          : isAssinado && !sinalOk
+                                            ? "Bloqueado (sinal < R$ 3.000)"
+                                            : "Aguardando CAIXA";
                               const blockReason = isReservado
                                 ? "Venda reservada não permite solicitação."
                                 : hasPending
                                   ? "Já existe uma solicitação pendente para esta venda."
                                   : isAssinado && !mesOk && !jaTevePagamento
                                     ? `Adiantamento bloqueado: você possui ${mesCount} venda(s) acumulada(s) com sinal ≥ R$ 3.000. Mínimo: 2 vendas válidas acumuladas (qualquer mês).`
-                                    : !allowed
-                                      ? "Aguardando o Status da venda virar CAIXA (ou o financeiro solicitar a NF) para liberar nova solicitação."
-                                      : "";
+                                    : isAssinado && !sinalOk && !jaTevePagamento
+                                      ? `Adiantamento bloqueado para esta venda: o sinal (R$ ${sinalVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}) é inferior ao mínimo de R$ 3.000,00.`
+                                      : !allowed
+                                        ? "Aguardando o Status da venda virar CAIXA (ou o financeiro solicitar a NF) para liberar nova solicitação."
+                                        : "";
                               void ym;
                               if (stUp === "DISTRATO") {
                                 return (
