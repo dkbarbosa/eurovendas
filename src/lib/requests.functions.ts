@@ -155,6 +155,12 @@ export const createCommissionRequest = createServerFn({ method: "POST" })
     // O corretor só pode solicitar adiantamento se tiver acumulado, em todo o
     // seu histórico, no mínimo 2 vendas com sinal de negócio ≥ R$ 3.000.
     if (data.tipo === "adiantamento" && statusUp !== "CAIXA") {
+      // Regra adicional: a própria venda precisa ter sinal ≥ R$ 3.000.
+      if (sinal < 3000) {
+        throw new Error(
+          `Adiantamento bloqueado para esta venda: sinal de ${fmt(sinal)} é inferior ao mínimo de R$ 3.000,00.`,
+        );
+      }
       const { data: allCorretorSales } = await supabaseAdmin
         .from("sales")
         .select("id,valor_sinal_negocio")
