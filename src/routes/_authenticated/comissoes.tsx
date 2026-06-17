@@ -1315,8 +1315,9 @@ function ComissoesPage() {
             const isCaixa = statusUp === "CAIXA";
             const isReservado = statusUp === "RESERVADO";
             const saleYm = (sale?.data ?? "").slice(0, 7);
-            const mesOk = saleYm ? adiantamentoMonthsOk.ok.has(saleYm) : false;
-            const mesCount = saleYm ? (adiantamentoMonthsOk.counts.get(saleYm) ?? 0) : 0;
+            const mesOk = adiantamentoElegivel.ok;
+            const mesCount = adiantamentoElegivel.count;
+            void saleYm;
             const ruleAdiantOk = isCaixa || reqForm.tipo !== "adiantamento" || mesOk;
             const ruleComissaoOk = isCaixa || reqForm.tipo !== "comissao_final" || valorVenda === 0 || sinal >= minSinalComissao;
             const ruleViolated = isReservado || !ruleAdiantOk || !ruleComissaoOk;
@@ -1339,17 +1340,17 @@ function ComissoesPage() {
                     {!isReservado && !isCaixa && (
                       <>
                         <div className="text-muted-foreground">
-                          • <b>Assinado:</b> adiantamento exige <b>mínimo de 3 vendas</b> no mês com{" "}
-                          <b>sinal ≥ R$ 3.000</b>. {saleYm && (
-                            <span className={mesOk ? "text-emerald-400" : "text-destructive"}>
-                              ({saleYm}: {mesCount} venda(s) elegível(eis))
-                            </span>
-                          )}
+                          • <b>Assinado:</b> adiantamento exige <b>mínimo de 2 vendas acumuladas</b> com{" "}
+                          <b>sinal ≥ R$ 3.000</b> (qualquer mês).{" "}
+                          <span className={mesOk ? "text-emerald-400" : "text-destructive"}>
+                            (você possui {mesCount} venda(s) válida(s))
+                          </span>
                         </div>
                         <div className="text-muted-foreground">• Comissão final exige sinal ≥ <b>6%</b> da venda{valorVenda > 0 ? <> (mín. <b>{BRL(minSinalComissao)}</b>)</> : null}.</div>
                       </>
                     )}
                   </div>
+
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
